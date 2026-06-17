@@ -2,6 +2,14 @@
 
 @section('title', $product->name . ' | el Craft')
 
+@section('meta_description', Str::limit(strip_tags($product->description ?? 'Beli ' . $product->name . ' di el Craft. Aksesoris wanita premium dengan kualitas terbaik dan harga terjangkau.'), 160))
+
+@section('og_type', 'product')
+
+@if($product->primary_image)
+    @section('og_image', $product->primary_image)
+@endif
+
 @section('content')
 <div x-data="{
     activeTab: 'desc',

@@ -2,6 +2,8 @@
 
 @section('title', 'Keranjang Belanja | el Craft')
 
+@section('meta_description', 'Lihat keranjang belanja Anda di el Craft. Kelola produk pilihan dan lanjutkan ke pembayaran yang aman.')
+
 @section('content')
 <div x-data="cartPage({{ $cart->getTotalPrice() }}, {{ json_encode($cart->items->map(function($item) {
     return [

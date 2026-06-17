@@ -6,6 +6,22 @@
     <meta name="csrf-token" content="{{ csrf_token() }}"/>
     <title>@yield('title', 'el Craft | Timeless Elegance & Premium Accessories')</title>
 
+    {{-- SEO Meta Tags --}}
+    <meta name="description" content="@yield('meta_description', 'el Craft menyediakan koleksi aksesoris wanita premium — gelang, kalung, cincin, anting, dan bros berkualitas tinggi dengan desain elegan dan harga terjangkau.')"/>
+    <meta name="keywords" content="@yield('meta_keywords', 'aksesoris wanita, gelang, kalung, cincin, anting, bros, perhiasan, el Craft, aksesoris premium, hadiah wanita')"/>
+    <meta name="robots" content="index, follow"/>
+    <link rel="canonical" href="{{ url()->current() }}"/>
+
+    {{-- Open Graph Meta Tags --}}
+    <meta property="og:title" content="@yield('title', 'el Craft | Timeless Elegance & Premium Accessories')"/>
+    <meta property="og:description" content="@yield('meta_description', 'el Craft menyediakan koleksi aksesoris wanita premium — gelang, kalung, cincin, anting, dan bros berkualitas tinggi dengan desain elegan dan harga terjangkau.')"/>
+    <meta property="og:type" content="@yield('og_type', 'website')"/>
+    <meta property="og:url" content="{{ url()->current() }}"/>
+    <meta property="og:site_name" content="el Craft"/>
+    @hasSection('og_image')
+        <meta property="og:image" content="@yield('og_image')"/>
+    @endif
+
     <!-- Google Fonts: Inter (font utama) + Material Symbols (ikon) -->
     <!-- Preconnect untuk mempercepat resolusi DNS ke server Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com"/>

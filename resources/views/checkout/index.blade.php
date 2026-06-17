@@ -2,6 +2,8 @@
 
 @section('title', 'Checkout | el Craft')
 
+@section('meta_description', 'Selesaikan pembelian aksesoris premium Anda di el Craft. Pembayaran aman dan pengiriman cepat ke seluruh Indonesia.')
+
 @section('content')
 <div class="pb-24 md:pb-0 bg-warmCream min-h-screen">
 

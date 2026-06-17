@@ -2,6 +2,8 @@
 
 @section('title', 'Koleksi Aksesoris el Craft | Timeless Elegance')
 
+@section('meta_description', 'Jelajahi koleksi lengkap aksesoris wanita el Craft. Filter berdasarkan kategori, harga, dan popularitas. Temukan gelang, kalung, cincin, anting, dan bros premium.')
+
 @section('content')
 <div x-data="{ mobileFilterOpen: false }" @pageshow.window="mobileFilterOpen = false">
     <!-- Breadcrumb & Header Section -->

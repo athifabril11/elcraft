@@ -2,6 +2,8 @@
 
 @section('title', 'el Craft | Timeless Elegance & Premium Accessories')
 
+@section('meta_description', 'Temukan koleksi aksesoris wanita premium di el Craft — gelang, kalung, cincin, anting, dan bros dengan desain elegan. Gratis ongkir dan garansi keaslian produk.')
+
 @section('content')
     <!-- 2. HERO SECTION (Auto-Sliding Banner) -->
     <section x-data="{
