@@ -70,10 +70,39 @@
                     <span class="absolute -top-0.5 -right-0.5 bg-brand text-white text-[9px] font-semibold w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300" x-show="cartCount > 0" x-text="cartCount" x-cloak>0</span>
                 </a>
                 
-                <!-- User Profile Icon (Desktop Only) -->
-                <a href="/dashboard" class="hidden md:flex text-warmBlack hover:text-brand transition-colors duration-200 p-1.5 items-center justify-center" aria-label="User Profile">
-                    <span class="material-symbols-outlined !text-[24px]">person</span>
-                </a>
+                {{-- User Profile Icon (Desktop Only) — links to Order History --}}
+                <div class="hidden md:flex items-center relative" x-data="{ profileOpen: false }">
+                    <button @click="profileOpen = !profileOpen" class="text-warmBlack hover:text-brand transition-colors duration-200 p-1.5 flex items-center justify-center" aria-label="User menu" aria-haspopup="true">
+                        <span class="material-symbols-outlined !text-[24px]">person</span>
+                    </button>
+                    @auth
+                    <div x-show="profileOpen" @click.outside="profileOpen = false" x-cloak
+                        class="absolute right-0 top-full mt-2 w-44 bg-white border border-warmLightGrey rounded-card shadow-md py-1 z-50">
+                        <a href="{{ route('orders.index') }}" class="flex items-center gap-2 px-4 py-2.5 text-xs text-warmBlack hover:bg-warmCream hover:text-brand transition-colors">
+                            <span class="material-symbols-outlined !text-[16px]">receipt_long</span> Pesanan Saya
+                        </a>
+                        <a href="{{ route('profile.addresses') }}" class="flex items-center gap-2 px-4 py-2.5 text-xs text-warmBlack hover:bg-warmCream hover:text-brand transition-colors">
+                            <span class="material-symbols-outlined !text-[16px]">location_on</span> Alamat Saya
+                        </a>
+                        <a href="{{ route('profile.edit') }}" class="flex items-center gap-2 px-4 py-2.5 text-xs text-warmBlack hover:bg-warmCream hover:text-brand transition-colors">
+                            <span class="material-symbols-outlined !text-[16px]">manage_accounts</span> Profil
+                        </a>
+                        <div class="border-t border-warmLightGrey/60 my-1"></div>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="w-full flex items-center gap-2 px-4 py-2.5 text-xs text-red-500 hover:bg-red-50 transition-colors">
+                                <span class="material-symbols-outlined !text-[16px]">logout</span> Keluar
+                            </button>
+                        </form>
+                    </div>
+                    @else
+                    <div x-show="profileOpen" @click.outside="profileOpen = false" x-cloak
+                        class="absolute right-0 top-full mt-2 w-36 bg-white border border-warmLightGrey rounded-card shadow-md py-1 z-50">
+                        <a href="/login" class="block px-4 py-2.5 text-xs text-warmBlack hover:bg-warmCream hover:text-brand transition-colors">Masuk</a>
+                        <a href="/register" class="block px-4 py-2.5 text-xs text-warmBlack hover:bg-warmCream hover:text-brand transition-colors">Daftar</a>
+                    </div>
+                    @endauth
+                </div>
                 
                 <!-- Hamburger Menu Trigger (Mobile Only) -->
                 <button @click="toggleMobileMenu()" class="md:hidden text-warmBlack hover:text-brand transition-colors duration-200 p-1.5 flex items-center justify-center" aria-label="Menu">
@@ -121,7 +150,13 @@
             
             @auth
                 <div class="border-t border-warmLightGrey pt-6 flex flex-col space-y-3">
-                    <a href="/dashboard" class="w-full text-center py-2.5 bg-brand text-white font-semibold text-sm rounded-btn hover:bg-brandDark transition-colors duration-200">Dashboard</a>
+                    <a href="{{ route('orders.index') }}" class="w-full flex items-center gap-2 py-2.5 text-sm text-warmBlack hover:text-brand font-medium transition-colors">
+                        <span class="material-symbols-outlined !text-[18px]">receipt_long</span> Pesanan Saya
+                    </a>
+                    <a href="{{ route('profile.addresses') }}" class="w-full flex items-center gap-2 py-2.5 text-sm text-warmBlack hover:text-brand font-medium transition-colors">
+                        <span class="material-symbols-outlined !text-[18px]">location_on</span> Alamat Saya
+                    </a>
+                    <a href="{{ route('profile.edit') }}" class="w-full text-center py-2.5 bg-brand text-white font-semibold text-sm rounded-btn hover:bg-brandDark transition-colors duration-200">Profil</a>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit" class="w-full text-center py-2.5 border border-brand text-brand font-semibold text-sm rounded-btn hover:bg-warmCream transition-colors duration-200">Keluar</button>

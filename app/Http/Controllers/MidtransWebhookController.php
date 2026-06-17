@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\VoucherUsage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -122,6 +123,16 @@ class MidtransWebhookController extends Controller
                             $product->decrement('stock', $item->quantity);
                         }
                     }
+                }
+
+                // Catat penggunaan voucher jika ada
+                if ($order->voucher_id) {
+                    VoucherUsage::firstOrCreate([
+                        'voucher_id' => $order->voucher_id,
+                        'user_id'    => $order->user_id,
+                        'order_id'   => $order->id,
+                    ]);
+                    $order->voucher()->increment('used_count');
                 }
             });
         }

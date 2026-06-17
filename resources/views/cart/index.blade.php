@@ -156,7 +156,9 @@
 
     </section>
 </div>
+@endsection
 
+@push('scripts')
 <script>
     document.addEventListener('alpine:init', () => {
         Alpine.data('cartPage', (initialCartTotal, initialItems) => ({
@@ -261,4 +263,4 @@
         }));
     });
 </script>
-@endsection
+@endpush

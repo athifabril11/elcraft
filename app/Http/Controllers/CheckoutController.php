@@ -8,6 +8,7 @@ use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\Address;
 use App\Models\Payment;
+use App\Models\Voucher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Http\JsonResponse;
@@ -57,11 +58,12 @@ class CheckoutController extends Controller
             ];
         })->toArray();
 
-        $subtotal = $cart->getTotalPrice();
-        $shipping = 0; // Ongkos Kirim gratis
-        $total    = $subtotal + $shipping;
+        $subtotal  = $cart->getTotalPrice();
+        $shipping  = 0; // Ongkos Kirim gratis
+        $total     = $subtotal + $shipping;
+        $addresses = $request->user()->addresses()->orderByDesc('is_default')->get();
 
-        return view('checkout.index', compact('cartItems', 'subtotal', 'shipping', 'total'));
+        return view('checkout.index', compact('cartItems', 'subtotal', 'shipping', 'total', 'addresses'));
     }
 
     /**
@@ -74,12 +76,13 @@ class CheckoutController extends Controller
     public function createSnapToken(Request $request): JsonResponse
     {
         $request->validate([
-            'recipient_name' => 'required|string|max:255',
+            'recipient_name'  => 'required|string|max:255',
             'recipient_phone' => 'required|string|max:50',
-            'full_address' => 'required|string',
-            'city' => 'required|string|max:100',
-            'postal_code' => 'required|string|max:10',
-            'notes' => 'nullable|string',
+            'full_address'    => 'required|string',
+            'city'            => 'required|string|max:100',
+            'postal_code'     => 'required|string|max:10',
+            'notes'           => 'nullable|string',
+            'voucher_code'    => 'nullable|string|max:50',
         ]);
 
         $user = $request->user();
@@ -124,24 +127,36 @@ class CheckoutController extends Controller
                 );
 
                 // 4. Susun data pesanan menggunakan data valid dari database
-                $orderId = 'ELCRAFT-' . strtoupper(Str::random(8)) . '-' . time();
+                $orderId  = 'ELCRAFT-' . strtoupper(Str::random(8)) . '-' . time();
                 $subtotal = $cart->getTotalPrice();
                 $shipping = 0;
-                $total = $subtotal + $shipping;
+
+                // Terapkan voucher jika ada
+                $voucherDiscount = 0;
+                $voucherId       = null;
+                if ($request->filled('voucher_code')) {
+                    $voucher = Voucher::where('code', strtoupper(trim($request->voucher_code)))->first();
+                    if ($voucher && $voucher->isValid((float) $subtotal)) {
+                        $voucherDiscount = $voucher->calculateDiscount((float) $subtotal);
+                        $voucherId       = $voucher->id;
+                    }
+                }
+
+                $total = $subtotal + $shipping - $voucherDiscount;
 
                 // Simpan Order
                 $order = Order::create([
-                    'order_number' => $orderId,
-                    'user_id' => $user->id,
-                    'address_id' => $address->id,
-                    'voucher_id' => null,
-                    'subtotal' => $subtotal,
-                    'discount_amount' => 0,
-                    'voucher_discount' => 0,
-                    'shipping_cost' => $shipping,
-                    'total_amount' => $total,
-                    'status' => 'pending',
-                    'notes' => $request->notes,
+                    'order_number'     => $orderId,
+                    'user_id'          => $user->id,
+                    'address_id'       => $address->id,
+                    'voucher_id'       => $voucherId,
+                    'subtotal'         => $subtotal,
+                    'discount_amount'  => 0,
+                    'voucher_discount' => $voucherDiscount,
+                    'shipping_cost'    => $shipping,
+                    'total_amount'     => max(0, $total),
+                    'status'           => 'pending',
+                    'notes'            => $request->notes,
                 ]);
 
                 // Simpan Order Items

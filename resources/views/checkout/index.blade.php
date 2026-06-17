@@ -46,7 +46,38 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
             {{-- ── KIRI: Form Alamat Pengiriman ──────────────────── --}}
-            <div class="lg:col-span-2 space-y-6">
+            <div class="lg:col-span-2 space-y-6" x-data="checkoutPage({{ $subtotal }})">
+
+                {{-- Pilih Alamat Tersimpan (jika ada) --}}
+                @if($addresses->isNotEmpty())
+                <div class="bg-white rounded-card border border-warmLightGrey p-6">
+                    <h2 class="text-base font-semibold text-warmBlack mb-4 flex items-center space-x-2">
+                        <span class="material-symbols-outlined text-brand !text-[20px]">bookmark</span>
+                        <span>Pilih Alamat Tersimpan</span>
+                    </h2>
+                    <div class="space-y-3">
+                        @foreach($addresses as $addr)
+                        <label class="flex items-start gap-3 cursor-pointer p-3 rounded-card border border-warmLightGrey hover:border-brand/50 transition-colors has-[:checked]:border-brand has-[:checked]:bg-brand/5">
+                            <input type="radio" name="saved_address" value="{{ $addr->id }}"
+                                class="mt-0.5 text-brand focus:ring-brand border-warmGrey/40"
+                                x-on:change="fillAddress({{ json_encode(['name' => $addr->recipient_name, 'phone' => $addr->phone, 'address' => $addr->full_address, 'city' => $addr->city, 'postal' => $addr->postal_code]) }})"
+                                {{ $addr->is_default ? 'checked' : '' }}>
+                            <div class="flex-1 min-w-0">
+                                <span class="text-xs font-semibold text-warmBlack">{{ $addr->label }}</span>
+                                @if($addr->is_default)
+                                    <span class="ml-2 text-[10px] font-semibold text-brand bg-brand/10 px-1.5 py-0.5 rounded-full">Utama</span>
+                                @endif
+                                <p class="text-[11px] text-warmGrey mt-0.5 leading-relaxed">{{ $addr->recipient_name }} · {{ $addr->phone }}</p>
+                                <p class="text-[11px] text-warmGrey truncate">{{ $addr->full_address }}, {{ $addr->city }}, {{ $addr->postal_code }}</p>
+                            </div>
+                        </label>
+                        @endforeach
+                        <a href="{{ route('profile.addresses') }}" class="text-xs text-brand hover:text-brandDark font-medium flex items-center gap-1 mt-1">
+                            <span class="material-symbols-outlined !text-[14px]">add</span> Kelola buku alamat
+                        </a>
+                    </div>
+                </div>
+                @endif
 
                 {{-- Informasi Pengiriman --}}
                 <div class="bg-white rounded-card border border-warmLightGrey p-6">
@@ -64,7 +95,7 @@
                                 <input
                                     id="recipient-name"
                                     type="text"
-                                    value="{{ auth()->user()->name }}"
+                                    value="{{ $addresses->firstWhere('is_default', true)->recipient_name ?? auth()->user()->name }}"
                                     required
                                     class="w-full border border-warmLightGrey rounded-btn text-sm text-warmBlack px-3 py-2.5 focus:border-brand focus:ring-0 outline-none transition-colors"
                                     placeholder="Nama lengkap penerima"
@@ -77,6 +108,7 @@
                                 <input
                                     id="recipient-phone"
                                     type="tel"
+                                    value="{{ $addresses->firstWhere('is_default', true)->phone ?? '' }}"
                                     required
                                     class="w-full border border-warmLightGrey rounded-btn text-sm text-warmBlack px-3 py-2.5 focus:border-brand focus:ring-0 outline-none transition-colors"
                                     placeholder="08xxxxxxxxxx"
@@ -94,7 +126,7 @@
                                 required
                                 class="w-full border border-warmLightGrey rounded-btn text-sm text-warmBlack px-3 py-2.5 focus:border-brand focus:ring-0 outline-none transition-colors resize-none"
                                 placeholder="Nama jalan, nomor rumah, RT/RW, Kelurahan, Kecamatan"
-                                aria-required="true"></textarea>
+                                aria-required="true">{{ $addresses->firstWhere('is_default', true)->full_address ?? '' }}</textarea>
                         </div>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -105,6 +137,7 @@
                                 <input
                                     id="recipient-city"
                                     type="text"
+                                    value="{{ $addresses->firstWhere('is_default', true)->city ?? '' }}"
                                     required
                                     class="w-full border border-warmLightGrey rounded-btn text-sm text-warmBlack px-3 py-2.5 focus:border-brand focus:ring-0 outline-none transition-colors"
                                     placeholder="Nama kota"
@@ -118,6 +151,7 @@
                                     id="recipient-postal"
                                     type="text"
                                     maxlength="5"
+                                    value="{{ $addresses->firstWhere('is_default', true)->postal_code ?? '' }}"
                                     required
                                     class="w-full border border-warmLightGrey rounded-btn text-sm text-warmBlack px-3 py-2.5 focus:border-brand focus:ring-0 outline-none transition-colors"
                                     placeholder="Contoh: 12345"
@@ -139,6 +173,38 @@
                         class="w-full border border-warmLightGrey rounded-btn text-sm text-warmBlack px-3 py-2.5 focus:border-brand focus:ring-0 outline-none transition-colors resize-none"
                         placeholder="Misal: warna, ukuran khusus, permintaan gift wrap, dll."
                         aria-label="Catatan untuk penjual"></textarea>
+                </div>
+
+                {{-- Kode Voucher --}}
+                <div class="bg-white rounded-card border border-warmLightGrey p-6">
+                    <h2 class="text-base font-semibold text-warmBlack mb-4 flex items-center space-x-2">
+                        <span class="material-symbols-outlined text-brand !text-[20px]">local_offer</span>
+                        <span>Kode Voucher / Promo</span>
+                    </h2>
+                    <div class="flex gap-2">
+                        <input id="voucher-code" type="text" x-model="voucherCode"
+                            placeholder="Masukkan kode voucher"
+                            class="flex-1 border border-warmLightGrey rounded-btn text-sm text-warmBlack px-3 py-2.5 focus:border-brand focus:ring-0 outline-none transition-colors uppercase"
+                            :disabled="voucherApplied"
+                            aria-label="Kode voucher">
+                        <button type="button"
+                            x-show="!voucherApplied"
+                            @click="applyVoucher()"
+                            :disabled="!voucherCode.trim() || voucherLoading"
+                            class="px-4 py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5">
+                            <span x-show="voucherLoading" class="material-symbols-outlined !text-[14px] animate-spin">sync</span>
+                            <span x-text="voucherLoading ? 'Memeriksa...' : 'Terapkan'"></span>
+                        </button>
+                        <button type="button"
+                            x-show="voucherApplied"
+                            @click="removeVoucher()"
+                            class="px-4 py-2.5 border border-red-300 text-red-500 hover:bg-red-50 font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors">
+                            Hapus
+                        </button>
+                    </div>
+                    <p x-show="voucherMessage" x-text="voucherMessage" x-cloak
+                        :class="voucherApplied ? 'text-green-600' : 'text-red-500'"
+                        class="text-xs mt-2 font-medium"></p>
                 </div>
 
                 {{-- !! PENTING: TIDAK ADA FIELD KARTU KREDIT DI SINI !! --}}
@@ -188,10 +254,14 @@
                     @endif
 
                     {{-- Baris Harga --}}
-                    <div class="border-t border-warmLightGrey pt-4 space-y-2.5">
+                    <div class="border-t border-warmLightGrey pt-4 space-y-2.5" x-data="checkoutPage({{ $subtotal }})">
                         <div class="flex justify-between text-xs text-warmGrey">
                             <span>Subtotal</span>
-                            <span id="checkout-subtotal">@rupiah($subtotal)</span>
+                            <span>@rupiah($subtotal)</span>
+                        </div>
+                        <div x-show="voucherDiscount > 0" class="flex justify-between text-xs text-green-600 font-medium">
+                            <span>Diskon Voucher</span>
+                            <span>- <span x-text="formatRupiah(voucherDiscount)"></span></span>
                         </div>
                         <div class="flex justify-between text-xs text-warmGrey">
                             <span>Ongkos Kirim</span>
@@ -205,7 +275,7 @@
                         </div>
                         <div class="flex justify-between text-sm font-semibold text-warmBlack border-t border-warmLightGrey pt-3">
                             <span>Total Pembayaran</span>
-                            <span id="checkout-total" class="text-brand">@rupiah($total)</span>
+                            <span class="text-brand" x-text="formatRupiah(Math.max(0, subtotal - voucherDiscount + {{ $shipping }}))">@rupiah($total)</span>
                         </div>
                     </div>
 
@@ -258,6 +328,75 @@
 
 <script>
     /**
+     * checkoutPage — Alpine.js component
+     * Mengelola: auto-fill alamat dari buku alamat, voucher AJAX, dan live total.
+     */
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('checkoutPage', (initialSubtotal) => ({
+            subtotal: initialSubtotal,
+            voucherCode: '',
+            voucherApplied: false,
+            voucherDiscount: 0,
+            voucherMessage: '',
+            voucherLoading: false,
+
+            formatRupiah(amount) {
+                return 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.round(amount));
+            },
+
+            fillAddress(data) {
+                document.getElementById('recipient-name').value    = data.name   || '';
+                document.getElementById('recipient-phone').value   = data.phone  || '';
+                document.getElementById('recipient-address').value = data.address || '';
+                document.getElementById('recipient-city').value    = data.city   || '';
+                document.getElementById('recipient-postal').value  = data.postal || '';
+            },
+
+            async applyVoucher() {
+                if (!this.voucherCode.trim()) return;
+                this.voucherLoading = true;
+                this.voucherMessage = '';
+
+                try {
+                    const res = await fetch('{{ route("voucher.apply") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        },
+                        body: JSON.stringify({
+                            code: this.voucherCode.trim(),
+                            subtotal: this.subtotal,
+                        }),
+                    });
+                    const data = await res.json();
+
+                    if (data.valid) {
+                        this.voucherApplied  = true;
+                        this.voucherDiscount = data.discount_amount;
+                        this.voucherMessage  = data.message;
+                    } else {
+                        this.voucherApplied  = false;
+                        this.voucherDiscount = 0;
+                        this.voucherMessage  = data.message;
+                    }
+                } catch (err) {
+                    this.voucherMessage = 'Gagal menghubungi server. Silakan coba lagi.';
+                } finally {
+                    this.voucherLoading = false;
+                }
+            },
+
+            removeVoucher() {
+                this.voucherCode     = '';
+                this.voucherApplied  = false;
+                this.voucherDiscount = 0;
+                this.voucherMessage  = '';
+            },
+        }));
+    });
+
+    /**
      * initiatePayment — Alur pembayaran PCI-DSS compliant
      *
      * 1. Request Snap Token ke server kita (POST /checkout/token)
@@ -276,12 +415,16 @@
             return;
         }
 
-        const name = document.getElementById('recipient-name').value;
-        const phone = document.getElementById('recipient-phone').value;
+        const name    = document.getElementById('recipient-name').value;
+        const phone   = document.getElementById('recipient-phone').value;
         const address = document.getElementById('recipient-address').value;
-        const city = document.getElementById('recipient-city').value;
-        const postal = document.getElementById('recipient-postal').value;
-        const notes = document.getElementById('order-notes').value;
+        const city    = document.getElementById('recipient-city').value;
+        const postal  = document.getElementById('recipient-postal').value;
+        const notes   = document.getElementById('order-notes').value;
+
+        // Ambil voucher code dari Alpine state jika ada
+        const voucherInput = document.getElementById('voucher-code');
+        const voucherCode  = voucherInput ? voucherInput.value.trim() : '';
 
         try {
             // Ambil Snap Token dari server (dibuat oleh MidtransService)
@@ -292,12 +435,13 @@
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                 },
                 body: JSON.stringify({
-                    recipient_name: name,
+                    recipient_name:  name,
                     recipient_phone: phone,
-                    full_address: address,
-                    city: city,
-                    postal_code: postal,
-                    notes: notes,
+                    full_address:    address,
+                    city:            city,
+                    postal_code:     postal,
+                    notes:           notes,
+                    voucher_code:    voucherCode || null,
                 }),
             });
 
@@ -311,11 +455,9 @@
             // Buka popup Midtrans Snap — pengguna mengisi data pembayaran di sini
             window.snap.pay(snap_token, {
                 onSuccess: (result) => {
-                    // Redirect ke halaman konfirmasi berhasil
                     window.location.href = `{{ route('checkout.finish') }}?order_id=${result.order_id}&transaction_status=${result.transaction_status}`;
                 },
                 onPending: (result) => {
-                    // Instruksikan pengguna untuk menyelesaikan pembayaran
                     window.location.href = `{{ route('checkout.finish') }}?order_id=${result.order_id}&transaction_status=pending`;
                 },
                 onError: (result) => {
@@ -323,7 +465,6 @@
                     window.location.href = '{{ route("checkout.error") }}';
                 },
                 onClose: () => {
-                    // Pengguna menutup popup tanpa menyelesaikan pembayaran
                     btn.disabled = false;
                     btn.innerHTML = `<span class="material-symbols-outlined !text-[20px]">lock</span><span>Bayar Sekarang</span>`;
                 },
