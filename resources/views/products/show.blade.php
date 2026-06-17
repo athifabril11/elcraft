@@ -3,7 +3,89 @@
 @section('title', $product->name . ' | el Craft')
 
 @section('content')
-<div class="pb-24 md:pb-0">
+<div x-data="{
+    activeTab: 'desc',
+    qty: 1,
+    maxStock: {{ $product->stock }},
+    selectedImage: '{{ $product->primary_image ?? 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop' }}',
+    selectedVariants: {},
+    basePrice: {{ $product->final_price }},
+    additionalPrice: 0,
+    isAdding: false,
+    
+    changeQty(delta) {
+        this.qty = Math.max(1, Math.min(this.maxStock, this.qty + delta));
+    },
+    selectVariant(type, name, addPrice, stock, id) {
+        this.selectedVariants[type] = { name, addPrice, stock, id };
+        this.recalcPrice();
+    },
+    recalcPrice() {
+        this.additionalPrice = Object.values(this.selectedVariants).reduce((sum, v) => sum + v.addPrice, 0);
+        const stocks = Object.values(this.selectedVariants).map(v => v.stock);
+        this.maxStock = stocks.length > 0 ? Math.min(...stocks) : {{ $product->stock }};
+        if (this.qty > this.maxStock) this.qty = this.maxStock;
+    },
+    getTotalPrice() {
+        return this.basePrice + this.additionalPrice;
+    },
+    formatRupiah(amount) {
+        return 'Rp ' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
+    },
+    handleAddToCart() {
+        const requiredCount = {{ count($variantGroups ?? []) }};
+        if (Object.keys(this.selectedVariants).length < requiredCount) {
+            if (window.showToast) {
+                window.showToast('Silakan pilih varian produk terlebih dahulu.', 'error');
+            }
+            return;
+        }
+
+        const variantId = requiredCount > 0 ? Object.values(this.selectedVariants)[0]?.id : null;
+        this.isAdding = true;
+
+        fetch('/cart/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                product_id: '{{ $product->id }}',
+                variant_id: variantId,
+                quantity: this.qty
+            })
+        })
+        .then(res => {
+            if (res.status === 401) {
+                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                return;
+            }
+            if (!res.ok) {
+                return res.json().then(err => { throw new Error(err.message || 'Gagal menambahkan produk.'); });
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (data && data.success) {
+                if (window.updateCartBadge) {
+                    window.updateCartBadge(data.cart_count);
+                }
+                if (window.showToast) {
+                    window.showToast(data.message, 'success');
+                }
+            }
+        })
+        .catch(err => {
+            if (window.showToast) {
+                window.showToast(err.message || 'Gagal menambahkan produk.', 'error');
+            }
+        })
+        .finally(() => {
+            this.isAdding = false;
+        });
+    }
+}" class="pb-24 md:pb-0">
 
     {{-- ─── PRODUCT MAIN SECTION ───────────────── --}}
     <section class="bg-white py-10 px-5 md:px-8 lg:px-16">
@@ -15,10 +97,10 @@
                 {{-- Thumbnail Strip --}}
                 <div class="flex md:flex-col gap-3 overflow-x-auto md:overflow-y-auto md:max-h-[520px] hide-scrollbar">
                     @forelse($product->images as $i => $img)
-                        <button onclick="selectImage('{{ $img->image_url }}', this)"
-                            data-thumb="{{ $img->image_url }}"
+                        <button @click="selectedImage = '{{ $img->image_url }}'"
                             aria-label="Tampilkan foto produk {{ $i + 1 }}"
-                            class="thumb-btn flex-shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-img overflow-hidden border-2 {{ $i === 0 ? 'border-brand' : 'border-warmLightGrey hover:border-brand/50' }} transition-all duration-200 bg-warmCream">
+                            class="thumb-btn flex-shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-img overflow-hidden border-2 transition-all duration-200 bg-warmCream"
+                            :class="selectedImage === '{{ $img->image_url }}' ? 'border-brand' : 'border-warmLightGrey hover:border-brand/50'">
                             <img src="{{ $img->image_url }}" alt="Thumbnail {{ $i + 1 }}" class="w-full h-full object-cover">
                         </button>
                     @empty
@@ -30,8 +112,7 @@
 
                 {{-- Main Image --}}
                 <div class="flex-1 relative aspect-square rounded-img overflow-hidden bg-warmCream border border-warmLightGrey/50 group">
-                    <img id="main-product-image"
-                        src="{{ $product->primary_image ?? 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop' }}"
+                    <img :src="selectedImage"
                         alt="{{ $product->name }}"
                         class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
 
@@ -93,13 +174,13 @@
                     </div>
                     <span class="text-sm font-semibold text-warmBlack">{{ number_format($avgRating, 1) }}</span>
                     <span class="text-xs text-warmGrey">({{ $product->reviews->count() }} ulasan)</span>
-                    <a href="#reviews" class="text-xs text-brand hover:text-brandDark underline underline-offset-2 transition-colors">Lihat ulasan</a>
+                    <a href="#reviews" @click.prevent="activeTab = 'review'; document.getElementById('reviews').scrollIntoView({ behavior: 'smooth' })" class="text-xs text-brand hover:text-brandDark underline underline-offset-2 transition-colors">Lihat ulasan</a>
                 </div>
 
                 {{-- Price Block --}}
                 <div class="flex items-end space-x-3 py-4 border-t border-b border-warmLightGrey/70">
                     @if($product->isDiscountActive())
-                        <span class="text-3xl font-semibold text-warmBlack">
+                        <span class="text-3xl font-semibold text-warmBlack" x-text="formatRupiah(getTotalPrice())">
                             @rupiah($product->final_price)
                         </span>
                         <div class="flex flex-col">
@@ -107,7 +188,7 @@
                             <span class="text-xs font-semibold text-brand">Hemat @rupiah($product->price - $product->final_price)</span>
                         </div>
                     @else
-                        <span class="text-3xl font-semibold text-warmBlack">
+                        <span class="text-3xl font-semibold text-warmBlack" x-text="formatRupiah(getTotalPrice())">
                             @rupiah($product->price)
                         </span>
                     @endif
@@ -121,17 +202,14 @@
                     @foreach($variantGroups as $type => $variants)
                         <div>
                             <label class="text-xs font-semibold uppercase tracking-wider text-warmGrey block mb-3">
-                                Pilih {{ $type }}: <span id="selected-{{ Str::slug($type) }}" class="text-warmBlack normal-case capitalize font-medium ml-1"></span>
+                                Pilih {{ $type }}: <span class="text-warmBlack normal-case capitalize font-medium ml-1" x-text="selectedVariants['{{ $type }}']?.name || ''"></span>
                             </label>
-                            <div class="flex flex-wrap gap-2" id="variant-group-{{ Str::slug($type) }}">
+                            <div class="flex flex-wrap gap-2">
                                 @foreach($variants as $v)
                                     <button type="button"
-                                        onclick="selectVariant(this, '{{ $type }}', '{{ $v->variant_name }}', {{ $v->additional_price }}, {{ $v->stock }})"
-                                        data-variant-type="{{ $type }}"
-                                        data-variant-name="{{ $v->variant_name }}"
-                                        data-additional-price="{{ $v->additional_price }}"
-                                        data-stock="{{ $v->stock }}"
-                                        class="variant-btn px-4 py-2 border border-warmLightGrey rounded-btn text-xs font-medium text-warmBlack hover:border-brand hover:text-brand transition-all duration-150 {{ $v->stock === 0 ? 'opacity-40 cursor-not-allowed line-through' : '' }}"
+                                        @click="selectVariant('{{ $type }}', '{{ $v->variant_name }}', {{ $v->additional_price }}, {{ $v->stock }}, {{ $v->id }})"
+                                        class="variant-btn px-4 py-2 border rounded-btn text-xs font-medium transition-all duration-150 {{ $v->stock === 0 ? 'opacity-40 cursor-not-allowed line-through' : '' }}"
+                                        :class="selectedVariants['{{ $type }}']?.name === '{{ $v->variant_name }}' ? 'border-brand text-brand bg-brand/5' : 'border-warmLightGrey text-warmBlack hover:border-brand hover:text-brand'"
                                         {{ $v->stock === 0 ? 'disabled' : '' }}>
                                         {{ $v->variant_name }}
                                         @if($v->additional_price > 0)
@@ -148,23 +226,24 @@
                 <div class="flex flex-col sm:flex-row gap-3 pt-2">
                     {{-- Qty Selector --}}
                     <div class="flex items-center border border-warmLightGrey rounded-btn overflow-hidden">
-                        <button onclick="changeQty(-1)" aria-label="Kurangi jumlah" class="w-10 h-11 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-r border-warmLightGrey">
+                        <button @click="changeQty(-1)" aria-label="Kurangi jumlah" class="w-10 h-11 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-r border-warmLightGrey">
                             <span class="material-symbols-outlined !text-[18px]">remove</span>
                         </button>
-                        <input id="qty-input" type="number" value="1" min="1" max="{{ $product->stock }}" aria-label="Jumlah beli"
+                        <input type="number" x-model.number="qty" readonly min="1" :max="maxStock" aria-label="Jumlah beli"
                             class="w-12 h-11 text-center text-sm font-semibold text-warmBlack border-none outline-none focus:ring-0 bg-white">
-                        <button onclick="changeQty(1)" aria-label="Tambah jumlah" class="w-10 h-11 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-l border-warmLightGrey">
+                        <button @click="changeQty(1)" aria-label="Tambah jumlah" class="w-10 h-11 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-l border-warmLightGrey">
                             <span class="material-symbols-outlined !text-[18px]">add</span>
                         </button>
                     </div>
 
                     {{-- Add to Cart --}}
-                    <button onclick="handleAddToCart()"
-                        id="atc-btn"
-                        class="flex-1 py-3 bg-brand hover:bg-brandDark text-white font-semibold text-sm uppercase tracking-widest rounded-btn transition-colors duration-200 flex items-center justify-center space-x-2 {{ $product->stock === 0 ? 'opacity-50 cursor-not-allowed' : '' }}"
-                        {{ $product->stock === 0 ? 'disabled' : '' }}>
-                        <span class="material-symbols-outlined !text-[20px]">shopping_bag</span>
-                        <span>{{ $product->stock === 0 ? 'Habis Terjual' : 'Tambah ke Keranjang' }}</span>
+                    <button @click="handleAddToCart()"
+                        class="flex-1 py-3 bg-brand hover:bg-brandDark text-white font-semibold text-sm uppercase tracking-widest rounded-btn transition-colors duration-200 flex items-center justify-center space-x-2"
+                        :class="maxStock === 0 || isAdding ? 'opacity-50 cursor-not-allowed' : ''"
+                        :disabled="maxStock === 0 || isAdding">
+                        <span x-show="isAdding" x-cloak class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                        <span x-show="!isAdding" class="material-symbols-outlined !text-[20px]">shopping_bag</span>
+                        <span x-text="maxStock === 0 ? 'Habis Terjual' : (isAdding ? 'Menambahkan...' : 'Tambah ke Keranjang')">Tambah ke Keranjang</span>
                     </button>
                 </div>
 
@@ -180,7 +259,7 @@
                     </div>
                     <div class="flex items-center space-x-2 text-xs text-warmGrey">
                         <span class="material-symbols-outlined !text-[16px] text-brand">inventory_2</span>
-                        <span>Stok: <span class="text-warmBlack font-medium">{{ $product->stock }} pcs</span></span>
+                        <span>Stok: <span class="text-warmBlack font-medium" x-text="maxStock"></span></span>
                     </div>
                     <div class="flex items-center space-x-2 text-xs text-warmGrey">
                         <span class="material-symbols-outlined !text-[16px] text-brand">local_shipping</span>
@@ -196,19 +275,21 @@
         <div class="max-w-[1280px] mx-auto">
 
             {{-- Tab Switcher --}}
-            <div class="flex border-b border-warmLightGrey mb-8 space-x-8" role="tablist" aria-label="Informasi Produk">
-                <button onclick="switchTab('desc')" id="tab-desc" role="tab" aria-selected="true" aria-controls="panel-desc"
-                    class="tab-btn pb-3 text-sm font-semibold border-b-2 border-brand text-brand transition-all duration-200">
+            <div class="flex border-b border-warmLightGrey mb-8 space-x-8">
+                <button @click="activeTab = 'desc'" 
+                    class="pb-3 text-sm font-semibold border-b-2 transition-all duration-200"
+                    :class="activeTab === 'desc' ? 'border-brand text-brand' : 'border-transparent text-warmGrey hover:text-warmBlack'">
                     Deskripsi Produk
                 </button>
-                <button onclick="switchTab('review')" id="tab-review" role="tab" aria-selected="false" aria-controls="panel-review"
-                    class="tab-btn pb-3 text-sm font-semibold border-b-2 border-transparent text-warmGrey hover:text-warmBlack transition-all duration-200">
+                <button @click="activeTab = 'review'" 
+                    class="pb-3 text-sm font-semibold border-b-2 transition-all duration-200"
+                    :class="activeTab === 'review' ? 'border-brand text-brand' : 'border-transparent text-warmGrey hover:text-warmBlack'">
                     Ulasan ({{ $product->reviews->count() }})
                 </button>
             </div>
 
             {{-- Description Tab --}}
-            <div id="panel-desc" class="tab-panel" role="tabpanel" aria-labelledby="tab-desc">
+            <div x-show="activeTab === 'desc'">
                 <div class="prose prose-sm max-w-none text-warmGrey leading-relaxed text-sm">
                     {!! nl2br(e($product->description ?? 'Deskripsi produk belum tersedia.')) !!}
                 </div>
@@ -233,7 +314,7 @@
             </div>
 
             {{-- Reviews Tab --}}
-            <div id="panel-review" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-review" id-section="reviews">
+            <div x-show="activeTab === 'review'" id="reviews" x-cloak>
                 @if($product->reviews->isEmpty())
                     <div class="flex flex-col items-center py-16 text-center">
                         <div class="w-14 h-14 rounded-full bg-warmCream flex items-center justify-center mb-4 text-warmGrey">
@@ -272,7 +353,7 @@
                     </div>
 
                     {{-- Review Cards --}}
-                    <div class="space-y-5" id="reviews">
+                    <div class="space-y-5">
                         @foreach($product->reviews as $review)
                             <div class="p-5 border border-warmLightGrey/60 rounded-card bg-white hover:border-brand/20 transition-colors">
                                 <div class="flex items-start justify-between mb-3">
@@ -331,7 +412,17 @@
                                     <span class="material-symbols-outlined !text-[18px]">favorite</span>
                                 </button>
                                 <div class="absolute bottom-2.5 left-2.5 right-2.5 transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 hidden md:block">
-                                    <button onclick="addToCart('{{ $rel->id }}', '{{ addslashes($rel->name) }}', '{{ $rel->final_price }}')" class="w-full py-2 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-wider uppercase rounded-btn transition-colors">Add to Cart</button>
+                                    @if($rel->variants->isNotEmpty())
+                                        <a href="/products/{{ $rel->slug }}" class="w-full py-2 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-wider uppercase rounded-btn transition-colors flex items-center justify-center space-x-1.5">
+                                            <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
+                                            <span>ADD TO CART</span>
+                                        </a>
+                                    @else
+                                        <button onclick="addToCart('{{ $rel->id }}', '{{ addslashes($rel->name) }}', '{{ $rel->final_price }}')" class="w-full py-2 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-wider uppercase rounded-btn transition-colors flex items-center justify-center space-x-1.5">
+                                            <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
+                                            <span>ADD TO CART</span>
+                                        </button>
+                                    @endif
                                 </div>
                             </div>
                             <div class="p-3 flex flex-col flex-grow">
@@ -349,10 +440,17 @@
                                 </div>
                             </div>
                             <div class="px-3 pb-3 md:hidden">
-                                <button onclick="addToCart('{{ $rel->id }}', '{{ addslashes($rel->name) }}', '{{ $rel->final_price }}')" class="w-full py-1.5 bg-brand text-white font-semibold text-[11px] uppercase rounded-btn flex items-center justify-center space-x-1.5 active:bg-brandDark">
-                                    <span class="material-symbols-outlined !text-[14px]">shopping_bag</span>
-                                    <span>Add to Cart</span>
-                                </button>
+                                @if($rel->variants->isNotEmpty())
+                                    <a href="/products/{{ $rel->slug }}" class="w-full py-1.5 bg-brand text-white font-semibold text-[11px] uppercase rounded-btn flex items-center justify-center space-x-1.5 active:bg-brandDark">
+                                        <span class="material-symbols-outlined !text-[14px]">shopping_bag</span>
+                                        <span>ADD TO CART</span>
+                                    </a>
+                                @else
+                                    <button onclick="addToCart('{{ $rel->id }}', '{{ addslashes($rel->name) }}', '{{ $rel->final_price }}')" class="w-full py-1.5 bg-brand text-white font-semibold text-[11px] uppercase rounded-btn flex items-center justify-center space-x-1.5 active:bg-brandDark">
+                                        <span class="material-symbols-outlined !text-[14px]">shopping_bag</span>
+                                        <span>ADD TO CART</span>
+                                    </button>
+                                @endif
                             </div>
                         </div>
                     @endforeach
@@ -360,108 +458,4 @@
             </div>
         </section>
     @endif
-
 </div>
-@endsection
-
-@push('scripts')
-<script>
-    // ── State ───────────────────────────────────────────
-    const basePrice      = {{ $product->final_price }};
-    const productName    = @json($product->name);
-    const productId      = '{{ $product->id }}';
-    const maxStock       = {{ $product->stock }};
-    let   additionalPrice = 0;
-    let   selectedVariants = {};
-
-    // ── Image Gallery ────────────────────────────────────
-    function selectImage(url, btn) {
-        document.getElementById('main-product-image').src = url;
-        document.querySelectorAll('.thumb-btn').forEach(b => {
-            b.classList.remove('border-brand');
-            b.classList.add('border-warmLightGrey', 'hover:border-brand/50');
-        });
-        btn.classList.remove('border-warmLightGrey', 'hover:border-brand/50');
-        btn.classList.add('border-brand');
-    }
-
-    // ── Variant Picker ────────────────────────────────────
-    function selectVariant(btn, type, name, addPrice, stock) {
-        // Deselect all buttons in same group
-        const group = document.getElementById('variant-group-' + type.toLowerCase().replace(/\s+/g,'-'));
-        if (group) {
-            group.querySelectorAll('.variant-btn').forEach(b => {
-                b.classList.remove('border-brand', 'text-brand', 'bg-brand/5');
-                b.classList.add('border-warmLightGrey', 'text-warmBlack');
-            });
-        }
-        btn.classList.remove('border-warmLightGrey', 'text-warmBlack');
-        btn.classList.add('border-brand', 'text-brand', 'bg-brand/5');
-
-        const label = document.getElementById('selected-' + type.toLowerCase().replace(/\s+/g,'-'));
-        if (label) label.textContent = name;
-
-        selectedVariants[type] = { name, addPrice, stock };
-        recalcAdditionalPrice();
-        updateMaxQty();
-    }
-
-    function recalcAdditionalPrice() {
-        additionalPrice = Object.values(selectedVariants).reduce((s, v) => s + v.addPrice, 0);
-    }
-
-    function updateMaxQty() {
-        const stocks = Object.values(selectedVariants).map(v => v.stock);
-        const effectiveMax = stocks.length > 0 ? Math.min(...stocks) : maxStock;
-        const qtyInput = document.getElementById('qty-input');
-        qtyInput.max = effectiveMax;
-        if (parseInt(qtyInput.value) > effectiveMax) qtyInput.value = effectiveMax;
-    }
-
-    // ── Qty Selector ─────────────────────────────────────
-    function changeQty(delta) {
-        const input = document.getElementById('qty-input');
-        const current = parseInt(input.value) || 1;
-        const max = parseInt(input.max) || maxStock;
-        const newVal = Math.max(1, Math.min(max, current + delta));
-        input.value = newVal;
-    }
-
-    // ── Add to Cart Handler ───────────────────────────────
-    function handleAddToCart() {
-        const qty = parseInt(document.getElementById('qty-input').value) || 1;
-        const totalPrice = basePrice + additionalPrice;
-        addToCart(productId, productName, totalPrice);
-    }
-
-    // ── Description / Review Tab Switcher ────────────────
-    function switchTab(tab) {
-        ['desc','review'].forEach(t => {
-            const btn = document.getElementById('tab-' + t);
-            const panel = document.getElementById('panel-' + t);
-            if (t === tab) {
-                btn.classList.add('border-brand', 'text-brand');
-                btn.classList.remove('border-transparent', 'text-warmGrey');
-                panel.classList.remove('hidden');
-            } else {
-                btn.classList.remove('border-brand', 'text-brand');
-                btn.classList.add('border-transparent', 'text-warmGrey');
-                panel.classList.add('hidden');
-            }
-        });
-        if (tab === 'review') {
-            document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    }
-
-    // Scroll to reviews when clicking rating link
-    document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('a[href="#reviews"]').forEach(a => {
-            a.addEventListener('click', e => {
-                e.preventDefault();
-                switchTab('review');
-            });
-        });
-    });
-</script>
-@endpush

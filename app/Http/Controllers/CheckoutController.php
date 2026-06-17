@@ -3,38 +3,58 @@
 namespace App\Http\Controllers;
 
 use App\Services\MidtransService;
+use App\Models\Cart;
+use App\Models\CartItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 
 /**
- * CheckoutController — Pengelola halaman checkout dan pembayaran
+ * Class CheckoutController
  *
- * Alur pembayaran yang benar (PCI-DSS compliant):
- * 1. Pengguna menekan tombol "Bayar Sekarang"
- * 2. Controller membuat Snap Token via MidtransService (server-side)
- * 3. Snap Token dikirim ke frontend
- * 4. Frontend membuka popup Midtrans Snap menggunakan token tersebut
- * 5. Pengguna mengisi data kartu LANGSUNG di popup Midtrans (server kita tidak pernah melihatnya)
- * 6. Midtrans mengirim notifikasi ke webhook endpoint kita
+ * Pengelola halaman checkout dan pembuatan token pembayaran Midtrans Snap.
  */
 class CheckoutController extends Controller
 {
+    /**
+     * CheckoutController constructor.
+     *
+     * @param \App\Services\MidtransService $midtrans
+     */
     public function __construct(private readonly MidtransService $midtrans) {}
 
     /**
      * Tampilkan halaman checkout dengan ringkasan pesanan.
      * Memerlukan autentikasi pengguna.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Contracts\View\View|\Illuminate\Http\RedirectResponse
      */
     public function index(Request $request)
     {
-        // TODO: Ambil data keranjang belanja dari database (sesi ini masih mock)
-        // Contoh struktur data yang akan digunakan:
-        $cartItems = [
-            // Diisi dari database keranjang pengguna yang login
-        ];
+        $cart = $request->user()->getOrCreateCart();
 
-        $subtotal = collect($cartItems)->sum(fn ($item) => $item['price'] * $item['quantity']);
-        $shipping = 0; // TODO: Integrasi RajaOngkir untuk kalkulasi ongkir
+        // Alihkan jika keranjang belanja kosong
+        if ($cart->items->isEmpty()) {
+            return redirect()->route('cart.index')
+                ->with('error', 'Keranjang belanja Anda kosong. Silakan tambahkan produk terlebih dahulu.');
+        }
+
+        // Petakan item keranjang belanja ke format array yang diharapkan oleh view
+        $cartItems = $cart->items->map(function ($item) {
+            return [
+                'name' => $item->variant 
+                    ? $item->product->name . ' - ' . $item->variant->variant_name 
+                    : $item->product->name,
+                'price' => $item->getUnitPrice(),
+                'quantity' => $item->quantity,
+                'image' => $item->getPrimaryImage(),
+            ];
+        })->toArray();
+
+        $subtotal = $cart->getTotalPrice();
+        $shipping = 0; // Ongkos Kirim gratis
         $total    = $subtotal + $shipping;
 
         return view('checkout.index', compact('cartItems', 'subtotal', 'shipping', 'total'));
@@ -42,24 +62,58 @@ class CheckoutController extends Controller
 
     /**
      * Buat Snap Token dan kembalikan sebagai JSON ke frontend.
+     * Validasi ketersediaan stok dan harga dilakukan server-side demi keamanan.
      *
-     * Dipanggil via AJAX/fetch dari halaman checkout saat pengguna menekan "Bayar".
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function createSnapToken(Request $request)
+    public function createSnapToken(Request $request): JsonResponse
     {
-        $this->middleware('auth');
-
         $user = $request->user();
+        $cart = $user->getOrCreateCart();
 
-        // ── Susun Data Pesanan ───────────────────────────────────────
-        // Gunakan nano ID atau UUID agar tidak bisa ditebak
+        // 1. Validasi keranjang kosong
+        if ($cart->items->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Keranjang belanja Anda kosong.',
+            ], 422);
+        }
+
+        // 2. Validasi stok sebelum meminta token transaksi ke Midtrans
+        foreach ($cart->items as $item) {
+            $stock = $item->variant ? $item->variant->stock : $item->product->stock;
+            if ($item->quantity > $stock) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Stok produk "' . $item->product->name . '" tidak mencukupi. Tersedia: ' . $stock,
+                ], 422);
+            }
+        }
+
+        // 3. Susun data pesanan menggunakan data valid dari database (bukan request payload)
         $orderId = 'ELCRAFT-' . strtoupper(Str::random(8)) . '-' . time();
+        
+        $items = [];
+        foreach ($cart->items as $item) {
+            $items[] = [
+                'id' => $item->variant ? $item->product_id . '-' . $item->variant_id : (string) $item->product_id,
+                'price' => (int) $item->getUnitPrice(),
+                'quantity' => $item->quantity,
+                'name' => $item->variant 
+                    ? substr($item->product->name . ' (' . $item->variant->variant_name . ')', 0, 50) 
+                    : substr($item->product->name, 0, 50),
+            ];
+        }
 
-        // TODO: Ambil dari keranjang belanja yang tersimpan di database
+        $subtotal = $cart->getTotalPrice();
+        $shipping = 0;
+        $total = $subtotal + $shipping;
+
         $order = [
             'id'    => $orderId,
-            'total' => (int) $request->input('total', 0),
-            'items' => $request->input('items', []),
+            'total' => (int) $total,
+            'items' => $items,
         ];
 
         $customer = [
@@ -68,20 +122,36 @@ class CheckoutController extends Controller
             'phone' => $user->phone ?? '',
         ];
 
-        // ── Buat Snap Token (server-side, tidak menyentuh data kartu) ─
-        $snapData = $this->midtrans->createSnapToken($order, $customer);
-
-        return response()->json([
-            'snap_token' => $snapData['token'],
-            'order_id'   => $orderId,
-        ]);
+        // 4. Request token dari Midtrans
+        try {
+            $snapData = $this->midtrans->createSnapToken($order, $customer);
+            
+            return response()->json([
+                'snap_token' => $snapData['token'],
+                'order_id'   => $orderId,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memproses pembayaran melalui Midtrans. Silakan coba kembali.',
+            ], 500);
+        }
     }
 
     /**
-     * Halaman setelah pembayaran berhasil diselesaikan.
+     * Halaman setelah pembayaran selesai.
+     * Membersihkan keranjang belanja setelah pembayaran terinisiasi.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Contracts\View\View
      */
     public function finish(Request $request)
     {
+        $cart = $request->user()->cart;
+        if ($cart) {
+            $cart->items()->delete();
+        }
+
         return view('checkout.finish', [
             'order_id' => $request->input('order_id'),
             'status'   => $request->input('transaction_status'),
@@ -89,20 +159,26 @@ class CheckoutController extends Controller
     }
 
     /**
-     * Halaman ketika pengguna menutup popup sebelum menyelesaikan pembayaran.
+     * Halaman ketika pengguna membatalkan transaksi.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function unfinish(Request $request)
     {
         return redirect()->route('checkout.index')
-            ->with('info', 'Pembayaran belum selesai. Silakan coba lagi.');
+            ->with('info', 'Pembayaran dibatalkan. Silakan lakukan proses pembayaran kembali.');
     }
 
     /**
      * Halaman ketika pembayaran mengalami error.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function error(Request $request)
     {
         return redirect()->route('checkout.index')
-            ->with('error', 'Terjadi kesalahan saat memproses pembayaran. Silakan hubungi kami.');
+            ->with('error', 'Terjadi kesalahan saat memproses transaksi pembayaran Anda.');
     }
 }

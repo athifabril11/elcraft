@@ -64,6 +64,16 @@ class Product extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    /**
+     * Mendapatkan semua item keranjang belanja yang mengacu pada produk ini.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function cartItems(): HasMany
+    {
+        return $this->hasMany(CartItem::class);
+    }
+
     // ─── Accessor: foto utama ─────────────────
     public function getPrimaryImageAttribute(): ?string
     {

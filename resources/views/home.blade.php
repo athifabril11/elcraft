@@ -4,10 +4,25 @@
 
 @section('content')
     <!-- 2. HERO SECTION (Auto-Sliding Banner) -->
-    <section class="relative bg-warmCream overflow-hidden w-full h-[620px] md:h-[500px] lg:h-[600px] flex items-center">
+    <section x-data="{
+        currentSlide: 0,
+        slidesCount: 3,
+        timer: null,
+        startTimer() {
+            this.timer = setInterval(() => {
+                this.currentSlide = (this.currentSlide + 1) % this.slidesCount;
+            }, 5000);
+        },
+        goToSlide(index) {
+            clearInterval(this.timer);
+            this.currentSlide = index;
+            this.startTimer();
+        }
+    }" x-init="startTimer()" class="relative bg-warmCream overflow-hidden w-full h-[620px] md:h-[500px] lg:h-[600px] flex items-center">
         <div id="hero-slider" class="relative w-full h-full">
             <!-- Slide 1 -->
-            <div class="hero-slide absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-between opacity-100 transition-all duration-1000 z-10 px-5 md:px-8 lg:px-16 max-w-[1280px] mx-auto py-10 md:py-0">
+            <div class="hero-slide absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-between transition-all duration-1000 px-5 md:px-8 lg:px-16 max-w-[1280px] mx-auto py-10 md:py-0"
+                 :class="currentSlide === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0'">
                 <div class="flex-1 md:pr-10 flex flex-col items-start text-left justify-center h-full order-2 md:order-1 mt-6 md:mt-0">
                     <span class="text-[12px] font-semibold uppercase text-brand tracking-[0.2em] mb-4">NEW COLLECTION 2024</span>
                     <h1 class="text-3xl md:text-4xl lg:text-5xl font-semibold text-warmBlack leading-tight mb-4 font-sans max-w-xl">Accessories for Every Moment</h1>
@@ -22,7 +37,8 @@
             </div>
 
             <!-- Slide 2 -->
-            <div class="hero-slide absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-between opacity-0 transition-all duration-1000 z-0 px-5 md:px-8 lg:px-16 max-w-[1280px] mx-auto py-10 md:py-0">
+            <div class="hero-slide absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-between transition-all duration-1000 px-5 md:px-8 lg:px-16 max-w-[1280px] mx-auto py-10 md:py-0"
+                 :class="currentSlide === 1 ? 'opacity-100 z-10' : 'opacity-0 z-0'" x-cloak>
                 <div class="flex-1 md:pr-10 flex flex-col items-start text-left justify-center h-full order-2 md:order-1 mt-6 md:mt-0">
                     <span class="text-[12px] font-semibold uppercase text-brand tracking-[0.2em] mb-4">ELEGANT STATEMENT</span>
                     <h1 class="text-3xl md:text-4xl lg:text-5xl font-semibold text-warmBlack leading-tight mb-4 font-sans max-w-xl">Crafted to Sparkle and Last</h1>
@@ -37,7 +53,8 @@
             </div>
 
             <!-- Slide 3 -->
-            <div class="hero-slide absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-between opacity-0 transition-all duration-1000 z-0 px-5 md:px-8 lg:px-16 max-w-[1280px] mx-auto py-10 md:py-0">
+            <div class="hero-slide absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-between transition-all duration-1000 px-5 md:px-8 lg:px-16 max-w-[1280px] mx-auto py-10 md:py-0"
+                 :class="currentSlide === 2 ? 'opacity-100 z-10' : 'opacity-0 z-0'" x-cloak>
                 <div class="flex-1 md:pr-10 flex flex-col items-start text-left justify-center h-full order-2 md:order-1 mt-6 md:mt-0">
                     <span class="text-[12px] font-semibold uppercase text-brand tracking-[0.2em] mb-4">EXCLUSIVE SELECTION</span>
                     <h1 class="text-3xl md:text-4xl lg:text-5xl font-semibold text-warmBlack leading-tight mb-4 font-sans max-w-xl">Timeless Beauty in Detail</h1>
@@ -53,9 +70,9 @@
 
             <!-- Dot Indicators (Active dot is Rose Gold pill shape) -->
             <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex space-x-3 items-center" role="tablist" aria-label="Pilihan Slide">
-                <button onclick="goToSlide(0)" class="hero-dot w-8 h-2 rounded-full bg-brand transition-all duration-300" role="tab" aria-selected="true" aria-label="Tampilkan slide 1"></button>
-                <button onclick="goToSlide(1)" class="hero-dot w-2 h-2 rounded-full bg-warmGrey/40 hover:bg-brand/50 transition-all duration-300" role="tab" aria-selected="false" aria-label="Tampilkan slide 2"></button>
-                <button onclick="goToSlide(2)" class="hero-dot w-2 h-2 rounded-full bg-warmGrey/40 hover:bg-brand/50 transition-all duration-300" role="tab" aria-selected="false" aria-label="Tampilkan slide 3"></button>
+                <button @click="goToSlide(0)" class="hero-dot rounded-full transition-all duration-300" :class="currentSlide === 0 ? 'w-8 h-2 bg-brand' : 'w-2 h-2 bg-warmGrey/40 hover:bg-brand/50'" role="tab" :aria-selected="currentSlide === 0" aria-label="Tampilkan slide 1"></button>
+                <button @click="goToSlide(1)" class="hero-dot rounded-full transition-all duration-300" :class="currentSlide === 1 ? 'w-8 h-2 bg-brand' : 'w-2 h-2 bg-warmGrey/40 hover:bg-brand/50'" role="tab" :aria-selected="currentSlide === 1" aria-label="Tampilkan slide 2"></button>
+                <button @click="goToSlide(2)" class="hero-dot rounded-full transition-all duration-300" :class="currentSlide === 2 ? 'w-8 h-2 bg-brand' : 'w-2 h-2 bg-warmGrey/40 hover:bg-brand/50'" role="tab" :aria-selected="currentSlide === 2" aria-label="Tampilkan slide 3"></button>
             </div>
         </div>
     </section>
@@ -128,9 +145,17 @@
                         
                         <!-- Add to Cart Full Width Button (appears on hover on desktop) -->
                         <div class="absolute bottom-3 left-3 right-3 transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 hidden md:block">
-                            <button onclick="addToCart('{{ $product->id }}', '{{ $product->name }}', '{{ $product->final_price }}')" class="w-full py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-wider uppercase rounded-btn transition-colors duration-200">
-                                Add to Cart
-                            </button>
+                            @if($product->variants->isNotEmpty())
+                                <a href="/products/{{ $product->slug }}" class="w-full py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-wider uppercase rounded-btn transition-colors duration-200 flex items-center justify-center space-x-1.5">
+                                    <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
+                                    <span>ADD TO CART</span>
+                                </a>
+                            @else
+                                <button onclick="addToCart('{{ $product->id }}', '{{ addslashes($product->name) }}', '{{ $product->final_price }}')" class="w-full py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-wider uppercase rounded-btn transition-colors duration-200 flex items-center justify-center space-x-1.5">
+                                    <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
+                                    <span>ADD TO CART</span>
+                                </button>
+                            @endif
                         </div>
                     </div>
                     
@@ -153,10 +178,17 @@
 
                     <!-- Add to Cart for Mobile View (Visible under card text) -->
                     <div class="p-4 pt-0 md:hidden">
-                        <button onclick="addToCart('{{ $product->id }}', '{{ $product->name }}', '{{ $product->final_price }}')" class="w-full py-2 bg-brand text-white font-semibold text-[11px] tracking-wider uppercase rounded-btn flex items-center justify-center space-x-1.5 active:bg-brandDark">
-                            <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
-                            <span>Add to Cart</span>
-                        </button>
+                        @if($product->variants->isNotEmpty())
+                            <a href="/products/{{ $product->slug }}" class="w-full py-2 bg-brand text-white font-semibold text-[11px] tracking-wider uppercase rounded-btn flex items-center justify-center space-x-1.5 active:bg-brandDark">
+                                <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
+                                <span>ADD TO CART</span>
+                            </a>
+                        @else
+                            <button onclick="addToCart('{{ $product->id }}', '{{ addslashes($product->name) }}', '{{ $product->final_price }}')" class="w-full py-2 bg-brand text-white font-semibold text-[11px] tracking-wider uppercase rounded-btn flex items-center justify-center space-x-1.5 active:bg-brandDark">
+                                <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
+                                <span>ADD TO CART</span>
+                            </button>
+                        @endif
                     </div>
                 </div>
             @endforeach
@@ -221,51 +253,3 @@
         </div>
     </section>
 @endsection
-
-@push('scripts')
-    <script>
-        // Hero Carousel Animation Logic
-        let currentSlide = 0;
-        const slides = document.querySelectorAll('.hero-slide');
-        const dots = document.querySelectorAll('.hero-dot');
-        let slideInterval;
-
-        function showSlide(index) {
-            slides.forEach((slide, i) => {
-                if (i === index) {
-                    slide.classList.remove('opacity-0', 'z-0');
-                    slide.classList.add('opacity-100', 'z-10');
-                } else {
-                    slide.classList.remove('opacity-100', 'z-10');
-                    slide.classList.add('opacity-0', 'z-0');
-                }
-            });
-            
-            dots.forEach((dot, i) => {
-                if (i === index) {
-                    dot.className = 'hero-dot w-8 h-2 rounded-full bg-brand transition-all duration-300';
-                } else {
-                    dot.className = 'hero-dot w-2 h-2 rounded-full bg-warmGrey/40 hover:bg-brand/50 transition-all duration-300';
-                }
-            });
-            currentSlide = index;
-        }
-
-        function goToSlide(index) {
-            clearInterval(slideInterval);
-            showSlide(index);
-            startSlideTimer();
-        }
-
-        function startSlideTimer() {
-            slideInterval = setInterval(() => {
-                let nextSlide = (currentSlide + 1) % slides.length;
-                showSlide(nextSlide);
-            }, 5000);
-        }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            startSlideTimer();
-        });
-    </script>
-@endpush

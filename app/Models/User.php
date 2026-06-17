@@ -29,4 +29,27 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Mendapatkan keranjang belanja yang dimiliki oleh pengguna.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function cart(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Cart::class);
+    }
+
+    /**
+     * Mendapatkan keranjang belanja pengguna saat ini, atau membuat baru jika belum ada.
+     *
+     * @return \App\Models\Cart
+     */
+    public function getOrCreateCart(): Cart
+    {
+        if (!$this->cart) {
+            return $this->cart()->create();
+        }
+        return $this->cart;
+    }
 }

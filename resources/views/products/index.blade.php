@@ -3,6 +3,7 @@
 @section('title', 'Koleksi Aksesoris el Craft | Timeless Elegance')
 
 @section('content')
+<div x-data="{ mobileFilterOpen: false }" @pageshow.window="mobileFilterOpen = false">
     <!-- Breadcrumb & Header Section -->
     <section class="bg-warmCream py-10 px-5 md:px-8 lg:px-16 border-b border-warmLightGrey/50">
         <div class="max-w-[1280px] mx-auto flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
@@ -86,7 +87,7 @@
                     
                     <div class="flex items-center space-x-3">
                         <!-- Mobile Filter Trigger -->
-                        <button onclick="toggleMobileFilters()" aria-expanded="false" aria-controls="mobile-filter-drawer" class="lg:hidden flex items-center space-x-1.5 px-3 py-2 border border-warmLightGrey rounded-btn text-xs text-warmBlack hover:border-brand">
+                        <button @click="mobileFilterOpen = true" :aria-expanded="mobileFilterOpen" aria-controls="mobile-filter-drawer" class="lg:hidden flex items-center space-x-1.5 px-3 py-2 border border-warmLightGrey rounded-btn text-xs text-warmBlack hover:border-brand">
                             <span class="material-symbols-outlined !text-[16px]">filter_list</span>
                             <span>Filter</span>
                         </button>
@@ -140,9 +141,17 @@
                                     
                                     <!-- Add to Cart Full Width Button (appears on hover on desktop) -->
                                     <div class="absolute bottom-3 left-3 right-3 transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 hidden md:block">
-                                        <button onclick="addToCart('{{ $product->id }}', '{{ $product->name }}', '{{ $product->final_price }}')" class="w-full py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-wider uppercase rounded-btn transition-colors duration-200">
-                                            Add to Cart
-                                        </button>
+                                        @if($product->variants->isNotEmpty())
+                                            <a href="/products/{{ $product->slug }}" class="w-full py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-wider uppercase rounded-btn transition-colors duration-200 flex items-center justify-center space-x-1.5">
+                                                <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
+                                                <span>ADD TO CART</span>
+                                            </a>
+                                        @else
+                                            <button onclick="addToCart('{{ $product->id }}', '{{ addslashes($product->name) }}', '{{ $product->final_price }}')" class="w-full py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-wider uppercase rounded-btn transition-colors duration-200 flex items-center justify-center space-x-1.5">
+                                                <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
+                                                <span>ADD TO CART</span>
+                                            </button>
+                                        @endif
                                     </div>
                                 </div>
                                 
@@ -165,10 +174,17 @@
 
                                 <!-- Add to Cart for Mobile View (Visible under card text) -->
                                 <div class="p-4 pt-0 md:hidden">
-                                    <button onclick="addToCart('{{ $product->id }}', '{{ $product->name }}', '{{ $product->final_price }}')" class="w-full py-2 bg-brand text-white font-semibold text-[11px] tracking-wider uppercase rounded-btn flex items-center justify-center space-x-1.5 active:bg-brandDark">
-                                        <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
-                                        <span>Add to Cart</span>
-                                    </button>
+                                    @if($product->variants->isNotEmpty())
+                                        <a href="/products/{{ $product->slug }}" class="w-full py-2 bg-brand text-white font-semibold text-[11px] tracking-wider uppercase rounded-btn flex items-center justify-center space-x-1.5 active:bg-brandDark">
+                                            <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
+                                            <span>ADD TO CART</span>
+                                        </a>
+                                    @else
+                                        <button onclick="addToCart('{{ $product->id }}', '{{ addslashes($product->name) }}', '{{ $product->final_price }}')" class="w-full py-2 bg-brand text-white font-semibold text-[11px] tracking-wider uppercase rounded-btn flex items-center justify-center space-x-1.5 active:bg-brandDark">
+                                            <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
+                                            <span>ADD TO CART</span>
+                                        </button>
+                                    @endif
                                 </div>
                             </div>
                         @endforeach
@@ -216,12 +232,12 @@
     </section>
 
     <!-- 3. MOBILE FILTER DRAWER -->
-    <div id="mobile-filter-drawer" class="fixed inset-0 z-50 bg-warmBlack/30 backdrop-blur-xs transition-all duration-300 opacity-0 pointer-events-none">
-        <div class="bg-white w-80 h-full absolute left-0 top-0 shadow-lg p-6 flex flex-col justify-between transform -translate-x-full transition-transform duration-300">
+    <div id="mobile-filter-drawer" x-cloak class="fixed inset-0 z-50 bg-warmBlack/30 backdrop-blur-xs transition-all duration-300 opacity-0 pointer-events-none" :class="mobileFilterOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'">
+        <div class="bg-white w-80 h-full absolute left-0 top-0 shadow-lg p-6 flex flex-col justify-between transition-transform duration-300" :class="mobileFilterOpen ? 'translate-x-0' : '-translate-x-full'">
             <div class="flex-grow overflow-y-auto hide-scrollbar pb-6">
                 <div class="flex justify-between items-center mb-8">
                     <span class="text-lg font-semibold text-warmBlack">Penyaringan</span>
-                    <button onclick="toggleMobileFilters()" class="text-warmBlack hover:text-brand flex items-center justify-center" aria-label="Close filters">
+                    <button @click="mobileFilterOpen = false" class="text-warmBlack hover:text-brand flex items-center justify-center" aria-label="Close filters">
                         <span class="material-symbols-outlined !text-[24px]">close</span>
                     </button>
                 </div>
@@ -271,22 +287,5 @@
             </div>
         </div>
     </div>
+</div>
 @endsection
-
-@push('scripts')
-    <script>
-        // Toggle Mobile Filter Drawer
-        function toggleMobileFilters() {
-            const drawer = document.getElementById('mobile-filter-drawer');
-            const isHidden = drawer.classList.contains('pointer-events-none');
-            
-            if (isHidden) {
-                drawer.classList.remove('opacity-0', 'pointer-events-none');
-                drawer.firstElementChild.classList.remove('-translate-x-full');
-            } else {
-                drawer.classList.add('opacity-0', 'pointer-events-none');
-                drawer.firstElementChild.classList.add('-translate-x-full');
-            }
-        }
-    </script>
-@endpush

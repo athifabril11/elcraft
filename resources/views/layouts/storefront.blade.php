@@ -15,9 +15,11 @@
     <!-- CSS & JS dikompilasi oleh Vite — token desain dari tailwind.config.js -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
+    <style>[x-cloak] { display: none !important; }</style>
+
     @stack('styles')
 </head>
-<body class="bg-white text-warmBlack font-sans antialiased selection:bg-accent selection:text-brandDark">
+<body x-data="storefrontLayout()" class="bg-white text-warmBlack font-sans antialiased selection:bg-accent selection:text-brandDark">
 
     <!-- 1. STICKY NAVIGATION BAR (White Background) -->
     <header class="sticky top-0 w-full z-50 bg-white border-b border-warmLightGrey">
@@ -36,20 +38,20 @@
             <!-- Right: Icons -->
             <div class="flex items-center space-x-5">
                 <!-- Search Trigger -->
-                <button onclick="toggleSearch()" class="text-warmBlack hover:text-brand transition-colors duration-200 relative p-1.5 flex items-center justify-center" aria-label="Search">
+                <button @click="toggleSearch()" class="text-warmBlack hover:text-brand transition-colors duration-200 relative p-1.5 flex items-center justify-center" aria-label="Search">
                     <span class="material-symbols-outlined !text-[24px]">search</span>
                 </button>
                 
                 <!-- Wishlist Icon (Desktop Only) -->
                 <a href="/wishlist" class="hidden md:flex text-warmBlack hover:text-brand transition-colors duration-200 relative p-1.5 items-center justify-center" aria-label="Wishlist">
                     <span class="material-symbols-outlined !text-[24px]">favorite</span>
-                    <span id="wishlist-badge" class="absolute -top-0.5 -right-0.5 bg-brand text-white text-[9px] font-semibold w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 hidden">0</span>
+                    <span class="absolute -top-0.5 -right-0.5 bg-brand text-white text-[9px] font-semibold w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300" x-show="wishlistCount > 0" x-text="wishlistCount" x-cloak>0</span>
                 </a>
                 
                 <!-- Cart Icon with Badge Count -->
                 <a href="/cart" class="text-warmBlack hover:text-brand transition-colors duration-200 relative p-1.5 flex items-center justify-center" aria-label="Cart">
                     <span class="material-symbols-outlined !text-[24px]">shopping_bag</span>
-                    <span id="cart-badge" class="absolute -top-0.5 -right-0.5 bg-brand text-white text-[9px] font-semibold w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 hidden">0</span>
+                    <span class="absolute -top-0.5 -right-0.5 bg-brand text-white text-[9px] font-semibold w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300" x-show="cartCount > 0" x-text="cartCount" x-cloak>0</span>
                 </a>
                 
                 <!-- User Profile Icon (Desktop Only) -->
@@ -58,7 +60,7 @@
                 </a>
                 
                 <!-- Hamburger Menu Trigger (Mobile Only) -->
-                <button onclick="toggleMobileMenu()" class="md:hidden text-warmBlack hover:text-brand transition-colors duration-200 p-1.5 flex items-center justify-center" aria-label="Menu">
+                <button @click="toggleMobileMenu()" class="md:hidden text-warmBlack hover:text-brand transition-colors duration-200 p-1.5 flex items-center justify-center" aria-label="Menu">
                     <span class="material-symbols-outlined !text-[26px]">menu</span>
                 </button>
             </div>
@@ -66,16 +68,16 @@
     </header>
 
     <!-- Slide-Down Search Overlay -->
-    <div id="search-overlay" class="fixed inset-0 z-50 bg-warmBlack/30 backdrop-blur-xs transition-all duration-300 opacity-0 pointer-events-none">
-        <div class="bg-white w-full py-6 border-b border-warmLightGrey transform -translate-y-full transition-transform duration-300">
+    <div id="search-overlay" x-cloak class="fixed inset-0 z-50 bg-warmBlack/30 backdrop-blur-xs transition-all duration-300 opacity-0 pointer-events-none" :class="searchOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'">
+        <div class="bg-white w-full py-6 border-b border-warmLightGrey transition-transform duration-300" :class="searchOpen ? 'translate-y-0' : '-translate-y-full'">
             <form action="/products" method="GET" class="max-w-[1280px] mx-auto px-5 md:px-8 lg:px-16 flex items-center justify-between">
                 <div class="flex-1 max-w-2xl flex items-center border-b border-brand py-2">
                     <span class="material-symbols-outlined text-warmGrey mr-3">search</span>
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari aksesoris impianmu..." aria-label="Cari aksesoris impianmu" class="w-full bg-transparent border-none outline-none text-warmBlack placeholder-warmGrey/50 font-sans text-base focus:ring-0">
+                    <input type="text" x-ref="searchInput" name="search" value="{{ request('search') }}" placeholder="Cari aksesoris impianmu..." aria-label="Cari aksesoris impianmu" class="w-full bg-transparent border-none outline-none text-warmBlack placeholder-warmGrey/50 font-sans text-base focus:ring-0">
                 </div>
                 <div class="flex items-center ml-6 space-x-4">
                     <button type="submit" class="px-4 py-2 bg-brand hover:bg-brandDark text-white text-xs font-semibold uppercase tracking-wider rounded-btn transition-colors duration-200">Cari</button>
-                    <button type="button" onclick="toggleSearch()" class="text-warmBlack hover:text-brand flex items-center justify-center" aria-label="Close search">
+                    <button type="button" @click="toggleSearch()" class="text-warmBlack hover:text-brand flex items-center justify-center" aria-label="Close search">
                         <span class="material-symbols-outlined !text-[26px]">close</span>
                     </button>
                 </div>
@@ -84,20 +86,20 @@
     </div>
 
     <!-- Mobile Slide-out Menu Drawer -->
-    <div id="mobile-drawer" class="fixed inset-0 z-50 bg-warmBlack/30 backdrop-blur-xs transition-all duration-300 opacity-0 pointer-events-none">
-        <div class="bg-white w-72 h-full absolute right-0 top-0 shadow-lg p-6 flex flex-col justify-between transform translate-x-full transition-transform duration-300">
+    <div id="mobile-drawer" x-cloak class="fixed inset-0 z-50 bg-warmBlack/30 backdrop-blur-xs transition-all duration-300 opacity-0 pointer-events-none" :class="mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'">
+        <div class="bg-white w-72 h-full absolute right-0 top-0 shadow-lg p-6 flex flex-col justify-between transition-transform duration-300" :class="mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'">
             <div>
                 <div class="flex justify-between items-center mb-8">
                     <span class="text-xl font-semibold text-brand tracking-wide">el Craft</span>
-                    <button onclick="toggleMobileMenu()" class="text-warmBlack hover:text-brand flex items-center justify-center" aria-label="Close menu">
+                    <button @click="toggleMobileMenu()" class="text-warmBlack hover:text-brand flex items-center justify-center" aria-label="Close menu">
                         <span class="material-symbols-outlined !text-[24px]">close</span>
                     </button>
                 </div>
                 <nav class="flex flex-col space-y-5">
                     <a href="/" class="text-warmBlack hover:text-brand font-medium text-base border-b border-warmLightGrey/50 pb-2 transition-colors duration-200">Home</a>
                     <a href="/products" class="text-warmBlack hover:text-brand font-medium text-base border-b border-warmLightGrey/50 pb-2 transition-colors duration-200">Produk</a>
-                    <a href="/#categories" onclick="toggleMobileMenu()" class="text-warmBlack hover:text-brand font-medium text-base border-b border-warmLightGrey/50 pb-2 transition-colors duration-200">Kategori</a>
-                    <a href="/#about" onclick="toggleMobileMenu()" class="text-warmBlack hover:text-brand font-medium text-base border-b border-warmLightGrey/50 pb-2 transition-colors duration-200">Tentang</a>
+                    <a href="/#categories" @click="toggleMobileMenu()" class="text-warmBlack hover:text-brand font-medium text-base border-b border-warmLightGrey/50 pb-2 transition-colors duration-200">Kategori</a>
+                    <a href="/#about" @click="toggleMobileMenu()" class="text-warmBlack hover:text-brand font-medium text-base border-b border-warmLightGrey/50 pb-2 transition-colors duration-200">Tentang</a>
                 </nav>
             </div>
             
@@ -189,36 +191,36 @@
 
     <!-- 8. BOTTOM MOBILE DOCK NAVIGATION -->
     <div class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-warmLightGrey z-40 grid grid-cols-5 h-16 pb-safe">
-        <a href="/" class="flex flex-col items-center justify-center {{ request()->is('/') ? 'text-brand' : 'text-warmGrey hover:text-brand' }}">
+        <a href="/" class="flex flex-col items-center justify-center {{ request()->is('/') ? 'text-brand' : 'text-warmGrey hover:text-brand' }} w-full h-full">
             <span class="material-symbols-outlined !text-[22px]">home</span>
             <span class="text-[10px] font-semibold tracking-wider mt-0.5">Home</span>
         </a>
-        <button onclick="toggleSearch()" class="flex flex-col items-center justify-center text-warmGrey hover:text-brand">
+        <button @click="toggleSearch()" class="flex flex-col items-center justify-center text-warmGrey hover:text-brand w-full h-full">
             <span class="material-symbols-outlined !text-[22px]">search</span>
             <span class="text-[10px] font-semibold tracking-wider mt-0.5">Search</span>
         </button>
-        <a href="/cart" class="flex flex-col items-center justify-center text-warmGrey hover:text-brand relative">
+        <a href="/cart" class="flex flex-col items-center justify-center text-warmGrey hover:text-brand relative w-full h-full">
             <span class="material-symbols-outlined !text-[22px]">shopping_bag</span>
             <span class="text-[10px] font-semibold tracking-wider mt-0.5">Cart</span>
-            <span id="mobile-cart-badge" class="absolute top-0.5 right-2 bg-brand text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 hidden">0</span>
+            <span class="absolute top-0.5 right-2 bg-brand text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300" x-show="cartCount > 0" x-text="cartCount" x-cloak>0</span>
         </a>
-        <a href="/wishlist" class="flex flex-col items-center justify-center text-warmGrey hover:text-brand relative">
+        <a href="/wishlist" class="flex flex-col items-center justify-center text-warmGrey hover:text-brand relative w-full h-full">
             <span class="material-symbols-outlined !text-[22px]">favorite</span>
             <span class="text-[10px] font-semibold tracking-wider mt-0.5">Wishlist</span>
-            <span id="mobile-wishlist-badge" class="absolute top-0.5 right-2 bg-brand text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300 hidden">0</span>
+            <span class="absolute top-0.5 right-2 bg-brand text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300" x-show="wishlistCount > 0" x-text="wishlistCount" x-cloak>0</span>
         </a>
-        <a href="/dashboard" class="flex flex-col items-center justify-center text-warmGrey hover:text-brand">
+        <a href="/dashboard" class="flex flex-col items-center justify-center text-warmGrey hover:text-brand w-full h-full">
             <span class="material-symbols-outlined !text-[22px]">person</span>
             <span class="text-[10px] font-semibold tracking-wider mt-0.5">Profile</span>
         </a>
     </div>
 
     <!-- Login Prompt Modal -->
-    <div id="login-modal" class="fixed inset-0 z-50 bg-warmBlack/40 backdrop-blur-xs flex items-center justify-center opacity-0 pointer-events-none transition-all duration-300">
-        <div class="bg-white border border-warmLightGrey rounded-card max-w-sm w-full mx-5 p-6 shadow-md transform scale-95 transition-all duration-300">
+    <div id="login-modal" x-cloak class="fixed inset-0 z-[60] bg-warmBlack/40 backdrop-blur-xs flex items-center justify-center transition-all duration-300 opacity-0 pointer-events-none" :class="loginModalOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'">
+        <div class="bg-white border border-warmLightGrey rounded-card max-w-sm w-full mx-5 p-6 shadow-md transition-all duration-300" :class="loginModalOpen ? 'scale-100' : 'scale-95'">
             <div class="flex justify-between items-start mb-4">
                 <h3 class="text-lg font-semibold text-warmBlack">Masuk ke Akun Anda</h3>
-                <button onclick="toggleLoginModal()" class="text-warmGrey hover:text-warmBlack flex items-center justify-center p-1" aria-label="Close modal">
+                <button @click="toggleLoginModal()" class="text-warmGrey hover:text-warmBlack flex items-center justify-center p-1" aria-label="Close modal">
                     <span class="material-symbols-outlined !text-[20px]">close</span>
                 </button>
             </div>
@@ -242,139 +244,10 @@
         // Check if user is logged in
         const isUserLoggedIn = {{ auth()->check() ? 'true' : 'false' }};
 
-        // LocalStorage keys for mock cart & wishlist persistence
-        const CART_KEY = 'elcraft_cart_count';
-        const WISHLIST_KEY = 'elcraft_wishlist_items';
-
-        // 1. Badge Status Initializer & Update UI
-        function updateBadgeUI() {
-            const cartCount = parseInt(localStorage.getItem(CART_KEY) || '0', 10);
-            const cartBadge = document.getElementById('cart-badge');
-            const mobileCartBadge = document.getElementById('mobile-cart-badge');
-            
-            if (cartBadge) {
-                if (cartCount > 0) {
-                    cartBadge.textContent = cartCount;
-                    cartBadge.classList.remove('hidden');
-                } else {
-                    cartBadge.classList.add('hidden');
-                }
-            }
-            
-            if (mobileCartBadge) {
-                if (cartCount > 0) {
-                    mobileCartBadge.textContent = cartCount;
-                    mobileCartBadge.classList.remove('hidden');
-                } else {
-                    mobileCartBadge.classList.add('hidden');
-                }
-            }
-            
-            const wishlistItems = JSON.parse(localStorage.getItem(WISHLIST_KEY) || '[]');
-            const wishlistCount = wishlistItems.length;
-            const wishlistBadge = document.getElementById('wishlist-badge');
-            const mobileWishlistBadge = document.getElementById('mobile-wishlist-badge');
-            
-            if (wishlistBadge) {
-                if (wishlistCount > 0) {
-                    wishlistBadge.textContent = wishlistCount;
-                    wishlistBadge.classList.remove('hidden');
-                } else {
-                    wishlistBadge.classList.add('hidden');
-                }
-            }
-            
-            if (mobileWishlistBadge) {
-                if (wishlistCount > 0) {
-                    mobileWishlistBadge.textContent = wishlistCount;
-                    mobileWishlistBadge.classList.remove('hidden');
-                } else {
-                    mobileWishlistBadge.classList.add('hidden');
-                }
-            }
-        }
-
-        // 2. Initialize Hearts based on Wishlist localStorage
-        function initWishlistHearts() {
-            const wishlistItems = JSON.parse(localStorage.getItem(WISHLIST_KEY) || '[]');
-            document.querySelectorAll('.wishlist-btn').forEach(btn => {
-                const productId = btn.getAttribute('data-product-id');
-                const iconSpan = btn.querySelector('.material-symbols-outlined');
-                if (wishlistItems.includes(productId)) {
-                    iconSpan.style.fontVariationSettings = "'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 24";
-                    iconSpan.classList.add('text-brand');
-                    iconSpan.classList.remove('text-warmGrey');
-                } else {
-                    iconSpan.style.fontVariationSettings = "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24";
-                    iconSpan.classList.remove('text-brand');
-                    iconSpan.classList.add('text-warmGrey');
-                }
-            });
-        }
-
-        // Toggle Login Modal
-        function toggleLoginModal() {
-            const modal = document.getElementById('login-modal');
-            const isHidden = modal.classList.contains('pointer-events-none');
-            
-            if (isHidden) {
-                modal.classList.remove('opacity-0', 'pointer-events-none');
-                modal.firstElementChild.classList.remove('scale-95');
-            } else {
-                modal.classList.add('opacity-0', 'pointer-events-none');
-                modal.firstElementChild.classList.add('scale-95');
-            }
-        }
-
-        // 3. Add to Cart Logic
-        function addToCart(productId, productName, productPrice) {
-            if (!isUserLoggedIn) {
-                toggleLoginModal();
-                return;
-            }
-            let cartCount = parseInt(localStorage.getItem(CART_KEY) || '0', 10);
-            cartCount += 1;
-            localStorage.setItem(CART_KEY, cartCount);
-            
-            updateBadgeUI();
-            showToast(`"${productName}" berhasil ditambahkan ke keranjang belanja.`);
-        }
-
-        // 4. Wishlist Toggle Logic
-        function toggleWishlistItem(btnElement, productId, productName) {
-            if (!isUserLoggedIn) {
-                toggleLoginModal();
-                return;
-            }
-            let wishlistItems = JSON.parse(localStorage.getItem(WISHLIST_KEY) || '[]');
-            const index = wishlistItems.indexOf(productId);
-            const iconSpan = btnElement.querySelector('.material-symbols-outlined');
-            
-            if (index === -1) {
-                wishlistItems.push(productId);
-                localStorage.setItem(WISHLIST_KEY, JSON.stringify(wishlistItems));
-                
-                iconSpan.style.fontVariationSettings = "'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 24";
-                iconSpan.classList.add('text-brand');
-                iconSpan.classList.remove('text-warmGrey');
-                
-                showToast(`"${productName}" ditambahkan ke wishlist.`);
-            } else {
-                wishlistItems.splice(index, 1);
-                localStorage.setItem(WISHLIST_KEY, JSON.stringify(wishlistItems));
-                
-                iconSpan.style.fontVariationSettings = "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24";
-                iconSpan.classList.remove('text-brand');
-                iconSpan.classList.add('text-warmGrey');
-                
-                showToast(`"${productName}" dihapus dari wishlist.`, 'info');
-            }
-            updateBadgeUI();
-        }
-
         // 5. Toast Notification System
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
+            if (!container) return;
             const toast = document.createElement('div');
             toast.className = `transform translate-x-12 opacity-0 transition-all duration-300 pointer-events-auto bg-white border border-warmLightGrey shadow-xs rounded-[6px] p-4 flex items-center space-x-3 min-w-[280px] max-w-sm`;
             
@@ -400,7 +273,7 @@
             }, 3500);
         }
 
-        // 6. Subscriptions Form Handler
+        // Subscriptions Form Handler (non-ajax welcome form)
         function handleSubscribe(e) {
             e.preventDefault();
             const input = e.target.querySelector('input');
@@ -409,40 +282,153 @@
             input.value = '';
         }
 
-        // 7. Search Drawer Toggle
-        function toggleSearch() {
-            const overlay = document.getElementById('search-overlay');
-            const input = overlay.querySelector('input');
-            const isHidden = overlay.classList.contains('pointer-events-none');
-            
-            if (isHidden) {
-                overlay.classList.remove('opacity-0', 'pointer-events-none');
-                overlay.firstElementChild.classList.remove('-translate-y-full');
-                setTimeout(() => input.focus(), 150);
-            } else {
-                overlay.classList.add('opacity-0', 'pointer-events-none');
-                overlay.firstElementChild.classList.add('-translate-y-full');
+        // Bridge functions for Vanilla JS files or legacy event handlers to proxy to Alpine
+        window.addToCart = (productId, productName, productPrice) => {
+            if (window.Alpine) {
+                const data = Alpine.$data(document.body);
+                if (data && typeof data.addToCart === 'function') {
+                    data.addToCart(productId, productName, productPrice);
+                }
             }
-        }
+        };
 
-        // 8. Mobile Menu Drawer Toggle
-        function toggleMobileMenu() {
-            const drawer = document.getElementById('mobile-drawer');
-            const isHidden = drawer.classList.contains('pointer-events-none');
-            
-            if (isHidden) {
-                drawer.classList.remove('opacity-0', 'pointer-events-none');
-                drawer.firstElementChild.classList.remove('translate-x-full');
-            } else {
-                drawer.classList.add('opacity-0', 'pointer-events-none');
-                drawer.firstElementChild.classList.add('translate-x-full');
+        window.updateCartBadge = (count) => {
+            if (window.Alpine) {
+                const data = Alpine.$data(document.body);
+                if (data) {
+                    data.cartCount = count;
+                    localStorage.setItem('elcraft_cart_count', count);
+                }
             }
-        }
+        };
 
-        // Document Initializer
-        window.addEventListener('DOMContentLoaded', () => {
-            updateBadgeUI();
-            initWishlistHearts();
+        window.toggleWishlistItem = (btnElement, productId, productName) => {
+            if (window.Alpine) {
+                const data = Alpine.$data(document.body);
+                if (data && typeof data.toggleWishlistItem === 'function') {
+                    data.toggleWishlistItem(productId, productName);
+                }
+            }
+        };
+
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('storefrontLayout', () => ({
+                searchOpen: false,
+                mobileMenuOpen: false,
+                loginModalOpen: false,
+                cartCount: 0,
+                wishlistItems: [],
+                wishlistCount: 0,
+
+                init() {
+                    this.wishlistItems = JSON.parse(localStorage.getItem('elcraft_wishlist_items') || '[]');
+                    this.wishlistCount = this.wishlistItems.length;
+
+                    // Sync changes across tabs
+                    window.addEventListener('storage', () => {
+                        this.cartCount = parseInt(localStorage.getItem('elcraft_cart_count') || '0', 10);
+                        this.wishlistItems = JSON.parse(localStorage.getItem('elcraft_wishlist_items') || '[]');
+                        this.wishlistCount = this.wishlistItems.length;
+                    });
+
+                    // Reset open modals/drawers when navigated back/forward via browser cache (bfcache)
+                    window.addEventListener('pageshow', (event) => {
+                        this.searchOpen = false;
+                        this.mobileMenuOpen = false;
+                        this.loginModalOpen = false;
+                    });
+
+                    // Sinkronisasi jumlah keranjang belanja dari database jika pengguna login
+                    if (isUserLoggedIn) {
+                        fetch('/cart/count')
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data && typeof data.count !== 'undefined') {
+                                    this.cartCount = data.count;
+                                    localStorage.setItem('elcraft_cart_count', data.count);
+                                }
+                            })
+                            .catch(err => console.error('Gagal menyinkronkan keranjang belanja:', err));
+                    } else {
+                        this.cartCount = 0;
+                        localStorage.setItem('elcraft_cart_count', '0');
+                    }
+                },
+
+                toggleSearch() {
+                    this.searchOpen = !this.searchOpen;
+                    if (this.searchOpen) {
+                        this.$nextTick(() => {
+                            this.$refs.searchInput.focus();
+                        });
+                    }
+                },
+
+                toggleMobileMenu() {
+                    this.mobileMenuOpen = !this.mobileMenuOpen;
+                },
+
+                toggleLoginModal() {
+                    this.loginModalOpen = !this.loginModalOpen;
+                },
+
+                addToCart(productId, productName, productPrice) {
+                    if (!isUserLoggedIn) {
+                        this.toggleLoginModal();
+                        return;
+                    }
+                    
+                    fetch('/cart/add', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        },
+                        body: JSON.stringify({
+                            product_id: productId,
+                            variant_id: null,
+                            quantity: 1
+                        })
+                    })
+                    .then(res => {
+                        if (!res.ok) {
+                            return res.json().then(err => { throw new Error(err.message || 'Gagal menambahkan produk.'); });
+                        }
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (data && data.success) {
+                            this.cartCount = data.cart_count;
+                            localStorage.setItem('elcraft_cart_count', data.cart_count);
+                            showToast(data.message, 'success');
+                        }
+                    })
+                    .catch(err => {
+                        showToast(err.message || 'Gagal menambahkan produk.', 'error');
+                    });
+                },
+
+                toggleWishlistItem(productId, productName) {
+                    if (!isUserLoggedIn) {
+                        this.toggleLoginModal();
+                        return;
+                    }
+                    const index = this.wishlistItems.indexOf(productId);
+                    if (index === -1) {
+                        this.wishlistItems.push(productId);
+                        showToast(`"${productName}" ditambahkan ke wishlist.`);
+                    } else {
+                        this.wishlistItems.splice(index, 1);
+                        showToast(`"${productName}" dihapus dari wishlist.`, 'info');
+                    }
+                    localStorage.setItem('elcraft_wishlist_items', JSON.stringify(this.wishlistItems));
+                    this.wishlistCount = this.wishlistItems.length;
+                },
+
+                isInWishlist(productId) {
+                    return this.wishlistItems.includes(productId);
+                }
+            }));
         });
     </script>
     @stack('scripts')
