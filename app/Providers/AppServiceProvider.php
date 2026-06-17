@@ -23,5 +23,10 @@ class AppServiceProvider extends ServiceProvider
         if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
+
+        // Directive Blade untuk format Rupiah
+        \Illuminate\Support\Facades\Blade::directive('rupiah', function ($expression) {
+            return "<?php echo 'Rp ' . number_format((float) ($expression), 0, ',', '.'); ?>";
+        });
     }
 }

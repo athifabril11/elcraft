@@ -100,15 +100,15 @@
                 <div class="flex items-end space-x-3 py-4 border-t border-b border-warmLightGrey/70">
                     @if($product->isDiscountActive())
                         <span class="text-3xl font-semibold text-warmBlack">
-                            Rp {{ number_format($product->final_price, 0, ',', '.') }}
+                            @rupiah($product->final_price)
                         </span>
                         <div class="flex flex-col">
-                            <span class="text-sm text-warmGrey line-through">Rp {{ number_format($product->price, 0, ',', '.') }}</span>
-                            <span class="text-xs font-semibold text-brand">Hemat Rp {{ number_format($product->price - $product->final_price, 0, ',', '.') }}</span>
+                            <span class="text-sm text-warmGrey line-through">@rupiah($product->price)</span>
+                            <span class="text-xs font-semibold text-brand">Hemat @rupiah($product->price - $product->final_price)</span>
                         </div>
                     @else
                         <span class="text-3xl font-semibold text-warmBlack">
-                            Rp {{ number_format($product->price, 0, ',', '.') }}
+                            @rupiah($product->price)
                         </span>
                     @endif
                 </div>
@@ -135,7 +135,7 @@
                                         {{ $v->stock === 0 ? 'disabled' : '' }}>
                                         {{ $v->variant_name }}
                                         @if($v->additional_price > 0)
-                                            <span class="text-warmGrey ml-1">+Rp {{ number_format($v->additional_price, 0, ',', '.') }}</span>
+                                            <span class="text-warmGrey ml-1">+@rupiah($v->additional_price)</span>
                                         @endif
                                     </button>
                                 @endforeach
@@ -341,10 +341,10 @@
                                 </h3>
                                 <div class="flex items-center space-x-2 mt-auto">
                                     @if($relDiscount)
-                                        <span class="text-[11px] text-warmGrey line-through">Rp {{ number_format($rel->price, 0, ',', '.') }}</span>
-                                        <span class="text-xs font-semibold text-warmBlack">Rp {{ number_format($rel->final_price, 0, ',', '.') }}</span>
+                                        <span class="text-[11px] text-warmGrey line-through">@rupiah($rel->price)</span>
+                                        <span class="text-xs font-semibold text-warmBlack">@rupiah($rel->final_price)</span>
                                     @else
-                                        <span class="text-xs font-semibold text-warmBlack">Rp {{ number_format($rel->price, 0, ',', '.') }}</span>
+                                        <span class="text-xs font-semibold text-warmBlack">@rupiah($rel->price)</span>
                                     @endif
                                 </div>
                             </div>

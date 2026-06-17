@@ -155,10 +155,10 @@
                                     
                                     <div class="flex items-center space-x-2 mt-auto">
                                         @if($isDiscount)
-                                            <span class="text-xs text-warmGrey line-through">Rp {{ number_format($product->price, 0, ',', '.') }}</span>
-                                            <span class="text-sm font-semibold text-warmBlack">Rp {{ number_format($product->final_price, 0, ',', '.') }}</span>
+                                            <span class="text-xs text-warmGrey line-through">@rupiah($product->price)</span>
+                                            <span class="text-sm font-semibold text-warmBlack">@rupiah($product->final_price)</span>
                                         @else
-                                            <span class="text-sm font-semibold text-warmBlack">Rp {{ number_format($product->price, 0, ',', '.') }}</span>
+                                            <span class="text-sm font-semibold text-warmBlack">@rupiah($product->price)</span>
                                         @endif
                                     </div>
                                 </div>
