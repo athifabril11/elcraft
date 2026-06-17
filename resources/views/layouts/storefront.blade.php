@@ -81,6 +81,9 @@
                         <a href="{{ route('orders.index') }}" class="flex items-center gap-2 px-4 py-2.5 text-xs text-warmBlack hover:bg-warmCream hover:text-brand transition-colors">
                             <span class="material-symbols-outlined !text-[16px]">receipt_long</span> Pesanan Saya
                         </a>
+                        <a href="{{ route('wishlist.index') }}" class="flex items-center gap-2 px-4 py-2.5 text-xs text-warmBlack hover:bg-warmCream hover:text-brand transition-colors">
+                            <span class="material-symbols-outlined !text-[16px]">favorite</span> Wishlist Saya
+                        </a>
                         <a href="{{ route('profile.addresses') }}" class="flex items-center gap-2 px-4 py-2.5 text-xs text-warmBlack hover:bg-warmCream hover:text-brand transition-colors">
                             <span class="material-symbols-outlined !text-[16px]">location_on</span> Alamat Saya
                         </a>
@@ -152,6 +155,9 @@
                 <div class="border-t border-warmLightGrey pt-6 flex flex-col space-y-3">
                     <a href="{{ route('orders.index') }}" class="w-full flex items-center gap-2 py-2.5 text-sm text-warmBlack hover:text-brand font-medium transition-colors">
                         <span class="material-symbols-outlined !text-[18px]">receipt_long</span> Pesanan Saya
+                    </a>
+                    <a href="{{ route('wishlist.index') }}" class="w-full flex items-center gap-2 py-2.5 text-sm text-warmBlack hover:text-brand font-medium transition-colors">
+                        <span class="material-symbols-outlined !text-[18px]">favorite</span> Wishlist Saya
                     </a>
                     <a href="{{ route('profile.addresses') }}" class="w-full flex items-center gap-2 py-2.5 text-sm text-warmBlack hover:text-brand font-medium transition-colors">
                         <span class="material-symbols-outlined !text-[18px]">location_on</span> Alamat Saya
@@ -354,6 +360,22 @@
             }
         };
 
+        window.updateWishlistBadge = (count, ids = null) => {
+            if (window.Alpine) {
+                const data = Alpine.$data(document.body);
+                if (data) {
+                    if (typeof data.wishlistCount !== 'undefined') {
+                        data.wishlistCount = count;
+                    }
+                    if (ids !== null && typeof data.wishlistItems !== 'undefined') {
+                        data.wishlistItems = ids;
+                        localStorage.setItem('elcraft_wishlist_items', JSON.stringify(ids));
+                    }
+                }
+            }
+            localStorage.setItem('elcraft_wishlist_count', count);
+        };
+
         window.toggleWishlistItem = (btnElement, productId, productName) => {
             if (window.Alpine) {
                 const data = Alpine.$data(document.body);
@@ -373,6 +395,7 @@
                 wishlistCount: 0,
 
                 init() {
+                    // Inicialização: baca dari localStorage dulu (cepat), lalu sinkronkan dari DB
                     this.wishlistItems = JSON.parse(localStorage.getItem('elcraft_wishlist_items') || '[]');
                     this.wishlistCount = this.wishlistItems.length;
 
@@ -390,8 +413,9 @@
                         this.loginModalOpen = false;
                     });
 
-                    // Sinkronisasi jumlah keranjang belanja dari database jika pengguna login
+                    // Sinkronisasi keranjang & wishlist dari database jika pengguna login
                     if (isUserLoggedIn) {
+                        // Sinkronisasi keranjang
                         fetch('/cart/count')
                             .then(res => res.json())
                             .then(data => {
@@ -400,10 +424,25 @@
                                     localStorage.setItem('elcraft_cart_count', data.count);
                                 }
                             })
-                            .catch(err => console.error('Gagal menyinkronkan keranjang belanja:', err));
+                            .catch(err => console.error('Gagal menyinkronkan keranjang:', err));
+
+                        // Sinkronisasi wishlist dari database
+                        fetch('/wishlist/count')
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data && typeof data.count !== 'undefined') {
+                                    this.wishlistCount = data.count;
+                                    this.wishlistItems  = data.ids || [];
+                                    localStorage.setItem('elcraft_wishlist_items', JSON.stringify(data.ids || []));
+                                }
+                            })
+                            .catch(err => console.error('Gagal menyinkronkan wishlist:', err));
                     } else {
-                        this.cartCount = 0;
+                        this.cartCount    = 0;
+                        this.wishlistCount = 0;
+                        this.wishlistItems = [];
                         localStorage.setItem('elcraft_cart_count', '0');
+                        localStorage.setItem('elcraft_wishlist_items', '[]');
                     }
                 },
 
@@ -465,16 +504,34 @@
                         this.toggleLoginModal();
                         return;
                     }
-                    const index = this.wishlistItems.indexOf(productId);
-                    if (index === -1) {
-                        this.wishlistItems.push(productId);
-                        showToast(`"${productName}" ditambahkan ke wishlist.`);
-                    } else {
-                        this.wishlistItems.splice(index, 1);
-                        showToast(`"${productName}" dihapus dari wishlist.`, 'info');
-                    }
-                    localStorage.setItem('elcraft_wishlist_items', JSON.stringify(this.wishlistItems));
-                    this.wishlistCount = this.wishlistItems.length;
+
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+                    fetch('/wishlist/toggle', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
+                        body: JSON.stringify({ product_id: productId }),
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            this.wishlistCount = data.count;
+                            if (data.in_wishlist) {
+                                if (!this.wishlistItems.includes(productId)) {
+                                    this.wishlistItems.push(productId);
+                                }
+                                showToast(`"${productName}" ditambahkan ke wishlist.`, 'success');
+                            } else {
+                                this.wishlistItems = this.wishlistItems.filter(id => id !== productId);
+                                showToast(`"${productName}" dihapus dari wishlist.`, 'info');
+                            }
+                            localStorage.setItem('elcraft_wishlist_items', JSON.stringify(this.wishlistItems));
+                        }
+                    })
+                    .catch(() => showToast('Gagal memperbarui wishlist. Coba lagi.', 'error'));
                 },
 
                 isInWishlist(productId) {

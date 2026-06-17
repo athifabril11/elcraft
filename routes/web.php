@@ -6,6 +6,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\WishlistController;
 use Illuminate\Support\Facades\Route;
 
 // Arahkan halaman utama (/) ke HomeController
@@ -58,10 +59,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{orderNumber}', [OrderController::class, 'show'])->name('orders.show');
     Route::post('/orders/{orderNumber}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+
+    // Wishlist (Dilindungi Auth)
+    Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
+    Route::post('/wishlist/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
+    Route::delete('/wishlist/{wishlist}', [WishlistController::class, 'destroy'])->name('wishlist.destroy');
 });
 
 // Endpoint hitung item keranjang belanja (Publik / Tanpa Auth)
 Route::get('/cart/count', [CartController::class, 'count'])->name('cart.count');
+
+// Endpoint hitung item wishlist (Publik — mengembalikan 0 jika tamu)
+Route::get('/wishlist/count', [WishlistController::class, 'count'])->name('wishlist.count');
 
 // Webhook Midtrans (Dikecualikan dari CSRF di bootstrap/app.php)
 Route::post('/midtrans/webhook', [MidtransWebhookController::class, 'handle'])->name('midtrans.webhook');
