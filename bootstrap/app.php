@@ -15,10 +15,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
         $middleware->validateCsrfTokens(except: [
             'midtrans/webhook',
+            'shipping/cost',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Kembalikan JSON untuk semua request yang menginginkan JSON (AJAX, API, test postJson)
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*'),
+            fn (Request $request) => $request->expectsJson(),
         );
     })->create();

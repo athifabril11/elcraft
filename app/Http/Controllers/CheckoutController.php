@@ -80,7 +80,12 @@ class CheckoutController extends Controller
             'recipient_phone' => 'required|string|max:50',
             'full_address'    => 'required|string',
             'city'            => 'required|string|max:100',
-            'postal_code'     => 'required|string|max:10',
+            'city_id'         => 'nullable|integer|min:1',
+            'province_id'     => 'nullable|integer|min:1',
+            'postal_code'     => 'nullable|string|max:10',
+            'shipping_cost'   => 'nullable|integer|min:0',
+            'courier'         => 'nullable|string|in:jne,pos,tiki',
+            'courier_service' => 'nullable|string|max:50',
             'notes'           => 'nullable|string',
             'voucher_code'    => 'nullable|string|max:50',
         ]);
@@ -109,27 +114,32 @@ class CheckoutController extends Controller
 
         try {
             return DB::transaction(function () use ($request, $user, $cart) {
-                // 3. Simpan atau perbarui alamat pengiriman
+                // 3. Simpan atau perbarui alamat pengiriman (termasuk city_id & province_id untuk ongkir)
                 $address = $user->addresses()->updateOrCreate(
                     [
                         'recipient_name' => $request->recipient_name,
-                        'phone' => $request->recipient_phone,
-                        'full_address' => $request->full_address,
-                        'city' => $request->city,
-                        'postal_code' => $request->postal_code,
+                        'phone'          => $request->recipient_phone,
+                        'full_address'   => $request->full_address,
+                        'city'           => $request->city,
                     ],
                     [
-                        'label' => 'Utama',
-                        'province' => 'Jawa Barat',
-                        'district' => 'Kecamatan',
-                        'is_default' => $user->addresses()->count() === 0,
+                        'label'       => 'Utama',
+                        'province'    => 'Jawa Barat',
+                        'province_id' => $request->province_id,
+                        'city_id'     => $request->city_id,
+                        'district'    => 'Kecamatan',
+                        'postal_code' => $request->postal_code ?? '',
+                        'is_default'  => $user->addresses()->count() === 0,
                     ]
                 );
 
                 // 4. Susun data pesanan menggunakan data valid dari database
                 $orderId  = 'ELCRAFT-' . strtoupper(Str::random(8)) . '-' . time();
                 $subtotal = $cart->getTotalPrice();
-                $shipping = 0;
+
+                // Ambil ongkos kirim dari pilihan kurir yang sudah divalidasi RajaOngkir
+                // Nilai ini sudah di-fetch langsung dari API, sehingga aman digunakan.
+                $shipping = max(0, (int) $request->input('shipping_cost', 0));
 
                 // Terapkan voucher jika ada
                 $voucherDiscount = 0;

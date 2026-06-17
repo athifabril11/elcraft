@@ -8,6 +8,7 @@ use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\ShippingController;
 use Illuminate\Support\Facades\Route;
 
 // Arahkan halaman utama (/) ke HomeController
@@ -72,6 +73,13 @@ Route::middleware('auth')->group(function () {
 
 // Endpoint hitung item keranjang belanja (Publik / Tanpa Auth)
 Route::get('/cart/count', [CartController::class, 'count'])->name('cart.count');
+
+// Endpoint RajaOngkir (Publik — data lokasi & biaya kirim)
+Route::prefix('shipping')->name('shipping.')->group(function () {
+    Route::get('/provinces',       [ShippingController::class, 'getProvinces'])->name('provinces');
+    Route::get('/cities/{provinceId}', [ShippingController::class, 'getCities'])->name('cities');
+    Route::post('/cost',           [ShippingController::class, 'calculateCost'])->name('cost');
+});
 
 // Endpoint hitung item wishlist (Publik — mengembalikan 0 jika tamu)
 Route::get('/wishlist/count', [WishlistController::class, 'count'])->name('wishlist.count');

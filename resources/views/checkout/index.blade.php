@@ -48,6 +48,7 @@
             {{-- ── KIRI: Form Alamat Pengiriman ──────────────────── --}}
             <div class="lg:col-span-2 space-y-6" x-data="checkoutPage({{ $subtotal }})">
 
+
                 {{-- Pilih Alamat Tersimpan (jika ada) --}}
                 @if($addresses->isNotEmpty())
                 <div class="bg-white rounded-card border border-warmLightGrey p-6">
@@ -129,36 +130,124 @@
                                 aria-required="true">{{ $addresses->firstWhere('is_default', true)->full_address ?? '' }}</textarea>
                         </div>
 
+                        {{-- Provinsi & Kota (RajaOngkir) --}}
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label for="recipient-city" class="block text-xs font-semibold text-warmGrey uppercase tracking-wider mb-1.5">
-                                    Kota / Kabupaten <span class="text-red-500">*</span>
+                                <label for="province-select" class="block text-xs font-semibold text-warmGrey uppercase tracking-wider mb-1.5">
+                                    Provinsi <span class="text-red-500">*</span>
                                 </label>
-                                <input
-                                    id="recipient-city"
-                                    type="text"
-                                    value="{{ $addresses->firstWhere('is_default', true)->city ?? '' }}"
+                                <select
+                                    id="province-select"
                                     required
-                                    class="w-full border border-warmLightGrey rounded-btn text-sm text-warmBlack px-3 py-2.5 focus:border-brand focus:ring-0 outline-none transition-colors"
-                                    placeholder="Nama kota"
+                                    @change="onProvinceChange($event)"
+                                    class="w-full border border-warmLightGrey rounded-btn text-sm text-warmBlack px-3 py-2.5 focus:border-brand focus:ring-0 outline-none transition-colors bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                    :disabled="provincesLoading"
                                     aria-required="true">
+                                    <option value="" disabled selected>-- Pilih Provinsi --</option>
+                                    <template x-for="prov in provinces" :key="prov.province_id">
+                                        <option :value="prov.province_id" x-text="prov.province"
+                                            :selected="selectedProvinceId == prov.province_id"></option>
+                                    </template>
+                                </select>
+                                <p x-show="provincesLoading" class="text-[10px] text-warmGrey mt-1 flex items-center gap-1" x-cloak>
+                                    <span class="material-symbols-outlined !text-[12px] animate-spin">sync</span> Memuat provinsi...
+                                </p>
                             </div>
                             <div>
+                                <label for="city-select" class="block text-xs font-semibold text-warmGrey uppercase tracking-wider mb-1.5">
+                                    Kota / Kabupaten <span class="text-red-500">*</span>
+                                </label>
+                                <select
+                                    id="city-select"
+                                    required
+                                    @change="onCityChange($event)"
+                                    class="w-full border border-warmLightGrey rounded-btn text-sm text-warmBlack px-3 py-2.5 focus:border-brand focus:ring-0 outline-none transition-colors bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                    :disabled="citiesLoading || !selectedProvinceId"
+                                    aria-required="true">
+                                    <option value="" disabled selected>-- Pilih Kota --</option>
+                                    <template x-for="city in cities" :key="city.city_id">
+                                        <option :value="city.city_id" x-text="city.type + ' ' + city.city_name"
+                                            :selected="selectedCityId == city.city_id"></option>
+                                    </template>
+                                </select>
+                                <p x-show="citiesLoading" class="text-[10px] text-warmGrey mt-1 flex items-center gap-1" x-cloak>
+                                    <span class="material-symbols-outlined !text-[12px] animate-spin">sync</span> Memuat kota...
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
                                 <label for="recipient-postal" class="block text-xs font-semibold text-warmGrey uppercase tracking-wider mb-1.5">
-                                    Kode Pos <span class="text-red-500">*</span>
+                                    Kode Pos
                                 </label>
                                 <input
                                     id="recipient-postal"
                                     type="text"
                                     maxlength="5"
-                                    value="{{ $addresses->firstWhere('is_default', true)->postal_code ?? '' }}"
-                                    required
+                                    x-model="postalCode"
                                     class="w-full border border-warmLightGrey rounded-btn text-sm text-warmBlack px-3 py-2.5 focus:border-brand focus:ring-0 outline-none transition-colors"
                                     placeholder="Contoh: 12345"
-                                    aria-required="true">
+                                    aria-label="Kode pos">
                             </div>
                         </div>
                     </form>
+                </div>
+
+                {{-- Pilih Kurir & Layanan --}}
+                <div class="bg-white rounded-card border border-warmLightGrey p-6">
+                    <h2 class="text-base font-semibold text-warmBlack mb-4 flex items-center space-x-2">
+                        <span class="material-symbols-outlined text-brand !text-[20px]">inventory_2</span>
+                        <span>Pilih Kurir</span>
+                    </h2>
+
+                    {{-- Pilihan Kurir --}}
+                    <div class="flex gap-3 mb-4 flex-wrap">
+                        @foreach(['jne' => 'JNE', 'pos' => 'POS Indonesia', 'tiki' => 'TIKI'] as $code => $label)
+                        <button type="button"
+                            @click="selectCourier('{{ $code }}')"
+                            :class="selectedCourier === '{{ $code }}' ? 'border-brand bg-brand/5 text-brand font-semibold' : 'border-warmLightGrey text-warmGrey hover:border-brand/50'"
+                            class="px-4 py-2 text-xs border rounded-btn transition-all duration-200 flex items-center gap-1.5">
+                            <span class="material-symbols-outlined !text-[14px]"
+                                :class="selectedCourier === '{{ $code }}' ? 'text-brand' : 'text-warmGrey'">local_shipping</span>
+                            {{ $label }}
+                        </button>
+                        @endforeach
+                    </div>
+
+                    {{-- Loading / Empty / Results --}}
+                    <div x-show="costLoading" class="flex items-center gap-2 text-xs text-warmGrey py-3" x-cloak>
+                        <span class="material-symbols-outlined !text-[16px] animate-spin">sync</span>
+                        Menghitung ongkos kirim...
+                    </div>
+
+                    <div x-show="!costLoading && !selectedCityId && !shippingError" class="text-xs text-warmGrey py-2" x-cloak>
+                        Pilih kota tujuan terlebih dahulu untuk melihat opsi pengiriman.
+                    </div>
+
+                    <div x-show="shippingError && !costLoading" class="text-xs text-red-500 py-2 flex items-center gap-1.5" x-cloak>
+                        <span class="material-symbols-outlined !text-[14px]">error</span>
+                        <span x-text="shippingError"></span>
+                    </div>
+
+                    <div x-show="shippingOptions.length > 0 && !costLoading" class="space-y-2" x-cloak>
+                        <template x-for="(opt, idx) in shippingOptions" :key="opt.service">
+                            <label class="flex items-center justify-between gap-3 cursor-pointer p-3 rounded-card border transition-colors"
+                                :class="selectedShipping?.service === opt.service ? 'border-brand bg-brand/5' : 'border-warmLightGrey hover:border-brand/40'">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <input type="radio" name="shipping_service" :value="opt.service"
+                                        @change="selectShippingOption(opt)"
+                                        :checked="selectedShipping?.service === opt.service"
+                                        class="text-brand focus:ring-brand border-warmGrey/40 flex-shrink-0">
+                                    <div class="min-w-0">
+                                        <p class="text-xs font-semibold text-warmBlack" x-text="opt.courier + ' ' + opt.description"></p>
+                                        <p class="text-[10px] text-warmGrey" x-text="'Estimasi: ' + opt.etd + ' hari'"></p>
+                                    </div>
+                                </div>
+                                <span class="text-xs font-bold text-brand flex-shrink-0" x-text="formatRupiah(opt.cost)"></span>
+                            </label>
+                        </template>
+                    </div>
                 </div>
 
                 {{-- Catatan untuk Penjual --}}
@@ -254,7 +343,7 @@
                     @endif
 
                     {{-- Baris Harga --}}
-                    <div class="border-t border-warmLightGrey pt-4 space-y-2.5" x-data="checkoutPage({{ $subtotal }})">
+                    <div class="border-t border-warmLightGrey pt-4 space-y-2.5">
                         <div class="flex justify-between text-xs text-warmGrey">
                             <span>Subtotal</span>
                             <span>@rupiah($subtotal)</span>
@@ -266,16 +355,14 @@
                         <div class="flex justify-between text-xs text-warmGrey">
                             <span>Ongkos Kirim</span>
                             <span id="checkout-shipping">
-                                @if($shipping > 0)
-                                    @rupiah($shipping)
-                                @else
-                                    <span class="text-emerald-600 font-semibold">Gratis</span>
-                                @endif
+                                <span x-show="!selectedShipping" class="text-warmGrey/60 italic text-[11px]">Pilih kurir</span>
+                                <span x-show="selectedShipping && selectedShipping.cost === 0" class="text-emerald-600 font-semibold" x-cloak>Gratis</span>
+                                <span x-show="selectedShipping && selectedShipping.cost > 0" x-text="formatRupiah(selectedShipping?.cost ?? 0)" x-cloak></span>
                             </span>
                         </div>
                         <div class="flex justify-between text-sm font-semibold text-warmBlack border-t border-warmLightGrey pt-3">
                             <span>Total Pembayaran</span>
-                            <span class="text-brand" x-text="formatRupiah(Math.max(0, subtotal - voucherDiscount + {{ $shipping }}))">@rupiah($total)</span>
+                            <span class="text-brand" x-text="formatRupiah(Math.max(0, subtotal - voucherDiscount + (selectedShipping?.cost ?? 0)))"></span>
                         </div>
                     </div>
 
@@ -340,6 +427,33 @@
             voucherMessage: '',
             voucherLoading: false,
 
+            // --- RajaOngkir State ---
+            provinces: [],
+            cities: [],
+            provincesLoading: false,
+            citiesLoading: false,
+            costLoading: false,
+            selectedProvinceId: null,
+            selectedCityId: null,
+            selectedCityName: '',
+            selectedCourier: 'jne',
+            shippingOptions: [],
+            selectedShipping: null,
+            shippingError: '',
+            postalCode: '{{ $addresses->firstWhere("is_default", true)?->postal_code ?? "" }}',
+
+            async init() {
+                await this.loadProvinces();
+                @if($addresses->firstWhere('is_default', true)?->province_id)
+                    this.selectedProvinceId = {{ $addresses->firstWhere('is_default', true)->province_id }};
+                    await this.loadCities(this.selectedProvinceId);
+                    @if($addresses->firstWhere('is_default', true)?->city_id)
+                        this.selectedCityId = {{ $addresses->firstWhere('is_default', true)->city_id }};
+                        await this.fetchShippingCost();
+                    @endif
+                @endif
+            },
+
             formatRupiah(amount) {
                 return 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.round(amount));
             },
@@ -348,8 +462,104 @@
                 document.getElementById('recipient-name').value    = data.name   || '';
                 document.getElementById('recipient-phone').value   = data.phone  || '';
                 document.getElementById('recipient-address').value = data.address || '';
-                document.getElementById('recipient-city').value    = data.city   || '';
-                document.getElementById('recipient-postal').value  = data.postal || '';
+                this.postalCode = data.postal || '';
+            },
+
+            async loadProvinces() {
+                this.provincesLoading = true;
+                try {
+                    const res  = await fetch('{{ route("shipping.provinces") }}');
+                    const json = await res.json();
+                    this.provinces = json.success ? json.data : [];
+                } catch (e) {
+                    console.error('Failed to load provinces', e);
+                } finally {
+                    this.provincesLoading = false;
+                }
+            },
+
+            async onProvinceChange(event) {
+                const provinceId = parseInt(event.target.value);
+                this.selectedProvinceId = provinceId;
+                this.selectedCityId     = null;
+                this.selectedCityName   = '';
+                this.cities             = [];
+                this.shippingOptions    = [];
+                this.selectedShipping   = null;
+                this.shippingError      = '';
+                await this.loadCities(provinceId);
+            },
+
+            async loadCities(provinceId) {
+                this.citiesLoading = true;
+                try {
+                    const res  = await fetch(`/shipping/cities/${provinceId}`);
+                    const json = await res.json();
+                    this.cities = json.success ? json.data : [];
+                } catch (e) {
+                    console.error('Failed to load cities', e);
+                } finally {
+                    this.citiesLoading = false;
+                }
+            },
+
+            async onCityChange(event) {
+                const cityId = parseInt(event.target.value);
+                const cityOpt = this.cities.find(c => c.city_id == cityId);
+                this.selectedCityId   = cityId;
+                this.selectedCityName = cityOpt ? (cityOpt.type + ' ' + cityOpt.city_name) : '';
+                // Auto-fill postal code from RajaOngkir city data
+                if (cityOpt?.postal_code) this.postalCode = cityOpt.postal_code;
+                this.shippingOptions  = [];
+                this.selectedShipping = null;
+                this.shippingError    = '';
+                await this.fetchShippingCost();
+            },
+
+            selectCourier(code) {
+                this.selectedCourier  = code;
+                this.shippingOptions  = [];
+                this.selectedShipping = null;
+                if (this.selectedCityId) this.fetchShippingCost();
+            },
+
+            selectShippingOption(opt) {
+                this.selectedShipping = opt;
+            },
+
+            async fetchShippingCost() {
+                if (!this.selectedCityId) return;
+                this.costLoading   = true;
+                this.shippingError = '';
+                // Estimate total weight: 500g per item (fallback)
+                const weight = Math.max(100, {{ $cartItems ? count($cartItems) : 1 }} * 500);
+                try {
+                    const res = await fetch('{{ route("shipping.cost") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        },
+                        body: JSON.stringify({
+                            city_id: this.selectedCityId,
+                            weight:  weight,
+                            courier: this.selectedCourier,
+                        }),
+                    });
+                    const json = await res.json();
+                    if (json.success && json.data.length > 0) {
+                        this.shippingOptions = json.data;
+                        this.selectedShipping = json.data[0]; // auto-select cheapest
+                    } else {
+                        this.shippingOptions  = [];
+                        this.selectedShipping = null;
+                        this.shippingError    = json.message || 'Layanan pengiriman tidak tersedia untuk tujuan ini.';
+                    }
+                } catch (e) {
+                    this.shippingError = 'Gagal menghitung ongkos kirim. Silakan coba lagi.';
+                } finally {
+                    this.costLoading = false;
+                }
             },
 
             async applyVoucher() {
@@ -418,9 +628,33 @@
         const name    = document.getElementById('recipient-name').value;
         const phone   = document.getElementById('recipient-phone').value;
         const address = document.getElementById('recipient-address').value;
-        const city    = document.getElementById('recipient-city').value;
-        const postal  = document.getElementById('recipient-postal').value;
         const notes   = document.getElementById('order-notes').value;
+
+        // Ambil Alpine state untuk kota, provinsi, kurir
+        const alpineEl = document.querySelector('[x-data]');
+        const alpine   = alpineEl ? Alpine.$data(alpineEl) : null;
+
+        const cityId       = alpine?.selectedCityId  ?? null;
+        const cityName     = alpine?.selectedCityName ?? '';
+        const provinceId   = alpine?.selectedProvinceId ?? null;
+        const shippingCost = alpine?.selectedShipping?.cost ?? 0;
+        const courier      = alpine?.selectedCourier ?? 'jne';
+        const service      = alpine?.selectedShipping?.service ?? '';
+        const postalCode   = alpine?.postalCode ?? '';
+
+        if (!cityId) {
+            alert('Silakan pilih kota tujuan pengiriman terlebih dahulu.');
+            btn.disabled = false;
+            btn.innerHTML = `<span class="material-symbols-outlined !text-[20px]">lock</span><span>Bayar Sekarang</span>`;
+            return;
+        }
+
+        if (!alpine?.selectedShipping) {
+            alert('Silakan pilih layanan kurir pengiriman terlebih dahulu.');
+            btn.disabled = false;
+            btn.innerHTML = `<span class="material-symbols-outlined !text-[20px]">lock</span><span>Bayar Sekarang</span>`;
+            return;
+        }
 
         // Ambil voucher code dari Alpine state jika ada
         const voucherInput = document.getElementById('voucher-code');
@@ -438,8 +672,13 @@
                     recipient_name:  name,
                     recipient_phone: phone,
                     full_address:    address,
-                    city:            city,
-                    postal_code:     postal,
+                    city:            cityName,
+                    city_id:         cityId,
+                    province_id:     provinceId,
+                    postal_code:     postalCode,
+                    shipping_cost:   shippingCost,
+                    courier:         courier,
+                    courier_service: service,
                     notes:           notes,
                     voucher_code:    voucherCode || null,
                 }),
