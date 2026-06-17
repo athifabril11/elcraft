@@ -33,7 +33,7 @@
         return 'Rp ' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
     },
     handleAddToCart() {
-        const requiredCount = {{ count($variantGroups ?? []) }};
+        const requiredCount = {{ $product->variants->where('is_active', true)->groupBy('variant_type')->count() }};
         if (Object.keys(this.selectedVariants).length < requiredCount) {
             if (window.showToast) {
                 window.showToast('Silakan pilih varian produk terlebih dahulu.', 'error');
@@ -459,3 +459,4 @@
         </section>
     @endif
 </div>
+@endsection
