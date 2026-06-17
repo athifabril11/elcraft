@@ -71,7 +71,7 @@
             <form action="/products" method="GET" class="max-w-[1280px] mx-auto px-5 md:px-8 lg:px-16 flex items-center justify-between">
                 <div class="flex-1 max-w-2xl flex items-center border-b border-brand py-2">
                     <span class="material-symbols-outlined text-warmGrey mr-3">search</span>
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari aksesoris impianmu..." class="w-full bg-transparent border-none outline-none text-warmBlack placeholder-warmGrey/50 font-sans text-base focus:ring-0">
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari aksesoris impianmu..." aria-label="Cari aksesoris impianmu" class="w-full bg-transparent border-none outline-none text-warmBlack placeholder-warmGrey/50 font-sans text-base focus:ring-0">
                 </div>
                 <div class="flex items-center ml-6 space-x-4">
                     <button type="submit" class="px-4 py-2 bg-brand hover:bg-brandDark text-white text-xs font-semibold uppercase tracking-wider rounded-btn transition-colors duration-200">Cari</button>

@@ -52,10 +52,10 @@
             </div>
 
             <!-- Dot Indicators (Active dot is Rose Gold pill shape) -->
-            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex space-x-3 items-center">
-                <button onclick="goToSlide(0)" class="hero-dot w-8 h-2 rounded-full bg-brand transition-all duration-300" aria-label="Go to slide 1"></button>
-                <button onclick="goToSlide(1)" class="hero-dot w-2 h-2 rounded-full bg-warmGrey/40 hover:bg-brand/50 transition-all duration-300" aria-label="Go to slide 2"></button>
-                <button onclick="goToSlide(2)" class="hero-dot w-2 h-2 rounded-full bg-warmGrey/40 hover:bg-brand/50 transition-all duration-300" aria-label="Go to slide 3"></button>
+            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex space-x-3 items-center" role="tablist" aria-label="Pilihan Slide">
+                <button onclick="goToSlide(0)" class="hero-dot w-8 h-2 rounded-full bg-brand transition-all duration-300" role="tab" aria-selected="true" aria-label="Tampilkan slide 1"></button>
+                <button onclick="goToSlide(1)" class="hero-dot w-2 h-2 rounded-full bg-warmGrey/40 hover:bg-brand/50 transition-all duration-300" role="tab" aria-selected="false" aria-label="Tampilkan slide 2"></button>
+                <button onclick="goToSlide(2)" class="hero-dot w-2 h-2 rounded-full bg-warmGrey/40 hover:bg-brand/50 transition-all duration-300" role="tab" aria-selected="false" aria-label="Tampilkan slide 3"></button>
             </div>
         </div>
     </section>
@@ -213,7 +213,7 @@
             <p class="text-sm text-warmGrey mb-8 max-w-sm leading-relaxed">Be the first to discover new arrivals and exclusive drops.</p>
             
             <form onsubmit="handleSubscribe(event)" class="w-full flex flex-col sm:flex-row gap-4 items-center">
-                <input type="email" placeholder="Email Address" required class="flex-grow w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-warmGrey focus:border-brand focus:ring-0 text-sm text-warmBlack py-2.5 px-0 placeholder-warmGrey/60 outline-none transition-colors duration-200">
+                <input type="email" placeholder="Email Address" aria-label="Alamat Email untuk Berlangganan" required class="flex-grow w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b border-warmGrey focus:border-brand focus:ring-0 text-sm text-warmBlack py-2.5 px-0 placeholder-warmGrey/60 outline-none transition-colors duration-200">
                 <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-widest uppercase rounded-btn transition-colors duration-200">
                     Subscribe
                 </button>

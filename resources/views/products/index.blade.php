@@ -40,10 +40,10 @@
 
                     <!-- Pencarian Kata Kunci -->
                     <div>
-                        <label class="text-xs font-semibold uppercase tracking-wider text-warmGrey block mb-3">Pencarian</label>
+                        <label for="search-input" class="text-xs font-semibold uppercase tracking-wider text-warmGrey block mb-3">Pencarian</label>
                         <div class="relative flex items-center border border-warmLightGrey rounded-btn px-3 py-2.5 bg-white focus-within:border-brand transition-colors">
                             <span class="material-symbols-outlined text-warmGrey !text-[18px] mr-2">search</span>
-                            <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari aksesoris..." class="w-full border-none outline-none focus:ring-0 text-sm text-warmBlack placeholder-warmGrey/40 p-0">
+                            <input type="text" id="search-input" name="search" value="{{ request('search') }}" placeholder="Cari aksesoris..." class="w-full border-none outline-none focus:ring-0 text-sm text-warmBlack placeholder-warmGrey/40 p-0">
                         </div>
                     </div>
 
@@ -86,15 +86,15 @@
                     
                     <div class="flex items-center space-x-3">
                         <!-- Mobile Filter Trigger -->
-                        <button onclick="toggleMobileFilters()" class="lg:hidden flex items-center space-x-1.5 px-3 py-2 border border-warmLightGrey rounded-btn text-xs text-warmBlack hover:border-brand">
+                        <button onclick="toggleMobileFilters()" aria-expanded="false" aria-controls="mobile-filter-drawer" class="lg:hidden flex items-center space-x-1.5 px-3 py-2 border border-warmLightGrey rounded-btn text-xs text-warmBlack hover:border-brand">
                             <span class="material-symbols-outlined !text-[16px]">filter_list</span>
                             <span>Filter</span>
                         </button>
 
                         <!-- Sorting Dropdown -->
                         <div class="flex items-center space-x-2">
-                            <label class="hidden md:inline-block text-xs text-warmGrey font-medium">Urutkan:</label>
-                            <select onchange="window.location.href = this.value" class="border border-warmLightGrey rounded-btn text-xs text-warmBlack focus:border-brand focus:ring-0 py-1.5 pl-3 pr-8 bg-white cursor-pointer">
+                            <label for="sort-select" class="hidden md:inline-block text-xs text-warmGrey font-medium">Urutkan:</label>
+                            <select id="sort-select" onchange="window.location.href = this.value" aria-label="Urutkan produk" class="border border-warmLightGrey rounded-btn text-xs text-warmBlack focus:border-brand focus:ring-0 py-1.5 pl-3 pr-8 bg-white cursor-pointer">
                                 <option value="{{ request()->fullUrlWithQuery(['sort_by' => 'latest', 'page' => null]) }}" {{ request('sort_by') === 'latest' || !request('sort_by') ? 'selected' : '' }}>Terbaru</option>
                                 <option value="{{ request()->fullUrlWithQuery(['sort_by' => 'price_low', 'page' => null]) }}" {{ request('sort_by') === 'price_low' ? 'selected' : '' }}>Harga: Rendah ke Tinggi</option>
                                 <option value="{{ request()->fullUrlWithQuery(['sort_by' => 'price_high', 'page' => null]) }}" {{ request('sort_by') === 'price_high' ? 'selected' : '' }}>Harga: Tinggi ke Rendah</option>
@@ -233,9 +233,9 @@
 
                     <!-- Pencarian -->
                     <div>
-                        <label class="text-xs font-semibold uppercase tracking-wider text-warmGrey block mb-2">Pencarian</label>
+                        <label for="mobile-search-input" class="text-xs font-semibold uppercase tracking-wider text-warmGrey block mb-2">Pencarian</label>
                         <div class="relative flex items-center border border-warmLightGrey rounded-btn px-3 py-2 bg-white">
-                            <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari..." class="w-full border-none outline-none focus:ring-0 text-sm text-warmBlack placeholder-warmGrey/40 p-0">
+                            <input type="text" id="mobile-search-input" name="search" value="{{ request('search') }}" placeholder="Cari..." class="w-full border-none outline-none focus:ring-0 text-sm text-warmBlack placeholder-warmGrey/40 p-0">
                         </div>
                     </div>
 

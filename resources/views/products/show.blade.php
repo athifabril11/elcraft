@@ -17,6 +17,7 @@
                     @forelse($product->images as $i => $img)
                         <button onclick="selectImage('{{ $img->image_url }}', this)"
                             data-thumb="{{ $img->image_url }}"
+                            aria-label="Tampilkan foto produk {{ $i + 1 }}"
                             class="thumb-btn flex-shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-img overflow-hidden border-2 {{ $i === 0 ? 'border-brand' : 'border-warmLightGrey hover:border-brand/50' }} transition-all duration-200 bg-warmCream">
                             <img src="{{ $img->image_url }}" alt="Thumbnail {{ $i + 1 }}" class="w-full h-full object-cover">
                         </button>
@@ -147,12 +148,12 @@
                 <div class="flex flex-col sm:flex-row gap-3 pt-2">
                     {{-- Qty Selector --}}
                     <div class="flex items-center border border-warmLightGrey rounded-btn overflow-hidden">
-                        <button onclick="changeQty(-1)" class="w-10 h-11 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-r border-warmLightGrey">
+                        <button onclick="changeQty(-1)" aria-label="Kurangi jumlah" class="w-10 h-11 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-r border-warmLightGrey">
                             <span class="material-symbols-outlined !text-[18px]">remove</span>
                         </button>
-                        <input id="qty-input" type="number" value="1" min="1" max="{{ $product->stock }}"
+                        <input id="qty-input" type="number" value="1" min="1" max="{{ $product->stock }}" aria-label="Jumlah beli"
                             class="w-12 h-11 text-center text-sm font-semibold text-warmBlack border-none outline-none focus:ring-0 bg-white">
-                        <button onclick="changeQty(1)" class="w-10 h-11 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-l border-warmLightGrey">
+                        <button onclick="changeQty(1)" aria-label="Tambah jumlah" class="w-10 h-11 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-l border-warmLightGrey">
                             <span class="material-symbols-outlined !text-[18px]">add</span>
                         </button>
                     </div>
@@ -195,19 +196,19 @@
         <div class="max-w-[1280px] mx-auto">
 
             {{-- Tab Switcher --}}
-            <div class="flex border-b border-warmLightGrey mb-8 space-x-8">
-                <button onclick="switchTab('desc')" id="tab-desc"
+            <div class="flex border-b border-warmLightGrey mb-8 space-x-8" role="tablist" aria-label="Informasi Produk">
+                <button onclick="switchTab('desc')" id="tab-desc" role="tab" aria-selected="true" aria-controls="panel-desc"
                     class="tab-btn pb-3 text-sm font-semibold border-b-2 border-brand text-brand transition-all duration-200">
                     Deskripsi Produk
                 </button>
-                <button onclick="switchTab('review')" id="tab-review"
+                <button onclick="switchTab('review')" id="tab-review" role="tab" aria-selected="false" aria-controls="panel-review"
                     class="tab-btn pb-3 text-sm font-semibold border-b-2 border-transparent text-warmGrey hover:text-warmBlack transition-all duration-200">
                     Ulasan ({{ $product->reviews->count() }})
                 </button>
             </div>
 
             {{-- Description Tab --}}
-            <div id="panel-desc" class="tab-panel">
+            <div id="panel-desc" class="tab-panel" role="tabpanel" aria-labelledby="tab-desc">
                 <div class="prose prose-sm max-w-none text-warmGrey leading-relaxed text-sm">
                     {!! nl2br(e($product->description ?? 'Deskripsi produk belum tersedia.')) !!}
                 </div>
@@ -232,7 +233,7 @@
             </div>
 
             {{-- Reviews Tab --}}
-            <div id="panel-review" class="tab-panel hidden" id-section="reviews">
+            <div id="panel-review" class="tab-panel hidden" role="tabpanel" aria-labelledby="tab-review" id-section="reviews">
                 @if($product->reviews->isEmpty())
                     <div class="flex flex-col items-center py-16 text-center">
                         <div class="w-14 h-14 rounded-full bg-warmCream flex items-center justify-center mb-4 text-warmGrey">
