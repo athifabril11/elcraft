@@ -269,6 +269,20 @@
         btn.disabled = true;
         btn.innerHTML = `<span class="material-symbols-outlined !text-[18px] animate-spin">sync</span><span>Memproses...</span>`;
 
+        const form = document.getElementById('shipping-form');
+        if (!form.reportValidity()) {
+            btn.disabled = false;
+            btn.innerHTML = `<span class="material-symbols-outlined !text-[20px]">lock</span><span>Bayar Sekarang</span>`;
+            return;
+        }
+
+        const name = document.getElementById('recipient-name').value;
+        const phone = document.getElementById('recipient-phone').value;
+        const address = document.getElementById('recipient-address').value;
+        const city = document.getElementById('recipient-city').value;
+        const postal = document.getElementById('recipient-postal').value;
+        const notes = document.getElementById('order-notes').value;
+
         try {
             // Ambil Snap Token dari server (dibuat oleh MidtransService)
             const response = await fetch('{{ route("checkout.token") }}', {
@@ -278,14 +292,18 @@
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                 },
                 body: JSON.stringify({
-                    total: {{ $total }},
-                    // TODO: Kirim item_details dari keranjang yang sebenarnya
-                    items: [],
+                    recipient_name: name,
+                    recipient_phone: phone,
+                    full_address: address,
+                    city: city,
+                    postal_code: postal,
+                    notes: notes,
                 }),
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: Gagal mendapatkan token pembayaran`);
+                const errData = await response.json();
+                throw new Error(errData.message || `HTTP ${response.status}: Gagal mendapatkan token pembayaran`);
             }
 
             const { snap_token } = await response.json();

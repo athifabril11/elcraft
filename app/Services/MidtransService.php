@@ -94,7 +94,7 @@ class MidtransService
         if (!empty($order['items'])) {
             $payload['item_details'] = collect($order['items'])
                 ->map(fn ($item) => [
-                    'id'       => (string) $item['product_id'],
+                    'id'       => (string) ($item['id'] ?? $item['product_id'] ?? ''),
                     'price'    => (int) $item['price'],
                     'quantity' => (int) $item['quantity'],
                     'name'     => Str::limit($item['name'], 50), // Maks 50 karakter

@@ -4,53 +4,60 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-class OrderItem extends Model
+class Order extends Model
 {
-    public $timestamps = false;
-
     protected $fillable = [
-        'order_id',
-        'product_id',
-        'variant_id',
-        'product_name',
-        'variant_name',
-        'price',
-        'discount_amount',
-        'quantity',
+        'order_number',
+        'user_id',
+        'address_id',
+        'voucher_id',
         'subtotal',
+        'discount_amount',
+        'voucher_discount',
+        'shipping_cost',
+        'total_amount',
+        'status',
+        'notes',
     ];
 
     protected $casts = [
-        'price'           => 'decimal:2',
-        'discount_amount' => 'decimal:2',
-        'subtotal'        => 'decimal:2',
+        'subtotal'         => 'decimal:2',
+        'discount_amount'  => 'decimal:2',
+        'voucher_discount' => 'decimal:2',
+        'shipping_cost'    => 'decimal:2',
+        'total_amount'     => 'decimal:2',
     ];
 
-    public function order(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(User::class);
     }
 
-    public function product(): BelongsTo
+    public function address(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Address::class);
     }
 
-    public function variant(): BelongsTo
+    public function voucher(): BelongsTo
     {
-        return $this->belongsTo(ProductVariant::class, 'variant_id');
+        return $this->belongsTo(Voucher::class);
     }
 
-    public function review(): HasOne
+    public function items(): HasMany
     {
-        return $this->hasOne(Review::class);
+        return $this->hasMany(OrderItem::class);
     }
 
-    // Cek sudah diulas
-    public function hasReview(): bool
+    public function payment(): HasOne
     {
-        return $this->review()->exists();
+        return $this->hasOne(Payment::class);
+    }
+
+    public function shipment(): HasOne
+    {
+        return $this->hasOne(Shipment::class);
     }
 }

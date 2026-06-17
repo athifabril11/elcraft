@@ -5,10 +5,14 @@ namespace App\Http\Controllers;
 use App\Services\MidtransService;
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\Order;
+use App\Models\Address;
+use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Class CheckoutController
@@ -69,6 +73,15 @@ class CheckoutController extends Controller
      */
     public function createSnapToken(Request $request): JsonResponse
     {
+        $request->validate([
+            'recipient_name' => 'required|string|max:255',
+            'recipient_phone' => 'required|string|max:50',
+            'full_address' => 'required|string',
+            'city' => 'required|string|max:100',
+            'postal_code' => 'required|string|max:10',
+            'notes' => 'nullable|string',
+        ]);
+
         $user = $request->user();
         $cart = $user->getOrCreateCart();
 
@@ -91,46 +104,105 @@ class CheckoutController extends Controller
             }
         }
 
-        // 3. Susun data pesanan menggunakan data valid dari database (bukan request payload)
-        $orderId = 'ELCRAFT-' . strtoupper(Str::random(8)) . '-' . time();
-        
-        $items = [];
-        foreach ($cart->items as $item) {
-            $items[] = [
-                'id' => $item->variant ? $item->product_id . '-' . $item->variant_id : (string) $item->product_id,
-                'price' => (int) $item->getUnitPrice(),
-                'quantity' => $item->quantity,
-                'name' => $item->variant 
-                    ? substr($item->product->name . ' (' . $item->variant->variant_name . ')', 0, 50) 
-                    : substr($item->product->name, 0, 50),
-            ];
-        }
-
-        $subtotal = $cart->getTotalPrice();
-        $shipping = 0;
-        $total = $subtotal + $shipping;
-
-        $order = [
-            'id'    => $orderId,
-            'total' => (int) $total,
-            'items' => $items,
-        ];
-
-        $customer = [
-            'name'  => $user->name,
-            'email' => $user->email,
-            'phone' => $user->phone ?? '',
-        ];
-
-        // 4. Request token dari Midtrans
         try {
-            $snapData = $this->midtrans->createSnapToken($order, $customer);
-            
-            return response()->json([
-                'snap_token' => $snapData['token'],
-                'order_id'   => $orderId,
-            ]);
+            return DB::transaction(function () use ($request, $user, $cart) {
+                // 3. Simpan atau perbarui alamat pengiriman
+                $address = $user->addresses()->updateOrCreate(
+                    [
+                        'recipient_name' => $request->recipient_name,
+                        'phone' => $request->recipient_phone,
+                        'full_address' => $request->full_address,
+                        'city' => $request->city,
+                        'postal_code' => $request->postal_code,
+                    ],
+                    [
+                        'label' => 'Utama',
+                        'province' => 'Jawa Barat',
+                        'district' => 'Kecamatan',
+                        'is_default' => $user->addresses()->count() === 0,
+                    ]
+                );
+
+                // 4. Susun data pesanan menggunakan data valid dari database
+                $orderId = 'ELCRAFT-' . strtoupper(Str::random(8)) . '-' . time();
+                $subtotal = $cart->getTotalPrice();
+                $shipping = 0;
+                $total = $subtotal + $shipping;
+
+                // Simpan Order
+                $order = Order::create([
+                    'order_number' => $orderId,
+                    'user_id' => $user->id,
+                    'address_id' => $address->id,
+                    'voucher_id' => null,
+                    'subtotal' => $subtotal,
+                    'discount_amount' => 0,
+                    'voucher_discount' => 0,
+                    'shipping_cost' => $shipping,
+                    'total_amount' => $total,
+                    'status' => 'pending',
+                    'notes' => $request->notes,
+                ]);
+
+                // Simpan Order Items
+                $items = [];
+                foreach ($cart->items as $item) {
+                    $order->items()->create([
+                        'product_id' => $item->product_id,
+                        'variant_id' => $item->variant_id,
+                        'product_name' => $item->product->name,
+                        'variant_name' => $item->variant?->variant_name,
+                        'price' => $item->getUnitPrice(),
+                        'discount_amount' => 0,
+                        'quantity' => $item->quantity,
+                        'subtotal' => $item->getSubtotal(),
+                    ]);
+
+                    $items[] = [
+                        'id' => $item->variant ? $item->product_id . '-' . $item->variant_id : (string) $item->product_id,
+                        'price' => (int) $item->getUnitPrice(),
+                        'quantity' => $item->quantity,
+                        'name' => $item->variant 
+                            ? substr($item->product->name . ' (' . $item->variant->variant_name . ')', 0, 50) 
+                            : substr($item->product->name, 0, 50),
+                    ];
+                }
+
+                $orderData = [
+                    'id'    => $orderId,
+                    'total' => (int) $total,
+                    'items' => $items,
+                ];
+
+                $customer = [
+                    'name'  => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone ?? $request->recipient_phone,
+                ];
+
+                // 5. Request token dari Midtrans
+                $snapData = $this->midtrans->createSnapToken($orderData, $customer);
+
+                // Simpan data pembayaran
+                Payment::create([
+                    'order_id' => $order->id,
+                    'midtrans_order_id' => $orderId,
+                    'amount' => $total,
+                    'status' => 'pending',
+                    'snap_token' => $snapData['token'],
+                ]);
+
+                return response()->json([
+                    'snap_token' => $snapData['token'],
+                    'order_id'   => $orderId,
+                ]);
+            });
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Checkout Snap Token Error: ' . $e->getMessage(), [
+                'user_id' => $user->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal memproses pembayaran melalui Midtrans. Silakan coba kembali.',

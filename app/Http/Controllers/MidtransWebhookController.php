@@ -3,8 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Services\MidtransService;
+use App\Models\Order;
+use App\Models\Payment;
+use App\Models\Product;
+use App\Models\ProductVariant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 /**
  * MidtransWebhookController — Penanganan notifikasi pembayaran asinkron
@@ -77,20 +82,94 @@ class MidtransWebhookController extends Controller
     private function markAsPaid(string $orderId, array $notification): void
     {
         Log::info("Pesanan {$orderId} telah lunas", ['payment_type' => $notification['payment_type']]);
-        // TODO: Order::where('order_number', $orderId)->update(['status' => 'paid']);
-        // TODO: Kirim email konfirmasi pesanan ke pelanggan
+        
+        $order = Order::where('order_number', $orderId)->first();
+        if ($order && $order->status !== 'paid') {
+            DB::transaction(function () use ($order, $notification) {
+                // Update order status
+                $order->update(['status' => 'paid']);
+
+                // Update payment details
+                if ($order->payment) {
+                    $order->payment->update([
+                        'status' => 'success',
+                        'payment_method' => $notification['payment_type'] ?? null,
+                        'payment_type' => $notification['payment_type'] ?? null,
+                        'paid_at' => now(),
+                        'response_data' => json_encode($notification),
+                    ]);
+                }
+
+                // Create shipment record
+                if (!$order->shipment) {
+                    $order->shipment()->create([
+                        'courier' => 'Manual',
+                        'service' => 'Reguler',
+                        'shipping_cost' => $order->shipping_cost,
+                    ]);
+                }
+
+                // Decrement product variant/product stock
+                foreach ($order->items as $item) {
+                    if ($item->variant_id) {
+                        $variant = ProductVariant::find($item->variant_id);
+                        if ($variant) {
+                            $variant->decrement('stock', $item->quantity);
+                        }
+                    } else {
+                        $product = Product::find($item->product_id);
+                        if ($product) {
+                            $product->decrement('stock', $item->quantity);
+                        }
+                    }
+                }
+            });
+        }
     }
 
     private function markAsPending(string $orderId): void
     {
         Log::info("Pesanan {$orderId} menunggu pembayaran");
-        // TODO: Order::where('order_number', $orderId)->update(['status' => 'pending']);
+        
+        $order = Order::where('order_number', $orderId)->first();
+        if ($order) {
+            $order->update(['status' => 'pending']);
+            if ($order->payment) {
+                $order->payment->update(['status' => 'pending']);
+            }
+        }
     }
 
     private function markAsFailed(string $orderId, string $reason): void
     {
         Log::warning("Pesanan {$orderId} gagal/dibatalkan", ['reason' => $reason]);
-        // TODO: Order::where('order_number', $orderId)->update(['status' => 'failed']);
-        // TODO: Kembalikan stok produk
+        
+        $order = Order::where('order_number', $orderId)->first();
+        if ($order) {
+            DB::transaction(function () use ($order) {
+                $oldStatus = $order->status;
+                $order->update(['status' => 'dibatalkan']);
+                if ($order->payment) {
+                    $order->payment->update(['status' => 'failed']);
+                }
+
+                // If the order was already paid, restore stock
+                if ($oldStatus === 'paid') {
+                    foreach ($order->items as $item) {
+                        if ($item->variant_id) {
+                            $variant = ProductVariant::find($item->variant_id);
+                            if ($variant) {
+                                $variant->increment('stock', $item->quantity);
+                            }
+                        } else {
+                            $product = Product::find($item->product_id);
+                            if ($product) {
+                                $product->increment('stock', $item->quantity);
+                            }
+                        }
+                    }
+                }
+            });
+        }
     }
 }

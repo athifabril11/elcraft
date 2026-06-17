@@ -47,9 +47,34 @@ class User extends Authenticatable
      */
     public function getOrCreateCart(): Cart
     {
-        if (!$this->cart) {
-            return $this->cart()->create();
+        $cart = $this->cart;
+        if (!$cart) {
+            $cart = $this->cart()->first();
         }
-        return $this->cart;
+        if (!$cart) {
+            $cart = $this->cart()->create();
+            $this->setRelation('cart', $cart);
+        }
+        return $cart;
+    }
+
+    /**
+     * Mendapatkan daftar pesanan pengguna.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function orders(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Mendapatkan daftar alamat pengiriman pengguna.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function addresses(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Address::class);
     }
 }
