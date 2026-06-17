@@ -30,6 +30,12 @@ class AppServiceProvider extends ServiceProvider
         // Daftarkan policy untuk model Address
         Gate::policy(Address::class, AddressPolicy::class);
 
+        // Daftarkan policy untuk model Review
+        Gate::policy(\App\Models\Review::class, \App\Policies\ReviewPolicy::class);
+
+        // Daftarkan observer untuk Review
+        \App\Models\Review::observe(\App\Observers\ReviewObserver::class);
+
         // Directive Blade untuk format Rupiah
         \Illuminate\Support\Facades\Blade::directive('rupiah', function ($expression) {
             return "<?php echo 'Rp ' . number_format((float) ($expression), 0, ',', '.'); ?>";

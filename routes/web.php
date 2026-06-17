@@ -7,6 +7,7 @@ use App\Http\Controllers\AddressController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\WishlistController;
+use App\Http\Controllers\ReviewController;
 use Illuminate\Support\Facades\Route;
 
 // Arahkan halaman utama (/) ke HomeController
@@ -59,6 +60,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{orderNumber}', [OrderController::class, 'show'])->name('orders.show');
     Route::post('/orders/{orderNumber}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+
+    // Ulasan Produk
+    Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
 
     // Wishlist (Dilindungi Auth)
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');

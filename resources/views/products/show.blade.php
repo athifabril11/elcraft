@@ -99,7 +99,7 @@
                         @endfor
                     </div>
                     <span class="text-sm font-semibold text-warmBlack">{{ number_format($avgRating, 1) }}</span>
-                    <span class="text-xs text-warmGrey">({{ $product->reviews->count() }} ulasan)</span>
+                    <span class="text-xs text-warmGrey">({{ $product->rating_count }} ulasan)</span>
                     <a href="#reviews" @click.prevent="activeTab = 'review'; document.getElementById('reviews').scrollIntoView({ behavior: 'smooth' })" class="text-xs text-brand hover:text-brandDark underline underline-offset-2 transition-colors">Lihat ulasan</a>
                 </div>
 
@@ -210,7 +210,7 @@
                 <button @click="activeTab = 'review'" 
                     class="pb-3 text-sm font-semibold border-b-2 transition-all duration-200"
                     :class="activeTab === 'review' ? 'border-brand text-brand' : 'border-transparent text-warmGrey hover:text-warmBlack'">
-                    Ulasan ({{ $product->reviews->count() }})
+                    Ulasan ({{ $product->rating_count }})
                 </button>
             </div>
 
@@ -241,7 +241,7 @@
 
             {{-- Reviews Tab --}}
             <div x-show="activeTab === 'review'" id="reviews" x-cloak>
-                @if($product->reviews->isEmpty())
+                @if($product->rating_count === 0)
                     <div class="flex flex-col items-center py-16 text-center">
                         <div class="w-14 h-14 rounded-full bg-warmCream flex items-center justify-center mb-4 text-warmGrey">
                             <span class="material-symbols-outlined !text-[28px]">chat_bubble_outline</span>
@@ -251,7 +251,11 @@
                     </div>
                 @else
                     {{-- Average Rating Big --}}
-                    @php $avg = $product->average_rating; $reviewCount = $product->reviews->count(); @endphp
+                    @php 
+                        $avg = $product->average_rating; 
+                        $reviewCount = $product->rating_count; 
+                        $starDistribution = $product->star_distribution;
+                    @endphp
                     <div class="flex items-center space-x-6 mb-8 p-6 bg-warmCream rounded-card border border-warmLightGrey/40">
                         <div class="text-center">
                             <p class="text-5xl font-semibold text-warmBlack">{{ number_format($avg, 1) }}</p>
@@ -265,7 +269,10 @@
                         {{-- Star Bars --}}
                         <div class="flex-1 space-y-1.5">
                             @for($s = 5; $s >= 1; $s--)
-                                @php $cnt = $product->reviews->where('rating', $s)->count(); $pct = $reviewCount > 0 ? ($cnt / $reviewCount) * 100 : 0; @endphp
+                                @php 
+                                    $cnt = $starDistribution[$s] ?? 0; 
+                                    $pct = $reviewCount > 0 ? ($cnt / $reviewCount) * 100 : 0; 
+                                @endphp
                                 <div class="flex items-center space-x-3">
                                     <span class="text-xs text-warmGrey w-4">{{ $s }}</span>
                                     <span class="material-symbols-outlined !text-[14px] text-amber-400" style="font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24">star</span>
@@ -300,6 +307,14 @@
                                 </div>
                                 @if($review->comment)
                                     <p class="text-sm text-warmGrey leading-relaxed">{{ $review->comment }}</p>
+                                @endif
+                                
+                                @if($review->image)
+                                    <div class="mt-3 flex">
+                                        <a href="{{ Storage::url($review->image) }}" target="_blank" class="block w-20 h-20 rounded-[6px] overflow-hidden border border-warmLightGrey/80 hover:border-brand/40 transition-colors bg-warmCream">
+                                            <img src="{{ Storage::url($review->image) }}" alt="Ulasan dari {{ $review->user->name ?? 'Anonim' }}" class="w-full h-full object-cover">
+                                        </a>
+                                    </div>
                                 @endif
                             </div>
                         @endforeach

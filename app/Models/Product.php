@@ -122,7 +122,20 @@ class Product extends Model
     // ─── Accessor: rating rata-rata ───────────
     public function getAverageRatingAttribute(): float
     {
-        return round($this->reviews()->where('is_approved', true)->avg('rating') ?? 0, 1);
+        return (float) ($this->rating_avg ?? 0.0);
+    }
+
+    /**
+     * Mendapatkan distribusi jumlah bintang untuk ulasan yang disetujui.
+     */
+    public function getStarDistributionAttribute(): array
+    {
+        return $this->reviews()
+            ->where('is_approved', true)
+            ->selectRaw('rating, count(*) as count')
+            ->groupBy('rating')
+            ->pluck('count', 'rating')
+            ->toArray();
     }
 
     // ─── Scope ────────────────────────────────
