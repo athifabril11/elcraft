@@ -11,89 +11,7 @@
 @endif
 
 @section('content')
-<div x-data="{
-    activeTab: 'desc',
-    qty: 1,
-    maxStock: {{ $product->stock }},
-    selectedImage: '{{ $product->primary_image ?? 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop' }}',
-    selectedVariants: {},
-    basePrice: {{ $product->final_price }},
-    additionalPrice: 0,
-    isAdding: false,
-    
-    changeQty(delta) {
-        this.qty = Math.max(1, Math.min(this.maxStock, this.qty + delta));
-    },
-    selectVariant(type, name, addPrice, stock, id) {
-        this.selectedVariants[type] = { name, addPrice, stock, id };
-        this.recalcPrice();
-    },
-    recalcPrice() {
-        this.additionalPrice = Object.values(this.selectedVariants).reduce((sum, v) => sum + v.addPrice, 0);
-        const stocks = Object.values(this.selectedVariants).map(v => v.stock);
-        this.maxStock = stocks.length > 0 ? Math.min(...stocks) : {{ $product->stock }};
-        if (this.qty > this.maxStock) this.qty = this.maxStock;
-    },
-    getTotalPrice() {
-        return this.basePrice + this.additionalPrice;
-    },
-    formatRupiah(amount) {
-        return 'Rp ' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
-    },
-    handleAddToCart() {
-        const requiredCount = {{ $product->variants->where('is_active', true)->groupBy('variant_type')->count() }};
-        if (Object.keys(this.selectedVariants).length < requiredCount) {
-            if (window.showToast) {
-                window.showToast('Silakan pilih varian produk terlebih dahulu.', 'error');
-            }
-            return;
-        }
-
-        const variantId = requiredCount > 0 ? Object.values(this.selectedVariants)[0]?.id : null;
-        this.isAdding = true;
-
-        fetch('/cart/add', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: JSON.stringify({
-                product_id: '{{ $product->id }}',
-                variant_id: variantId,
-                quantity: this.qty
-            })
-        })
-        .then(res => {
-            if (res.status === 401) {
-                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
-                return;
-            }
-            if (!res.ok) {
-                return res.json().then(err => { throw new Error(err.message || 'Gagal menambahkan produk.'); });
-            }
-            return res.json();
-        })
-        .then(data => {
-            if (data && data.success) {
-                if (window.updateCartBadge) {
-                    window.updateCartBadge(data.cart_count);
-                }
-                if (window.showToast) {
-                    window.showToast(data.message, 'success');
-                }
-            }
-        })
-        .catch(err => {
-            if (window.showToast) {
-                window.showToast(err.message || 'Gagal menambahkan produk.', 'error');
-            }
-        })
-        .finally(() => {
-            this.isAdding = false;
-        });
-    }
-}" class="pb-24 md:pb-0">
+<div x-data="productDetail('{{ $product->id }}', {{ $product->final_price }}, {{ $product->stock }}, '{{ $product->primary_image ?? 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop' }}', {{ $product->variants->where('is_active', true)->groupBy('variant_type')->count() }})" class="pb-24 md:pb-0">
 
     {{-- ─── PRODUCT MAIN SECTION ───────────────── --}}
     <section class="bg-white py-10 px-5 md:px-8 lg:px-16">
@@ -467,4 +385,93 @@
         </section>
     @endif
 </div>
+
+@push('scripts')
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('productDetail', (productId, basePrice, initialStock, primaryImage, requiredVariantsCount) => ({
+            activeTab: 'desc',
+            qty: 1,
+            maxStock: initialStock,
+            selectedImage: primaryImage,
+            selectedVariants: {},
+            basePrice: basePrice,
+            additionalPrice: 0,
+            isAdding: false,
+            
+            changeQty(delta) {
+                this.qty = Math.max(1, Math.min(this.maxStock, this.qty + delta));
+            },
+            selectVariant(type, name, addPrice, stock, id) {
+                this.selectedVariants[type] = { name, addPrice, stock, id };
+                this.recalcPrice();
+            },
+            recalcPrice() {
+                this.additionalPrice = Object.values(this.selectedVariants).reduce((sum, v) => sum + v.addPrice, 0);
+                const stocks = Object.values(this.selectedVariants).map(v => v.stock);
+                this.maxStock = stocks.length > 0 ? Math.min(...stocks) : initialStock;
+                if (this.qty > this.maxStock) this.qty = this.maxStock;
+            },
+            getTotalPrice() {
+                return this.basePrice + this.additionalPrice;
+            },
+            formatRupiah(amount) {
+                return 'Rp ' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
+            },
+            handleAddToCart() {
+                if (Object.keys(this.selectedVariants).length < requiredVariantsCount) {
+                    if (window.showToast) {
+                        window.showToast('Silakan pilih varian produk terlebih dahulu.', 'error');
+                    }
+                    return;
+                }
+
+                const variantId = requiredVariantsCount > 0 ? Object.values(this.selectedVariants)[0]?.id : null;
+                this.isAdding = true;
+
+                fetch('/cart/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        product_id: productId,
+                        variant_id: variantId,
+                        quantity: this.qty
+                    })
+                })
+                .then(res => {
+                    if (res.status === 401) {
+                        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                        return;
+                    }
+                    if (!res.ok) {
+                        return res.json().then(err => { throw new Error(err.message || 'Gagal menambahkan produk.'); });
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    if (data && data.success) {
+                        if (window.updateCartBadge) {
+                            window.updateCartBadge(data.cart_count);
+                        }
+                        if (window.showToast) {
+                            window.showToast(data.message, 'success');
+                        }
+                    }
+                })
+                .catch(err => {
+                    if (window.showToast) {
+                        window.showToast(err.message || 'Gagal menambahkan produk.', 'error');
+                    }
+                })
+                .finally(() => {
+                    this.isAdding = false;
+                });
+            }
+        }));
+    });
+</script>
+@endpush
 @endsection

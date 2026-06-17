@@ -288,6 +288,7 @@
                 setTimeout(() => toast.remove(), 300);
             }, 3500);
         }
+        window.showToast = showToast;
 
         // Subscriptions Form Handler (non-ajax welcome form)
         function handleSubscribe(e) {
