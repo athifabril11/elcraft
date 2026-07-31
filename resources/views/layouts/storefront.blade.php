@@ -38,17 +38,17 @@
 <body x-data="storefrontLayout()" class="bg-white text-warmBlack font-sans antialiased selection:bg-accent selection:text-brandDark">
 
     <!-- 1. STICKY NAVIGATION BAR (White Background) -->
-    <header class="sticky top-0 w-full z-50 bg-white border-b border-warmLightGrey">
-        <div class="max-w-[1280px] mx-auto px-5 md:px-8 lg:px-16 h-20 flex items-center justify-between">
+    <header class="sticky top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-warmLightGrey/60">
+        <div class="max-w-[1280px] mx-auto px-6 md:px-12 lg:px-20 h-20 flex items-center justify-between">
             <!-- Left: Logo -->
-            <a href="/" class="text-[22px] font-semibold text-brand tracking-wide font-sans">el Craft</a>
+            <a href="/" class="text-[22px] font-bold text-[#C17B6F] tracking-tight font-sans">el Craft</a>
             
             <!-- Center: Links (Desktop Only) -->
-            <nav class="hidden md:flex space-x-8">
-                <a href="/" class="{{ request()->is('/') ? 'text-brand' : 'text-warmBlack hover:text-brand' }} font-medium text-sm transition-colors duration-200 uppercase tracking-wider text-[11px]">Home</a>
-                <a href="/products" class="{{ request()->is('products*') ? 'text-brand' : 'text-warmGrey hover:text-brand' }} font-medium text-sm transition-colors duration-200 uppercase tracking-wider text-[11px]">Produk</a>
-                <a href="/#categories" class="text-warmGrey hover:text-brand font-medium text-sm transition-colors duration-200 uppercase tracking-wider text-[11px]">Kategori</a>
-                <a href="/#about" class="text-warmGrey hover:text-brand font-medium text-sm transition-colors duration-200 uppercase tracking-wider text-[11px]">Tentang</a>
+            <nav class="hidden md:flex space-x-9">
+                <a href="/" class="{{ request()->is('/') ? 'text-[#C17B6F]' : 'text-[#78716C] hover:text-[#C17B6F]' }} font-semibold text-[12px] transition-colors duration-200 uppercase tracking-[0.15em]">Home</a>
+                <a href="/products" class="{{ request()->is('products*') ? 'text-[#C17B6F]' : 'text-[#78716C] hover:text-[#C17B6F]' }} font-semibold text-[12px] transition-colors duration-200 uppercase tracking-[0.15em]">Produk</a>
+                <a href="/#categories" class="text-[#78716C] hover:text-[#C17B6F] font-semibold text-[12px] transition-colors duration-200 uppercase tracking-[0.15em]">Kategori</a>
+                <a href="/#about" class="text-[#78716C] hover:text-[#C17B6F] font-semibold text-[12px] transition-colors duration-200 uppercase tracking-[0.15em]">Tentang</a>
             </nav>
             
             <!-- Right: Icons -->

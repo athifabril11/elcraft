@@ -13,68 +13,68 @@
         startTimer() {
             this.timer = setInterval(() => {
                 this.currentSlide = (this.currentSlide + 1) % this.slidesCount;
-            }, 5000);
+            }, 6000);
         },
         goToSlide(index) {
             clearInterval(this.timer);
             this.currentSlide = index;
             this.startTimer();
         }
-    }" x-init="startTimer()" class="relative bg-warmCream overflow-hidden w-full h-[620px] md:h-[500px] lg:h-[600px] flex items-center">
+    }" x-init="startTimer()" class="relative bg-[#FAF6F3] overflow-hidden w-full h-[640px] md:h-[500px] lg:h-[580px] flex items-center">
         <div id="hero-slider" class="relative w-full h-full">
-            <!-- Slide 1 -->
-            <div class="hero-slide absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-between transition-all duration-1000 px-5 md:px-8 lg:px-16 max-w-[1280px] mx-auto py-10 md:py-0"
+            <!-- Slide 1 (Exclusive Selection - Ring Showcase) -->
+            <div class="hero-slide absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-between transition-all duration-1000 px-6 md:px-12 lg:px-20 max-w-[1280px] mx-auto py-6 md:py-0 pb-16 md:pb-0"
                  :class="currentSlide === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0'">
-                <div class="flex-1 md:pr-10 flex flex-col items-start text-left justify-center h-full order-2 md:order-1 mt-6 md:mt-0">
-                    <span class="text-[12px] font-semibold uppercase text-brand tracking-[0.2em] mb-4">NEW COLLECTION 2024</span>
-                    <h1 class="text-3xl md:text-4xl lg:text-5xl font-semibold text-warmBlack leading-tight mb-4 font-sans max-w-xl">Accessories for Every Moment</h1>
-                    <p class="text-sm md:text-base text-warmGrey mb-8 leading-relaxed max-w-md">Handpicked pieces for the modern woman. Curated with love, crafted with care.</p>
-                    <a href="/products" class="px-7 py-3.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-widest uppercase rounded-btn transition-colors duration-300">EXPLORE COLLECTION</a>
+                <div class="flex-1 md:pr-12 flex flex-col items-start text-left justify-center h-full order-2 md:order-1 mt-4 md:mt-0 pb-4 md:pb-0">
+                    <span class="text-[12px] font-bold uppercase text-[#C17B6F] tracking-[0.25em] mb-4">EXCLUSIVE SELECTION</span>
+                    <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold text-[#1C1917] leading-[1.12] mb-4 font-sans max-w-xl">Timeless Beauty in Detail</h1>
+                    <p class="text-sm md:text-base text-[#6B6661] mb-6 leading-relaxed max-w-md">Elevating everyday moments through artisanal precision and feminine designs.</p>
+                    <a href="/products" class="px-8 py-3.5 bg-[#C17B6F] hover:bg-[#A86458] text-white font-semibold text-xs tracking-widest uppercase rounded-lg transition-all duration-300 shadow-xs hover:shadow-md">VIEW COLLECTION</a>
                 </div>
                 <div class="flex-1 w-full h-1/2 md:h-full flex items-center justify-center order-1 md:order-2">
-                    <div class="relative w-full h-full max-h-[250px] md:max-h-[360px] lg:max-h-[440px] overflow-hidden rounded-img bg-warmCream border border-warmLightGrey/50">
-                        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuACgnNR_SNVVkyqhzyRl-TmSAoP_Y8vJ3aqpG7AB94XOfi9YqRjRaIyzbpLk9XcxwPmQTiUELlriwyF9dFYkUNw2d9R5JODd5tdtsHO_6B0qAuN4JowY143ywQUVCy4lmS9-MMg6VbNUfF49autKx0n838npvhTdsPxR1ak3s2qIQ6Uxta7dVn_UIoUvEpAKiNs4gLRJs3_eZeWPzq6z_2gJtDV31lnGb5HzyXiaJpxpgo-l6kYgSL-KsvbFOS8MMF2OZ9cFZGo29cj" alt="High-fashion minimalist photography shot of a woman wearing delicate gold jewelry" class="w-full h-full object-cover grayscale-[10%] opacity-90 transition-transform duration-700 hover:scale-105">
+                    <div class="relative w-full max-w-[480px] aspect-[4/3] md:aspect-[5/4] lg:aspect-[4/3] overflow-hidden rounded-2xl bg-[#1C1917] shadow-lg">
+                        <img src="/images/hero_ring.png" alt="Timeless Beauty Ring" class="w-full h-full object-cover transition-transform duration-700 hover:scale-105">
                     </div>
                 </div>
             </div>
 
-            <!-- Slide 2 -->
-            <div class="hero-slide absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-between transition-all duration-1000 px-5 md:px-8 lg:px-16 max-w-[1280px] mx-auto py-10 md:py-0"
+            <!-- Slide 2 (New Collection 2024) -->
+            <div class="hero-slide absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-between transition-all duration-1000 px-6 md:px-12 lg:px-20 max-w-[1280px] mx-auto py-6 md:py-0 pb-16 md:pb-0"
                  :class="currentSlide === 1 ? 'opacity-100 z-10' : 'opacity-0 z-0'" x-cloak>
-                <div class="flex-1 md:pr-10 flex flex-col items-start text-left justify-center h-full order-2 md:order-1 mt-6 md:mt-0">
-                    <span class="text-[12px] font-semibold uppercase text-brand tracking-[0.2em] mb-4">ELEGANT STATEMENT</span>
-                    <h1 class="text-3xl md:text-4xl lg:text-5xl font-semibold text-warmBlack leading-tight mb-4 font-sans max-w-xl">Crafted to Sparkle and Last</h1>
-                    <p class="text-sm md:text-base text-warmGrey mb-8 leading-relaxed max-w-md">Find necklaces, bracelets, and rings made from premium materials for your everyday style.</p>
-                    <a href="/products" class="px-7 py-3.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-widest uppercase rounded-btn transition-colors duration-300">SHOP NEW ARRIVALS</a>
+                <div class="flex-1 md:pr-12 flex flex-col items-start text-left justify-center h-full order-2 md:order-1 mt-4 md:mt-0 pb-4 md:pb-0">
+                    <span class="text-[12px] font-bold uppercase text-[#C17B6F] tracking-[0.25em] mb-4">NEW COLLECTION 2024</span>
+                    <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold text-[#1C1917] leading-[1.12] mb-4 font-sans max-w-xl">Accessories for Every Moment</h1>
+                    <p class="text-sm md:text-base text-[#6B6661] mb-6 leading-relaxed max-w-md">Handpicked pieces for the modern woman. Curated with love, crafted with care.</p>
+                    <a href="/products" class="px-8 py-3.5 bg-[#C17B6F] hover:bg-[#A86458] text-white font-semibold text-xs tracking-widest uppercase rounded-lg transition-all duration-300 shadow-xs hover:shadow-md">EXPLORE COLLECTION</a>
                 </div>
                 <div class="flex-1 w-full h-1/2 md:h-full flex items-center justify-center order-1 md:order-2">
-                    <div class="relative w-full h-full max-h-[250px] md:max-h-[360px] lg:max-h-[440px] overflow-hidden rounded-img bg-warmCream border border-warmLightGrey/50">
-                        <img src="https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=1200&auto=format&fit=crop" alt="Necklaces closeup on textured linen" class="w-full h-full object-cover opacity-90 transition-transform duration-700 hover:scale-105">
+                    <div class="relative w-full max-w-[480px] aspect-[4/3] md:aspect-[5/4] lg:aspect-[4/3] overflow-hidden rounded-2xl bg-[#1C1917] shadow-lg">
+                        <img src="https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=1200&auto=format&fit=crop" alt="High-fashion minimalist photography shot of fine jewelry" class="w-full h-full object-cover transition-transform duration-700 hover:scale-105">
                     </div>
                 </div>
             </div>
 
-            <!-- Slide 3 -->
-            <div class="hero-slide absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-between transition-all duration-1000 px-5 md:px-8 lg:px-16 max-w-[1280px] mx-auto py-10 md:py-0"
+            <!-- Slide 3 (Elegant Statement) -->
+            <div class="hero-slide absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-between transition-all duration-1000 px-6 md:px-12 lg:px-20 max-w-[1280px] mx-auto py-6 md:py-0 pb-16 md:pb-0"
                  :class="currentSlide === 2 ? 'opacity-100 z-10' : 'opacity-0 z-0'" x-cloak>
-                <div class="flex-1 md:pr-10 flex flex-col items-start text-left justify-center h-full order-2 md:order-1 mt-6 md:mt-0">
-                    <span class="text-[12px] font-semibold uppercase text-brand tracking-[0.2em] mb-4">EXCLUSIVE SELECTION</span>
-                    <h1 class="text-3xl md:text-4xl lg:text-5xl font-semibold text-warmBlack leading-tight mb-4 font-sans max-w-xl">Timeless Beauty in Detail</h1>
-                    <p class="text-sm md:text-base text-warmGrey mb-8 leading-relaxed max-w-md">Elevating everyday moments through artisanal precision and feminine designs.</p>
-                    <a href="/products" class="px-7 py-3.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-widest uppercase rounded-btn transition-colors duration-300">VIEW COLLECTION</a>
+                <div class="flex-1 md:pr-12 flex flex-col items-start text-left justify-center h-full order-2 md:order-1 mt-4 md:mt-0 pb-4 md:pb-0">
+                    <span class="text-[12px] font-bold uppercase text-[#C17B6F] tracking-[0.25em] mb-4">ELEGANT STATEMENT</span>
+                    <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold text-[#1C1917] leading-[1.12] mb-4 font-sans max-w-xl">Crafted to Sparkle and Last</h1>
+                    <p class="text-sm md:text-base text-[#6B6661] mb-6 leading-relaxed max-w-md">Find necklaces, bracelets, and rings made from premium materials for your everyday style.</p>
+                    <a href="/products" class="px-8 py-3.5 bg-[#C17B6F] hover:bg-[#A86458] text-white font-semibold text-xs tracking-widest uppercase rounded-lg transition-all duration-300 shadow-xs hover:shadow-md">SHOP NEW ARRIVALS</a>
                 </div>
                 <div class="flex-1 w-full h-1/2 md:h-full flex items-center justify-center order-1 md:order-2">
-                    <div class="relative w-full h-full max-h-[250px] md:max-h-[360px] lg:max-h-[440px] overflow-hidden rounded-img bg-warmCream border border-warmLightGrey/50">
-                        <img src="https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=1200&auto=format&fit=crop" alt="Premium rings stacking showcase" class="w-full h-full object-cover opacity-90 transition-transform duration-700 hover:scale-105">
+                    <div class="relative w-full max-w-[480px] aspect-[4/3] md:aspect-[5/4] lg:aspect-[4/3] overflow-hidden rounded-2xl bg-[#1C1917] shadow-lg">
+                        <img src="https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=1200&auto=format&fit=crop" alt="Premium rings stacking showcase" class="w-full h-full object-cover transition-transform duration-700 hover:scale-105">
                     </div>
                 </div>
             </div>
 
             <!-- Dot Indicators (Active dot is Rose Gold pill shape) -->
-            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex space-x-3 items-center" role="tablist" aria-label="Pilihan Slide">
-                <button @click="goToSlide(0)" class="hero-dot rounded-full transition-all duration-300" :class="currentSlide === 0 ? 'w-8 h-2 bg-brand' : 'w-2 h-2 bg-warmGrey/40 hover:bg-brand/50'" role="tab" :aria-selected="currentSlide === 0" aria-label="Tampilkan slide 1"></button>
-                <button @click="goToSlide(1)" class="hero-dot rounded-full transition-all duration-300" :class="currentSlide === 1 ? 'w-8 h-2 bg-brand' : 'w-2 h-2 bg-warmGrey/40 hover:bg-brand/50'" role="tab" :aria-selected="currentSlide === 1" aria-label="Tampilkan slide 2"></button>
-                <button @click="goToSlide(2)" class="hero-dot rounded-full transition-all duration-300" :class="currentSlide === 2 ? 'w-8 h-2 bg-brand' : 'w-2 h-2 bg-warmGrey/40 hover:bg-brand/50'" role="tab" :aria-selected="currentSlide === 2" aria-label="Tampilkan slide 3"></button>
+            <div class="hero-dots-container absolute bottom-4 md:bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex space-x-3 items-center" role="tablist" aria-label="Pilihan Slide">
+                <button @click="goToSlide(0)" class="hero-dot rounded-full transition-all duration-300" :class="currentSlide === 0 ? 'w-8 h-2 bg-[#C17B6F]' : 'w-2 h-2 bg-[#D5CECB] hover:bg-[#C17B6F]/50'" role="tab" :aria-selected="currentSlide === 0" aria-label="Tampilkan slide 1"></button>
+                <button @click="goToSlide(1)" class="hero-dot rounded-full transition-all duration-300" :class="currentSlide === 1 ? 'w-8 h-2 bg-[#C17B6F]' : 'w-2 h-2 bg-[#D5CECB] hover:bg-[#C17B6F]/50'" role="tab" :aria-selected="currentSlide === 1" aria-label="Tampilkan slide 2"></button>
+                <button @click="goToSlide(2)" class="hero-dot rounded-full transition-all duration-300" :class="currentSlide === 2 ? 'w-8 h-2 bg-[#C17B6F]' : 'w-2 h-2 bg-[#D5CECB] hover:bg-[#C17B6F]/50'" role="tab" :aria-selected="currentSlide === 2" aria-label="Tampilkan slide 3"></button>
             </div>
         </div>
     </section>
@@ -125,79 +125,50 @@
         <!-- 4-column grid (Desktop), 2-column grid (Mobile) -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
             @foreach($featuredProducts as $product)
-                @php
-                    $imgUrl = $product->primary_image ?? 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=600&auto=format&fit=crop';
-                    $isDiscount = $product->isDiscountActive();
-                @endphp
-                <!-- Product Card -->
-                <div class="group relative flex flex-col justify-between bg-white border border-warmLightGrey rounded-card overflow-hidden transition-all duration-300 hover:border-brand/40">
-                    <!-- Image Area -->
-                    <div class="relative aspect-square w-full bg-warmCream overflow-hidden flex items-center justify-center">
-                        <img src="{{ $imgUrl }}" alt="{{ $product->name }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
-                        
-                        <!-- Discount Badge -->
-                        @if($isDiscount)
-                            <span class="absolute top-3 left-3 bg-brand text-white text-[10px] font-semibold tracking-wider px-2 py-0.5 rounded-[4px]">-{{ $product->discount_percent }}%</span>
-                        @endif
-
-                        <!-- Wishlist Heart Icon -->
-                        <button onclick="toggleWishlistItem(this, '{{ $product->id }}', '{{ $product->name }}')" data-product-id="{{ $product->id }}" class="wishlist-btn absolute top-3 right-3 w-8 h-8 rounded-full bg-white flex items-center justify-center text-warmGrey hover:text-brand hover:scale-110 shadow-xs border border-warmLightGrey/50 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300" aria-label="Add to Wishlist">
-                            <span class="material-symbols-outlined !text-[20px] transition-all">favorite</span>
-                        </button>
-                        
-                        <!-- Add to Cart Full Width Button (appears on hover on desktop) -->
-                        <div class="absolute bottom-3 left-3 right-3 transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 hidden md:block">
-                            @if($product->variants->isNotEmpty())
-                                <a href="/products/{{ $product->slug }}" class="w-full py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-wider uppercase rounded-btn transition-colors duration-200 flex items-center justify-center space-x-1.5">
-                                    <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
-                                    <span>ADD TO CART</span>
-                                </a>
-                            @else
-                                <button onclick="addToCart('{{ $product->id }}', '{{ addslashes($product->name) }}', '{{ $product->final_price }}')" class="w-full py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-wider uppercase rounded-btn transition-colors duration-200 flex items-center justify-center space-x-1.5">
-                                    <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
-                                    <span>ADD TO CART</span>
-                                </button>
-                            @endif
-                        </div>
-                    </div>
-                    
-                    <!-- Product Text Info -->
-                    <div class="p-4 flex flex-col flex-grow">
-                        <span class="text-[10px] font-semibold text-warmGrey tracking-[0.05em] uppercase mb-1">{{ $product->category->name }}</span>
-                        <h3 class="text-sm font-medium text-warmBlack hover:text-brand line-clamp-1 mb-2 transition-colors duration-200">
-                            <a href="/products/{{ $product->slug }}">{{ $product->name }}</a>
-                        </h3>
-                        
-                        <div class="flex items-center space-x-2 mt-auto">
-                            @if($isDiscount)
-                                <span class="text-xs text-warmGrey line-through">@rupiah($product->price)</span>
-                                <span class="text-sm font-semibold text-warmBlack">@rupiah($product->final_price)</span>
-                            @else
-                                <span class="text-sm font-semibold text-warmBlack">@rupiah($product->price)</span>
-                            @endif
-                        </div>
-                    </div>
-
-                    <!-- Add to Cart for Mobile View (Visible under card text) -->
-                    <div class="p-4 pt-0 md:hidden">
-                        @if($product->variants->isNotEmpty())
-                            <a href="/products/{{ $product->slug }}" class="w-full py-2 bg-brand text-white font-semibold text-[11px] tracking-wider uppercase rounded-btn flex items-center justify-center space-x-1.5 active:bg-brandDark">
-                                <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
-                                <span>ADD TO CART</span>
-                            </a>
-                        @else
-                            <button onclick="addToCart('{{ $product->id }}', '{{ addslashes($product->name) }}', '{{ $product->final_price }}')" class="w-full py-2 bg-brand text-white font-semibold text-[11px] tracking-wider uppercase rounded-btn flex items-center justify-center space-x-1.5 active:bg-brandDark">
-                                <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
-                                <span>ADD TO CART</span>
-                            </button>
-                        @endif
-                    </div>
-                </div>
+                <x-product-card :product="$product" />
             @endforeach
         </div>
     </section>
 
-    <!-- 6. STORE ADVANTAGES (Background: #FDF8F6) -->
+    <!-- 5. PRODUK TERPOPULER -->
+    <section class="bg-warmCream py-16 px-5 md:px-8 lg:px-16 max-w-[1280px] mx-auto border-t border-warmLightGrey/50">
+        <div class="flex justify-between items-center mb-10">
+            <div>
+                <span class="text-xs font-semibold text-warmGrey tracking-[0.05em] uppercase">Produk Terpopuler</span>
+            </div>
+            <a href="/products" class="text-sm font-semibold text-brand hover:text-brandDark flex items-center transition-colors duration-200 uppercase tracking-wider">
+                Lihat Semua <span class="material-symbols-outlined ml-1 !text-sm">arrow_forward</span>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            @foreach($popularProducts as $product)
+                <x-product-card :product="$product" />
+            @endforeach
+        </div>
+    </section>
+
+    <!-- 6. SEDANG DISKON -->
+    @if($discountedProducts->isNotEmpty())
+    <section class="bg-white py-16 px-5 md:px-8 lg:px-16 max-w-[1280px] mx-auto border-t border-warmLightGrey/50">
+        <div class="flex justify-between items-center mb-10">
+            <div>
+                <span class="text-xs font-semibold text-warmGrey tracking-[0.05em] uppercase">Sedang Diskon</span>
+            </div>
+            <a href="/products" class="text-sm font-semibold text-brand hover:text-brandDark flex items-center transition-colors duration-200 uppercase tracking-wider">
+                Lihat Semua <span class="material-symbols-outlined ml-1 !text-sm">arrow_forward</span>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            @foreach($discountedProducts as $product)
+                <x-product-card :product="$product" />
+            @endforeach
+        </div>
+    </section>
+    @endif
+
+    <!-- 7. STORE ADVANTAGES (Background: #FDF8F6) -->
     <section class="bg-warmCream py-16 px-5 md:px-8 lg:px-16">
         <div class="max-w-[1280px] mx-auto">
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-8">
