@@ -5,26 +5,44 @@
 @section('meta_description', 'Temukan koleksi aksesoris wanita premium di el Craft — gelang, kalung, cincin, anting, dan bros dengan desain elegan. Gratis ongkir dan garansi keaslian produk.')
 
 @section('content')
-    <!-- 2. HERO SECTION (Auto-Sliding Banner) -->
+    <!-- 2. HERO SECTION (Auto-Sliding & Touch-Swipeable Banner) -->
+    <!-- Temporary hardcoded slides pending future Banner CRUD module (PRD REQ-A-BANNER-01) -->
     <section x-data="{
         currentSlide: 0,
         slidesCount: 3,
         timer: null,
         startTimer() {
             this.timer = setInterval(() => {
-                this.currentSlide = (this.currentSlide + 1) % this.slidesCount;
+                this.nextSlide();
             }, 6000);
+        },
+        nextSlide() {
+            this.currentSlide = (this.currentSlide + 1) % this.slidesCount;
+            this.scrollToSlide(this.currentSlide);
         },
         goToSlide(index) {
             clearInterval(this.timer);
             this.currentSlide = index;
+            this.scrollToSlide(index);
             this.startTimer();
+        },
+        scrollToSlide(index) {
+            const container = this.$refs.slider;
+            if (container) {
+                container.scrollTo({ left: index * container.clientWidth, behavior: 'smooth' });
+            }
+        },
+        onScroll() {
+            const container = this.$refs.slider;
+            if (container && container.clientWidth > 0) {
+                this.currentSlide = Math.round(container.scrollLeft / container.clientWidth);
+            }
         }
     }" x-init="startTimer()" class="relative bg-[#FAF6F3] overflow-hidden w-full h-[640px] md:h-[500px] lg:h-[580px] flex items-center">
-        <div id="hero-slider" class="relative w-full h-full">
+        <!-- Horizontal Scroll Snap Container -->
+        <div x-ref="slider" @scroll.debounce.50ms="onScroll()" class="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar w-full h-full">
             <!-- Slide 1 (Exclusive Selection - Ring Showcase) -->
-            <div class="hero-slide absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-between transition-all duration-1000 px-6 md:px-12 lg:px-20 max-w-[1280px] mx-auto py-6 md:py-0 pb-16 md:pb-0"
-                 :class="currentSlide === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0'">
+            <div class="w-full flex-shrink-0 snap-start h-full flex flex-col md:flex-row items-center justify-between px-6 md:px-12 lg:px-20 max-w-[1280px] mx-auto py-6 md:py-0 pb-16 md:pb-0">
                 <div class="flex-1 md:pr-12 flex flex-col items-start text-left justify-center h-full order-2 md:order-1 mt-4 md:mt-0 pb-4 md:pb-0">
                     <span class="text-[12px] font-bold uppercase text-[#C17B6F] tracking-[0.25em] mb-4">EXCLUSIVE SELECTION</span>
                     <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold text-[#1C1917] leading-[1.12] mb-4 font-sans max-w-xl">Timeless Beauty in Detail</h1>
@@ -39,8 +57,7 @@
             </div>
 
             <!-- Slide 2 (New Collection 2024) -->
-            <div class="hero-slide absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-between transition-all duration-1000 px-6 md:px-12 lg:px-20 max-w-[1280px] mx-auto py-6 md:py-0 pb-16 md:pb-0"
-                 :class="currentSlide === 1 ? 'opacity-100 z-10' : 'opacity-0 z-0'" x-cloak>
+            <div class="w-full flex-shrink-0 snap-start h-full flex flex-col md:flex-row items-center justify-between px-6 md:px-12 lg:px-20 max-w-[1280px] mx-auto py-6 md:py-0 pb-16 md:pb-0">
                 <div class="flex-1 md:pr-12 flex flex-col items-start text-left justify-center h-full order-2 md:order-1 mt-4 md:mt-0 pb-4 md:pb-0">
                     <span class="text-[12px] font-bold uppercase text-[#C17B6F] tracking-[0.25em] mb-4">NEW COLLECTION 2024</span>
                     <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold text-[#1C1917] leading-[1.12] mb-4 font-sans max-w-xl">Accessories for Every Moment</h1>
@@ -55,8 +72,7 @@
             </div>
 
             <!-- Slide 3 (Elegant Statement) -->
-            <div class="hero-slide absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-between transition-all duration-1000 px-6 md:px-12 lg:px-20 max-w-[1280px] mx-auto py-6 md:py-0 pb-16 md:pb-0"
-                 :class="currentSlide === 2 ? 'opacity-100 z-10' : 'opacity-0 z-0'" x-cloak>
+            <div class="w-full flex-shrink-0 snap-start h-full flex flex-col md:flex-row items-center justify-between px-6 md:px-12 lg:px-20 max-w-[1280px] mx-auto py-6 md:py-0 pb-16 md:pb-0">
                 <div class="flex-1 md:pr-12 flex flex-col items-start text-left justify-center h-full order-2 md:order-1 mt-4 md:mt-0 pb-4 md:pb-0">
                     <span class="text-[12px] font-bold uppercase text-[#C17B6F] tracking-[0.25em] mb-4">ELEGANT STATEMENT</span>
                     <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold text-[#1C1917] leading-[1.12] mb-4 font-sans max-w-xl">Crafted to Sparkle and Last</h1>
@@ -69,13 +85,13 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Dot Indicators (Active dot is Rose Gold pill shape) -->
-            <div class="hero-dots-container absolute bottom-4 md:bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex space-x-3 items-center" role="tablist" aria-label="Pilihan Slide">
-                <button @click="goToSlide(0)" class="hero-dot rounded-full transition-all duration-300" :class="currentSlide === 0 ? 'w-8 h-2 bg-[#C17B6F]' : 'w-2 h-2 bg-[#D5CECB] hover:bg-[#C17B6F]/50'" role="tab" :aria-selected="currentSlide === 0" aria-label="Tampilkan slide 1"></button>
-                <button @click="goToSlide(1)" class="hero-dot rounded-full transition-all duration-300" :class="currentSlide === 1 ? 'w-8 h-2 bg-[#C17B6F]' : 'w-2 h-2 bg-[#D5CECB] hover:bg-[#C17B6F]/50'" role="tab" :aria-selected="currentSlide === 1" aria-label="Tampilkan slide 2"></button>
-                <button @click="goToSlide(2)" class="hero-dot rounded-full transition-all duration-300" :class="currentSlide === 2 ? 'w-8 h-2 bg-[#C17B6F]' : 'w-2 h-2 bg-[#D5CECB] hover:bg-[#C17B6F]/50'" role="tab" :aria-selected="currentSlide === 2" aria-label="Tampilkan slide 3"></button>
-            </div>
+        <!-- Dot Indicators (Active dot is Rose Gold pill shape) -->
+        <div class="hero-dots-container absolute bottom-4 md:bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex space-x-3 items-center" role="tablist" aria-label="Pilihan Slide">
+            <button @click="goToSlide(0)" class="hero-dot rounded-full transition-all duration-300" :class="currentSlide === 0 ? 'w-8 h-2 bg-[#C17B6F]' : 'w-2 h-2 bg-[#D5CECB] hover:bg-[#C17B6F]/50'" role="tab" :aria-selected="currentSlide === 0" aria-label="Tampilkan slide 1"></button>
+            <button @click="goToSlide(1)" class="hero-dot rounded-full transition-all duration-300" :class="currentSlide === 1 ? 'w-8 h-2 bg-[#C17B6F]' : 'w-2 h-2 bg-[#D5CECB] hover:bg-[#C17B6F]/50'" role="tab" :aria-selected="currentSlide === 1" aria-label="Tampilkan slide 2"></button>
+            <button @click="goToSlide(2)" class="hero-dot rounded-full transition-all duration-300" :class="currentSlide === 2 ? 'w-8 h-2 bg-[#C17B6F]' : 'w-2 h-2 bg-[#D5CECB] hover:bg-[#C17B6F]/50'" role="tab" :aria-selected="currentSlide === 2" aria-label="Tampilkan slide 3"></button>
         </div>
     </section>
 
@@ -122,28 +138,33 @@
             </a>
         </div>
         
-        <!-- 4-column grid (Desktop), 2-column grid (Mobile) -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Horizontal Scroll Carousel (Mobile & Desktop) -->
+        <div class="flex items-stretch overflow-x-auto snap-x snap-mandatory gap-3 md:gap-6 pb-3 hide-scrollbar -mx-5 px-5 md:mx-0 md:px-0">
             @foreach($featuredProducts as $product)
-                <x-product-card :product="$product" />
+                <div class="w-[140px] sm:w-[160px] md:w-[200px] lg:w-[220px] flex-shrink-0 snap-start">
+                    <x-product-card :product="$product" />
+                </div>
             @endforeach
         </div>
     </section>
 
     <!-- 5. PRODUK TERPOPULER -->
-    <section class="bg-warmCream py-16 px-5 md:px-8 lg:px-16 max-w-[1280px] mx-auto border-t border-warmLightGrey/50">
+    <section class="bg-white py-16 px-5 md:px-8 lg:px-16 max-w-[1280px] mx-auto border-t border-warmLightGrey/50">
         <div class="flex justify-between items-center mb-10">
             <div>
-                <span class="text-xs font-semibold text-warmGrey tracking-[0.05em] uppercase">Produk Terpopuler</span>
+                <span class="text-xs font-semibold text-warmGrey tracking-[0.05em] uppercase">Best Sellers</span>
             </div>
             <a href="/products" class="text-sm font-semibold text-brand hover:text-brandDark flex items-center transition-colors duration-200 uppercase tracking-wider">
                 Lihat Semua <span class="material-symbols-outlined ml-1 !text-sm">arrow_forward</span>
             </a>
         </div>
 
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Horizontal Scroll Carousel (Mobile & Desktop) -->
+        <div class="flex items-stretch overflow-x-auto snap-x snap-mandatory gap-3 md:gap-6 pb-3 hide-scrollbar -mx-5 px-5 md:mx-0 md:px-0">
             @foreach($popularProducts as $product)
-                <x-product-card :product="$product" />
+                <div class="w-[140px] sm:w-[160px] md:w-[200px] lg:w-[220px] flex-shrink-0 snap-start">
+                    <x-product-card :product="$product" />
+                </div>
             @endforeach
         </div>
     </section>
@@ -153,16 +174,19 @@
     <section class="bg-white py-16 px-5 md:px-8 lg:px-16 max-w-[1280px] mx-auto border-t border-warmLightGrey/50">
         <div class="flex justify-between items-center mb-10">
             <div>
-                <span class="text-xs font-semibold text-warmGrey tracking-[0.05em] uppercase">Sedang Diskon</span>
+                <span class="text-xs font-semibold text-warmGrey tracking-[0.05em] uppercase">On Sale</span>
             </div>
             <a href="/products" class="text-sm font-semibold text-brand hover:text-brandDark flex items-center transition-colors duration-200 uppercase tracking-wider">
                 Lihat Semua <span class="material-symbols-outlined ml-1 !text-sm">arrow_forward</span>
             </a>
         </div>
 
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Horizontal Scroll Carousel (Mobile & Desktop) -->
+        <div class="flex items-stretch overflow-x-auto snap-x snap-mandatory gap-3 md:gap-6 pb-3 hide-scrollbar -mx-5 px-5 md:mx-0 md:px-0">
             @foreach($discountedProducts as $product)
-                <x-product-card :product="$product" />
+                <div class="w-[140px] sm:w-[160px] md:w-[200px] lg:w-[220px] flex-shrink-0 snap-start">
+                    <x-product-card :product="$product" />
+                </div>
             @endforeach
         </div>
     </section>
