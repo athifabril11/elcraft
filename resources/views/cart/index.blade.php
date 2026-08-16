@@ -13,20 +13,11 @@
     ];
 })->toArray()) }})" class="bg-white min-h-screen pb-20">
     
-    <!-- Bagian Breadcrumb & Header Halaman -->
-    <section class="bg-warmCream py-10 px-5 md:px-8 lg:px-16 border-b border-warmLightGrey/50">
-        <div class="max-w-[1280px] mx-auto">
-            <nav class="flex items-center space-x-2 text-xs text-warmGrey mb-2" aria-label="Breadcrumb">
-                <a href="/" class="hover:text-brand transition-colors">Beranda</a>
-                <span class="material-symbols-outlined !text-[12px]">chevron_right</span>
-                <span class="text-warmBlack font-medium">Keranjang Belanja</span>
-            </nav>
-            <h1 class="text-2xl md:text-3xl font-semibold text-warmBlack font-sans">Keranjang Belanja</h1>
-        </div>
-    </section>
+    <!-- Bagian Header Halaman -->
+    <x-page-header title="Keranjang Belanja" />
 
     <!-- Kontainer Utama Keranjang -->
-    <section class="py-12 px-5 md:px-8 lg:px-16 max-w-[1280px] mx-auto">
+    <section class="pt-4 pb-12 px-5 md:px-8 lg:px-16 max-w-[1280px] mx-auto">
         
         <!-- Tampilan Loading Overlay -->
         <div x-show="isLoading" x-cloak class="fixed inset-0 bg-white/50 backdrop-blur-xs z-50 flex items-center justify-center pointer-events-none">
@@ -68,7 +59,7 @@
                                 </h3>
                                 @if($item->variant)
                                     <span class="text-[11px] font-medium text-brand block mt-0.5">
-                                        Varian: {{ $item->variant->name }}
+                                        Varian: {{ $item->variant->variant_name }}
                                     </span>
                                 @endif
                                 <span class="text-xs text-warmGrey block mt-1">
@@ -139,14 +130,10 @@
                         </div>
                     </div>
 
-                    <div class="mt-8 space-y-3">
+                    <div class="mt-8">
                         <a href="/checkout" 
                            class="block w-full text-center py-3.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs uppercase tracking-widest rounded-btn transition-colors duration-250">
                             Lanjut ke Checkout
-                        </a>
-                        <a href="/products" 
-                           class="block w-full text-center py-3 border border-brand text-brand hover:bg-warmCream font-semibold text-xs uppercase tracking-widest rounded-btn transition-colors duration-250">
-                            Lanjut Belanja
                         </a>
                     </div>
                 </div>

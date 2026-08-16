@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\ShippingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 /**
  * Class ShippingController
@@ -87,7 +88,7 @@ class ShippingController extends Controller
         $validated = $request->validate([
             'city_id' => 'required|integer|min:1',
             'weight'  => 'required|integer|min:1',
-            'courier' => 'required|string|in:jne,pos,tiki',
+            'courier' => 'required|string|in:jne,pos,tiki,jnt',
         ]);
 
         $results = $this->shipping->calculateCost(
@@ -104,18 +105,41 @@ class ShippingController extends Controller
             ], 503);
         }
 
-        // Flatten results: ambil semua service dari hasil kurir
+        // Komerce API returns a flat array: each element is already one service
+        // Shape: { "name", "code", "service", "description", "cost", "etd" }
         $services = [];
-        foreach ($results as $courierResult) {
-            foreach ($courierResult['costs'] ?? [] as $cost) {
-                $services[] = [
-                    'service'     => $courierResult['code'] . '-' . $cost['service'],
-                    'description' => $cost['description'],
-                    'cost'        => $cost['cost'][0]['value'] ?? 0,
-                    'etd'         => $cost['cost'][0]['etd']  ?? '-',
-                    'courier'     => strtoupper($courierResult['code']),
-                ];
+        foreach ($results as $item) {
+            $courierLabel   = strtoupper($item['code'] ?? '');
+            $rawDescription = trim($item['description'] ?? $item['service'] ?? '');
+
+            // Some Komerce services already include the courier name in 'description'
+            // (e.g. "JNE City Courier"). Avoid duplicating when building the label.
+            if ($courierLabel !== '' && stripos($rawDescription, $courierLabel) === 0) {
+                $displayName = $rawDescription;
+            } else {
+                $displayName = $courierLabel !== ''
+                    ? $courierLabel . ' ' . $rawDescription
+                    : $rawDescription;
             }
+
+            // Komerce already appends the English word "day" / "days" to etd
+            // (e.g. "2 day", "2-3 days"). Strip it so the view can append
+            // the Indonesian " hari" without producing "2 day hari".
+            $rawEtd = $item['etd'] ?? '-';
+            if ($rawEtd !== '' && $rawEtd !== '-') {
+                $cleanedEtd = trim(preg_replace('/\bdays?\b/i', '', $rawEtd));
+                $cleanedEtd = trim($cleanedEtd, ' -');
+                $rawEtd     = $cleanedEtd !== '' ? $cleanedEtd : '-';
+            }
+
+            $services[] = [
+                'service'      => ($item['code'] ?? '') . '-' . ($item['service'] ?? ''),
+                'display_name' => $displayName,
+                'description'  => $rawDescription,
+                'cost'         => (int) ($item['cost'] ?? 0),
+                'etd'          => $rawEtd,
+                'courier'      => $courierLabel,
+            ];
         }
 
         return response()->json([

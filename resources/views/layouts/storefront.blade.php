@@ -247,30 +247,32 @@
     </footer>
 
     <!-- 8. BOTTOM MOBILE DOCK NAVIGATION -->
+    @unless(request()->routeIs('products.show'))
     <div class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-warmLightGrey z-40 grid grid-cols-5 h-16 pb-safe">
         <a href="/" class="flex flex-col items-center justify-center {{ request()->is('/') ? 'text-brand' : 'text-warmGrey hover:text-brand' }} w-full h-full">
-            <span class="material-symbols-outlined !text-[22px]">home</span>
+            <span class="material-symbols-outlined !text-[22px]" style="{{ request()->is('/') ? 'font-variation-settings:\'FILL\' 1' : '' }}">home</span>
             <span class="text-[10px] font-semibold tracking-wider mt-0.5">Home</span>
         </a>
-        <button @click="toggleSearch()" class="flex flex-col items-center justify-center text-warmGrey hover:text-brand w-full h-full">
-            <span class="material-symbols-outlined !text-[22px]">search</span>
+        <button @click="toggleSearch()" class="flex flex-col items-center justify-center {{ request()->is('products*') ? 'text-brand' : 'text-warmGrey hover:text-brand' }} w-full h-full">
+            <span class="material-symbols-outlined !text-[22px]" style="{{ request()->is('products*') ? 'font-variation-settings:\'FILL\' 1' : '' }}">search</span>
             <span class="text-[10px] font-semibold tracking-wider mt-0.5">Search</span>
         </button>
-        <a href="/cart" class="flex flex-col items-center justify-center text-warmGrey hover:text-brand relative w-full h-full">
-            <span class="material-symbols-outlined !text-[22px]">shopping_bag</span>
+        <a href="/cart" class="flex flex-col items-center justify-center {{ request()->is('cart*') ? 'text-brand' : 'text-warmGrey hover:text-brand' }} relative w-full h-full">
+            <span class="material-symbols-outlined !text-[22px]" style="{{ request()->is('cart*') ? 'font-variation-settings:\'FILL\' 1' : '' }}">shopping_bag</span>
             <span class="text-[10px] font-semibold tracking-wider mt-0.5">Cart</span>
             <span class="absolute top-0.5 right-2 bg-brand text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300" x-show="cartCount > 0" x-text="cartCount" x-cloak>0</span>
         </a>
-        <a href="/wishlist" class="flex flex-col items-center justify-center text-warmGrey hover:text-brand relative w-full h-full">
-            <span class="material-symbols-outlined !text-[22px]">favorite</span>
+        <a href="/wishlist" class="flex flex-col items-center justify-center {{ request()->is('wishlist*') ? 'text-brand' : 'text-warmGrey hover:text-brand' }} relative w-full h-full">
+            <span class="material-symbols-outlined !text-[22px]" style="{{ request()->is('wishlist*') ? 'font-variation-settings:\'FILL\' 1' : '' }}">favorite</span>
             <span class="text-[10px] font-semibold tracking-wider mt-0.5">Wishlist</span>
             <span class="absolute top-0.5 right-2 bg-brand text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center transition-all duration-300" x-show="wishlistCount > 0" x-text="wishlistCount" x-cloak>0</span>
         </a>
-        <a href="/dashboard" class="flex flex-col items-center justify-center text-warmGrey hover:text-brand w-full h-full">
-            <span class="material-symbols-outlined !text-[22px]">person</span>
+        <a href="{{ route('profile.edit') }}" class="flex flex-col items-center justify-center {{ (request()->is('profile*') || request()->is('orders*') || request()->is('dashboard')) ? 'text-brand' : 'text-warmGrey hover:text-brand' }} w-full h-full">
+            <span class="material-symbols-outlined !text-[22px]" style="{{ (request()->is('profile*') || request()->is('orders*') || request()->is('dashboard')) ? 'font-variation-settings:\'FILL\' 1' : '' }}">person</span>
             <span class="text-[10px] font-semibold tracking-wider mt-0.5">Profile</span>
         </a>
     </div>
+    @endunless
 
     <!-- Login Prompt Modal -->
     <div id="login-modal" x-cloak class="fixed inset-0 z-[60] bg-warmBlack/40 backdrop-blur-xs flex items-center justify-center transition-all duration-300 opacity-0 pointer-events-none" :class="loginModalOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'">

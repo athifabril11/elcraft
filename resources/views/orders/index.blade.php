@@ -4,19 +4,10 @@
 @section('meta_description', 'Lihat riwayat pembelian aksesoris wanita premium Anda di el Craft.')
 
 @section('content')
-<div class="bg-warmCream min-h-screen pb-24 md:pb-0">
+<div class="bg-white min-h-screen pb-24 md:pb-0">
 
     {{-- ─── HEADER ────────────────────────────────── --}}
-    <section class="bg-white border-b border-warmLightGrey py-10 px-5 md:px-8 lg:px-16">
-        <div class="max-w-[1280px] mx-auto">
-            <nav class="flex items-center space-x-2 text-xs text-warmGrey mb-2" aria-label="Breadcrumb">
-                <a href="/" class="hover:text-brand transition-colors">Beranda</a>
-                <span class="material-symbols-outlined !text-[12px]">chevron_right</span>
-                <span class="text-warmBlack font-medium">Riwayat Pesanan</span>
-            </nav>
-            <h1 class="text-2xl md:text-3xl font-semibold text-warmBlack font-sans">Riwayat Pesanan</h1>
-        </div>
-    </section>
+    <x-page-header title="Riwayat Pesanan" />
 
     <section class="max-w-[1280px] mx-auto px-5 md:px-8 lg:px-16 py-10">
 
@@ -38,7 +29,7 @@
                     @php
                         $statusMap = [
                             'pending'    => ['label' => 'Menunggu Pembayaran', 'color' => 'text-yellow-700 bg-yellow-50 border-yellow-200'],
-                            'paid'       => ['label' => 'Pembayaran Berhasil', 'color' => 'text-blue-700 bg-blue-50 border-blue-200'],
+                            'paid'       => ['label' => 'Pembayaran Berhasil', 'color' => 'text-green-700 bg-green-50 border-green-200'],
                             'processing' => ['label' => 'Sedang Diproses',     'color' => 'text-purple-700 bg-purple-50 border-purple-200'],
                             'shipped'    => ['label' => 'Sedang Dikirim',      'color' => 'text-indigo-700 bg-indigo-50 border-indigo-200'],
                             'delivered'  => ['label' => 'Pesanan Diterima',    'color' => 'text-green-700 bg-green-50 border-green-200'],
@@ -69,13 +60,19 @@
                                     <div class="flex items-center gap-3">
                                         <div class="w-10 h-10 rounded-img bg-warmCream flex-shrink-0 overflow-hidden border border-warmLightGrey/50">
                                             @if($item->product && $item->product->primary_image)
-                                                <img src="{{ $item->product->primary_image }}" alt="{{ $item->product_name }}" class="w-full h-full object-cover">
+                                                <a href="/products/{{ $item->product->slug }}" class="block w-full h-full">
+                                                    <img src="{{ $item->product->primary_image }}" alt="{{ $item->product_name }}" class="w-full h-full object-cover">
+                                                </a>
                                             @else
                                                 <span class="material-symbols-outlined text-warmGrey w-full h-full flex items-center justify-center !text-[18px]">image</span>
                                             @endif
                                         </div>
                                         <div class="flex-1 min-w-0">
-                                            <p class="text-xs text-warmBlack font-medium truncate">{{ $item->product_name }}</p>
+                                            @if($item->product)
+                                                <a href="/products/{{ $item->product->slug }}" class="text-xs text-warmBlack font-medium hover:text-brand truncate block transition-colors">{{ $item->product_name }}</a>
+                                            @else
+                                                <p class="text-xs text-warmBlack font-medium truncate">{{ $item->product_name }}</p>
+                                            @endif
                                             @if($item->variant_name)
                                                 <p class="text-[11px] text-warmGrey">{{ $item->variant_name }}</p>
                                             @endif

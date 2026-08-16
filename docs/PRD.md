@@ -1,10 +1,10 @@
-﻿# Product Requirements Document (PRD)
+# Product Requirements Document (PRD)
 # el Craft — Sistem E-Commerce Aksesoris Wanita
 
-**Versi:** 1.0  
-**Tanggal:** 31 Juli 2026  
-**Status:** Draft — menunggu persetujuan klien  
-**Stack:** Laravel 13 · PHP 8.3 · Tailwind CSS · MySQL · Midtrans Snap · RajaOngkir Starter
+**Versi:** 1.1  
+**Tanggal:** 12 Agustus 2026  
+**Status:** Diverifikasi — seluruh klaim status dikonfirmasi terhadap source code aktual  
+**Stack:** Laravel 13 · PHP 8.3 · Tailwind CSS · Alpine.js · MySQL · Midtrans Snap · RajaOngkir Komerce API
 
 ---
 
@@ -32,14 +32,16 @@ el Craft adalah platform e-commerce *business-to-consumer* (B2C) yang dibangun u
 | Komponen | Teknologi |
 |----------|-----------|
 | Backend Framework | Laravel 13 (PHP 8.3) |
-| Frontend | Blade + Tailwind CSS + Vanilla JS |
+| Frontend | Blade + Tailwind CSS + Alpine.js + Vanilla JS |
 | Database | MySQL (via Laragon lokal; produksi: VPS) |
 | Autentikasi | Laravel Breeze (session-based) |
-| Pembayaran | Midtrans Snap (Sandbox ke Production) |
-| Ongkos Kirim | RajaOngkir Starter (JNE, POS, TIKI) |
-| Email | Mailtrap (development) ke SMTP produksi |
-| Queue | Laravel Queue (worker direncanakan untuk produksi) |
-| Cache | Laravel Cache — digunakan untuk data provinsi/kota RajaOngkir (7 hari) |
+| Pembayaran | Midtrans Snap (Sandbox — production keys belum diisi) |
+| Ongkos Kirim | RajaOngkir via Komerce API (`rajaongkir.komerce.id/api/v1`) |
+| Email | Belum diimplementasikan (tidak ada app/Mail/ atau app/Notifications/) |
+| Queue | Tabel `jobs` ada; worker belum dijalankan |
+| Cache | Laravel Cache — digunakan untuk data provinsi/kota (7 hari) dan ongkir (1 jam) |
+
+> **Koreksi dari draft sebelumnya:** Draft PRD v1.0 menyebutkan "RajaOngkir Starter" — ini salah. File `.env` dan `ShippingService.php` mengonfirmasi API yang digunakan adalah **Komerce API** (`https://rajaongkir.komerce.id/api/v1`), bukan API legacy `api.rajaongkir.com/starter`. Ini penting karena Komerce API mendukung lebih banyak kurir daripada Starter Plan legacy, meskipun codebase saat ini masih membatasi secara hardcode ke 4 kurir.
 
 ---
 
@@ -49,9 +51,9 @@ el Craft adalah platform e-commerce *business-to-consumer* (B2C) yang dibangun u
 |-------|-----------|-------------|
 | **Tamu (Guest)** | Pengunjung yang belum login. Dapat melihat produk, kategori, homepage. Tidak dapat checkout atau wishlist. | Tidak diperlukan |
 | **Pelanggan (Customer)** | Pengguna terdaftar dengan role = customer. Dapat melakukan seluruh alur belanja. | Email + Password (Breeze) |
-| **Admin** | Pengguna dengan role = admin. Mengelola seluruh konten dan operasional toko. | Email + Password (Breeze) — redirect ke /admin/dashboard |
+| **Admin** | Pengguna dengan role = admin. Saat ini hanya bisa login dan melihat placeholder `/admin/dashboard`. | Email + Password (Breeze) — redirect ke /admin/dashboard |
 
-> **Catatan Kode:** Kolom `users.role` adalah enum `['customer', 'admin']` dengan default `'customer'`. Kolom `users.is_active` (boolean, default `true`) tersedia di skema database namun belum ada logika *enforcement* — pengguna dengan `is_active = false` saat ini masih dapat login.
+> **Catatan Kode:** Kolom `users.role` adalah enum `['customer', 'admin']` dengan default `'customer'`. Kolom `users.is_active` (boolean, default `true`) tersedia di skema database namun **tidak di-enforce** — pengguna dengan `is_active = false` saat ini masih dapat login.
 
 ---
 
@@ -59,46 +61,48 @@ el Craft adalah platform e-commerce *business-to-consumer* (B2C) yang dibangun u
 
 ### 3.1 Fitur Pelanggan (Customer-Facing)
 
-| No | Fitur | Status | Catatan |
-|----|-------|--------|---------|
-| C1 | Registrasi akun | Selesai | Breeze default — email + password |
-| C2 | Login / Logout | Selesai | Breeze default |
-| C3 | Lupa password (reset via email) | Selesai | Breeze default — password_reset_tokens |
-| C4 | Edit profil (nama, email, avatar, telepon) | Selesai | ProfileController + AddressController |
-| C5 | Manajemen buku alamat | Selesai | CRUD + set alamat default |
-| C6 | Browse produk + filter (kategori, harga, nama, sort) | Selesai | ProductController::index() |
-| C7 | Halaman detail produk + varian + produk terkait | Selesai | ProductController::show() |
-| C8 | Keranjang belanja (tambah, update qty, hapus) | Selesai | CartController — 1 cart per user |
-| C9 | Checkout dengan pemilihan kurir dan layanan | Selesai | CheckoutController — validasi stok server-side |
-| C10 | Kalkulasi ongkos kirim real-time (RajaOngkir) | Selesai | ShippingController — province ke city ke cost |
-| C11 | Penerapan voucher diskon saat checkout | Selesai | VoucherController::apply() — validasi server-side |
-| C12 | Pembayaran via Midtrans Snap | Selesai | QRIS, VA BCA/BNI/BRI, GoPay, ShopeePay, CC |
-| C13 | Halaman konfirmasi setelah bayar | Selesai | checkout.finish view |
-| C14 | Riwayat pesanan + detail pesanan | Selesai | OrderController::index() + show() |
-| C15 | Pembatalan pesanan mandiri | Selesai | Hanya status pending yang dapat dibatalkan |
-| C16 | Wishlist (toggle, daftar, hapus, count) | Selesai | WishlistController — AJAX + halaman /wishlist |
-| C17 | Ulasan produk (rating + komentar + foto) | Selesai | ReviewController::store() — terikat order_item_id |
-| C18 | Homepage: New Arrivals | Selesai | Produk is_featured = true |
-| C19 | Homepage: Produk Terpopuler | Selesai | Ranking berdasarkan total unit terjual; fallback ke latest |
-| C20 | Homepage: Sedang Diskon | Selesai | Filter discount_type bukan none + tanggal aktif; hidden jika kosong |
-| C21 | Login Google OAuth | Belum Dimulai | Kolom google_id ada di DB; Socialite TIDAK terinstall; tidak ada logic OAuth |
-| C22 | Verifikasi email | Parsial | Controller ada, MustVerifyEmail di-comment pada User.php — tidak diaktifkan |
-| C23 | Notifikasi email (pesanan dikonfirmasi, dikirim) | Belum Dimulai | Tidak ada class Mail, Notification, atau Mailable di codebase |
+| No | Fitur | Status | Bukti Kode |
+|----|-------|--------|------------|
+| C1 | Registrasi akun | ✅ Selesai | `Auth/RegisteredUserController.php` + `auth/register.blade.php` |
+| C2 | Login / Logout | ✅ Selesai | `Auth/AuthenticatedSessionController.php` + `auth/login.blade.php` |
+| C3 | Lupa password (reset via email) | ✅ Selesai | `Auth/PasswordResetLinkController.php` + `Auth/NewPasswordController.php` |
+| C4 | Edit profil (nama, email, password) | ✅ Selesai | `ProfileController.php` + `profile/edit.blade.php` + 3 partials |
+| C5 | Manajemen buku alamat | ✅ Selesai | `AddressController.php` (CRUD + setDefault) + `profile/addresses.blade.php` + `AddressPolicy` |
+| C6 | Browse produk + filter (kategori, harga, nama, sort) | ✅ Selesai | `ProductController::index()` — 4 filter + 4 sort options + paginate(9) |
+| C7 | Halaman detail produk + varian + produk terkait | ✅ Selesai | `ProductController::show()` — reviews (10 terbaru), related (4 random same category) |
+| C8 | Keranjang belanja (tambah, update qty, hapus) | ✅ Selesai | `CartController` — stok validasi, variant-aware, 1 cart per user |
+| C9 | Checkout dengan pemilihan kurir dan layanan | ✅ Selesai | `CheckoutController` — Alpine.js frontend, validasi stok server-side |
+| C10 | Kalkulasi ongkos kirim real-time (RajaOngkir Komerce) | ✅ Selesai | `ShippingService` → `ShippingController` — province → city → cost |
+| C11 | Penerapan voucher diskon saat checkout | ✅ Selesai | `VoucherController::apply()` — error message spesifik per case |
+| C12 | Pembayaran via Midtrans Snap | ✅ Selesai | `MidtransService::createSnapToken()` — 10 metode pembayaran diaktifkan |
+| C13 | Halaman konfirmasi setelah bayar | ✅ Selesai | `CheckoutController::finish()` — bersihkan cart items |
+| C14 | Riwayat pesanan + detail pesanan | ✅ Selesai | `OrderController::index()` + `show()` — IDOR-protected |
+| C15 | Pembatalan pesanan mandiri | ✅ Selesai | `OrderController::cancel()` — hanya status `pending` |
+| C16 | Wishlist (toggle, daftar, hapus, count) | ✅ Selesai | `WishlistController` — AJAX toggle + `/wishlist` page + badge count |
+| C17 | Ulasan produk (rating + komentar + foto) | ✅ Selesai | `ReviewController::store()` — terikat `order_item_id`, Gate-protected |
+| C18 | Homepage: New Arrivals | ✅ Selesai | `HomeController` — `is_featured = true` products |
+| C19 | Homepage: Produk Terpopuler | ✅ Selesai | `HomeController` — ranking by total sold; fallback to latest |
+| C20 | Homepage: Sedang Diskon | ✅ Selesai | `HomeController` — filter discount aktif by tanggal |
+| C21 | Login Google OAuth | ❌ Belum Dimulai | Kolom `google_id` ada di DB; Socialite TIDAK terinstall; tidak ada logic OAuth |
+| C22 | Verifikasi email | ⚠️ Parsial | Controller-controller ada (Breeze default); `MustVerifyEmail` di-**comment** pada `User.php` line 5 — fitur **tidak aktif** |
+| C23 | Notifikasi email (pesanan, pengiriman) | ❌ Belum Dimulai | **Tidak ada** direktori `app/Mail/` atau `app/Notifications/`. Nol class Mailable atau Notification. |
 
 ### 3.2 Fitur Admin (Back-Office)
 
-| No | Fitur | Status | Catatan |
-|----|-------|--------|---------|
-| A1 | Dashboard Admin (ringkasan statistik) | Belum Dimulai | Route /admin/dashboard hanya mengembalikan string HTML statis |
-| A2 | Manajemen Produk (CRUD + varian + diskon) | Belum Dimulai | Tidak ada controller atau view admin untuk produk |
-| A3 | Manajemen Kategori (CRUD) | Belum Dimulai | Tidak ada controller atau view admin untuk kategori |
-| A4 | Manajemen Banner | Belum Dimulai | Tidak ada tabel banners di database; perlu migrasi baru |
-| A5 | Manajemen Pesanan (list, detail, update status) | Belum Dimulai | Tidak ada controller admin — pesanan hanya bisa dilihat dari sisi pelanggan |
-| A6 | Lihat Status Pembayaran | Belum Dimulai | Data pembayaran tersimpan di tabel payments, namun tanpa tampilan admin |
-| A7 | Manajemen Voucher (buat, aktifkan/nonaktifkan) | Belum Dimulai | Tabel vouchers dan voucher_usages ada; logic apply() aktif di checkout; tidak ada UI admin |
-| A8 | Moderasi Ulasan (approve/reject) | Belum Dimulai | Kolom reviews.is_approved default false; tidak ada UI admin untuk mengubahnya |
-| A9 | Manajemen Pengguna (lihat, aktifkan/nonaktifkan) | Belum Dimulai | Kolom users.is_active ada tapi tidak di-enforce; tidak ada UI admin |
-| A10 | Manajemen Retur/Refund | Belum Dimulai | Tidak ada ReturnController — disebutkan dalam konteks tapi tidak ada di codebase |
+| No | Fitur | Status | Bukti Kode |
+|----|-------|--------|------------|
+| A1 | Dashboard Admin | ❌ Belum Dimulai | Route `/admin/dashboard` ada tapi hanya return string HTML statis (1 baris `<h1>`) |
+| A2 | Manajemen Produk (CRUD + varian + diskon) | ❌ Belum Dimulai | Tidak ada controller, view, atau route admin untuk produk |
+| A3 | Manajemen Kategori (CRUD) | ❌ Belum Dimulai | Tidak ada controller, view, atau route admin untuk kategori |
+| A4 | Manajemen Banner | ❌ Belum Dimulai | Tidak ada tabel `banners` di database |
+| A5 | Manajemen Pesanan (list, detail, update status) | ❌ Belum Dimulai | Tidak ada controller admin — pesanan hanya bisa dilihat sisi pelanggan |
+| A6 | Lihat Status Pembayaran | ❌ Belum Dimulai | Data tersimpan di tabel `payments`, tanpa UI admin |
+| A7 | Manajemen Voucher | ❌ Belum Dimulai | Tabel + model + apply logic ada; **tidak ada** UI admin untuk CRUD voucher |
+| A8 | Moderasi Ulasan | ❌ Belum Dimulai | `is_approved = false` default; tidak ada UI admin untuk approve/reject |
+| A9 | Manajemen Pengguna | ❌ Belum Dimulai | Tidak ada UI admin; `is_active` tidak di-enforce |
+| A10 | Manajemen Retur/Refund | ❌ Belum Dimulai | **Tidak ada** `ReturnController` — dikonfirmasi tidak pernah ada di codebase |
+
+> **Catatan:** Tidak ada direktori `resources/views/admin/` dan tidak ada `public/admin/`. Admin panel belum ada sama sekali.
 
 ---
 
@@ -114,9 +118,9 @@ el Craft adalah platform e-commerce *business-to-consumer* (B2C) yang dibangun u
 
 ### 4.2 Modul Profil dan Alamat
 
-- **REQ-C-PROFILE-01:** Pengguna dapat mengubah nama, email, nomor telepon, dan foto profil (avatar).
+- **REQ-C-PROFILE-01:** Pengguna dapat mengubah nama, email, dan password. *(Catatan: upload avatar belum diimplementasikan — form hanya handle `name` dan `email` via `ProfileUpdateRequest`.)*
 - **REQ-C-PROFILE-02:** Pengguna dapat menambah, mengubah, menghapus, dan menentukan alamat pengiriman utama (default).
-- **REQ-C-PROFILE-03:** Setiap alamat menyimpan: nama penerima, telepon, alamat lengkap, kota, provinsi, city_id, province_id (untuk kalkulasi ongkir), dan kode pos.
+- **REQ-C-PROFILE-03:** Setiap alamat menyimpan: nama penerima, telepon, alamat lengkap, provinsi, province_id, kota, city_id, kecamatan, kode pos, label, is_default.
 
 ### 4.3 Modul Produk dan Pencarian
 
@@ -124,128 +128,99 @@ el Craft adalah platform e-commerce *business-to-consumer* (B2C) yang dibangun u
 - **REQ-C-PRODUCT-02:** Pelanggan dapat memfilter produk berdasarkan: kategori (slug), nama (pencarian teks), rentang harga (min/max).
 - **REQ-C-PRODUCT-03:** Pelanggan dapat mengurutkan produk berdasarkan: terbaru (created_at DESC), harga rendah ke tinggi, harga tinggi ke rendah, atau popularitas (is_featured DESC).
 - **REQ-C-PRODUCT-04:** Halaman detail produk menampilkan: semua gambar (diurutkan sort_order), varian aktif, ulasan yang sudah disetujui (max 10 terbaru), dan produk terkait (kategori sama, max 4, acak).
-- **REQ-C-PRODUCT-05:** Jika produk memiliki diskon aktif (tipe percent atau nominal, dalam rentang tanggal discount_start — discount_end), sistem menampilkan harga coret dan harga final.
-- **REQ-C-PRODUCT-06:** Rating rata-rata dan jumlah ulasan ditampilkan pada halaman detail produk (kolom rating_avg dan rating_count di tabel products).
+- **REQ-C-PRODUCT-05:** Jika produk memiliki diskon aktif, sistem menampilkan harga coret dan harga final.
+- **REQ-C-PRODUCT-06:** Rating rata-rata dan jumlah ulasan ditampilkan pada halaman detail produk (kolom `rating_avg` dan `rating_count`).
 
 ### 4.4 Modul Keranjang Belanja
 
 - **REQ-C-CART-01:** Setiap pengguna terdaftar memiliki tepat satu keranjang (carts.user_id unik). Keranjang dibuat otomatis saat pertama kali dibutuhkan.
 - **REQ-C-CART-02:** Pelanggan dapat menambahkan produk (dengan atau tanpa varian) ke keranjang. Kombinasi (cart_id, product_id, variant_id) bersifat unik — penambahan produk yang sama akan menambah kuantitas.
 - **REQ-C-CART-03:** Pelanggan dapat mengubah kuantitas item atau menghapus item dari keranjang.
-- **REQ-C-CART-04:** Jumlah item di keranjang (badge) ditampilkan di navbar — diperbarui via AJAX (/cart/count).
-- **REQ-C-CART-05:** Harga satuan yang digunakan adalah final_price (sudah memperhitungkan diskon produk yang aktif).
+- **REQ-C-CART-04:** Jumlah item di keranjang (badge) ditampilkan di navbar — diperbarui via AJAX (`/cart/count`).
+- **REQ-C-CART-05:** Harga satuan yang digunakan adalah `final_price` (sudah memperhitungkan diskon produk yang aktif).
 
 ### 4.5 Modul Checkout dan Pembayaran
 
 - **REQ-C-CHECKOUT-01:** Checkout hanya tersedia untuk pengguna yang sudah login dan memiliki keranjang tidak kosong.
-- **REQ-C-CHECKOUT-02:** Pelanggan mengisi: nama penerima, nomor telepon, alamat lengkap, provinsi, kota/kabupaten (dari dropdown data RajaOngkir), kode pos, memilih kurir (JNE/POS/TIKI) dan layanan, serta catatan (opsional).
-- **REQ-C-CHECKOUT-03:** Sistem menghitung ongkos kirim real-time dari API RajaOngkir berdasarkan city_id tujuan, berat total order (dalam gram), dan pilihan kurir. Hasil di-cache selama 1 jam.
-- **REQ-C-CHECKOUT-04:** Sebelum membuat Snap Token, sistem memvalidasi ulang ketersediaan stok dari database (bukan dari sesi/cache) untuk mencegah overselling.
-- **REQ-C-CHECKOUT-05:** Pelanggan dapat memasukkan kode voucher. Sistem memvalidasi: status aktif, kuota, tanggal berlaku, dan minimum pembelian — semua dilakukan server-side.
-- **REQ-C-CHECKOUT-06:** Order dibuat dalam DB dengan status pending sebelum Snap Token di-request ke Midtrans, sehingga data tidak hilang jika terjadi kegagalan di sisi Midtrans.
-- **REQ-C-CHECKOUT-07:** Pembayaran dilakukan melalui popup Midtrans Snap. Metode yang diaktifkan: Kartu Kredit (3DS), VA BCA/BNI/BRI/Lainnya, GoPay, ShopeePay, QRIS, Indomaret, Alfamart.
-- **REQ-C-CHECKOUT-08:** Webhook Midtrans (POST /midtrans/webhook) memverifikasi signature sebelum memproses update status. Setelah pembayaran berhasil (settlement/capture): status order ke paid, stok dikurangi, data shipment awal dibuat, penggunaan voucher dicatat.
-- **REQ-C-CHECKOUT-09:** Jika pembayaran ditolak/kedaluwarsa (deny/expire/cancel), status order ke dibatalkan dan stok dipulihkan (jika sebelumnya sudah dikurangi).
+- **REQ-C-CHECKOUT-02:** Pelanggan mengisi: nama penerima, nomor telepon, alamat lengkap, provinsi, kota/kabupaten (dari dropdown data RajaOngkir Komerce), kode pos, memilih kurir (JNE/J&T/POS/TIKI) dan layanan, serta catatan (opsional).
+- **REQ-C-CHECKOUT-03:** Sistem menghitung ongkos kirim real-time dari API RajaOngkir Komerce berdasarkan city_id tujuan, berat total order (dalam gram), dan pilihan kurir. Hasil di-cache selama 1 jam.
+- **REQ-C-CHECKOUT-04:** Sebelum membuat Snap Token, sistem memvalidasi ulang ketersediaan stok dari database untuk mencegah overselling.
+- **REQ-C-CHECKOUT-05:** Pelanggan dapat memasukkan kode voucher. Validasi server-side: status aktif, kuota, tanggal berlaku, minimum pembelian.
+- **REQ-C-CHECKOUT-06:** Order dibuat dalam DB dengan status `pending` sebelum Snap Token di-request ke Midtrans.
+- **REQ-C-CHECKOUT-07:** Pembayaran dilakukan melalui popup Midtrans Snap. Metode: Kartu Kredit (3DS), VA BCA/BNI/BRI/Lainnya, GoPay, ShopeePay, QRIS, Indomaret, Alfamart.
+- **REQ-C-CHECKOUT-08:** Webhook Midtrans (POST /midtrans/webhook) memverifikasi signature sebelum memproses. Setelah berhasil: status order → paid, stok dikurangi, shipment record dibuat, voucher usage dicatat.
+- **REQ-C-CHECKOUT-09:** Jika ditolak/kedaluwarsa: status order → dibatalkan dan stok dipulihkan.
 
 ### 4.6 Modul Pesanan
 
 - **REQ-C-ORDER-01:** Pelanggan dapat melihat riwayat semua pesanan miliknya, diurutkan terbaru, dengan paginasi 10 per halaman.
-- **REQ-C-ORDER-02:** Pelanggan dapat melihat detail satu pesanan: item, varian, alamat pengiriman, data pembayaran, data pengiriman (kurir, no. resi), dan voucher yang digunakan.
-- **REQ-C-ORDER-03:** Pelanggan hanya dapat membatalkan pesanan berstatus pending. Pembatalan mengubah status order ke dibatalkan dan payment ke failed.
-- **REQ-C-ORDER-04:** Sistem mencegah akses IDOR — detail pesanan hanya dapat diakses oleh pemilik pesanan (query di-scope pada relasi user->orders).
+- **REQ-C-ORDER-02:** Pelanggan dapat melihat detail satu pesanan: item, varian, alamat pengiriman, data pembayaran, data pengiriman, dan voucher.
+- **REQ-C-ORDER-03:** Pelanggan hanya dapat membatalkan pesanan berstatus `pending`. Pembatalan mengubah status order ke `dibatalkan` dan payment ke `failed`.
+- **REQ-C-ORDER-04:** Sistem mencegah IDOR — query di-scope pada `auth()->user()->orders()`.
 
 ### 4.7 Modul Wishlist
 
-- **REQ-C-WISH-01:** Pelanggan dapat melakukan toggle wishlist (tambah/hapus) dari halaman produk atau listing via AJAX.
-- **REQ-C-WISH-02:** Pelanggan dapat melihat seluruh produk dalam wishlist di halaman /wishlist, berikut gambar, kategori, dan rating.
-- **REQ-C-WISH-03:** Jumlah item wishlist (badge di navbar) diperbarui real-time via endpoint /wishlist/count.
-- **REQ-C-WISH-04:** Tamu yang mencoba mengakses wishlist diarahkan ke halaman login.
+- **REQ-C-WISH-01:** Pelanggan dapat toggle wishlist dari halaman produk atau listing via AJAX.
+- **REQ-C-WISH-02:** Halaman /wishlist menampilkan seluruh produk dalam wishlist.
+- **REQ-C-WISH-03:** Badge wishlist count di bottom nav diperbarui real-time via `/wishlist/count`.
+- **REQ-C-WISH-04:** Tamu yang mencoba akses wishlist diarahkan ke login (prompt modal).
 
 ### 4.8 Modul Ulasan Produk
 
-- **REQ-C-REVIEW-01:** Pelanggan hanya dapat mengulas produk yang terikat pada order_item_id miliknya — satu ulasan per item pesanan (unique constraint: user_id + order_item_id).
-- **REQ-C-REVIEW-02:** Ulasan terdiri dari: rating (1-5 bintang), komentar teks (opsional, maks 1000 karakter), dan satu foto (opsional, maks 2 MB, format jpg/jpeg/png/webp).
-- **REQ-C-REVIEW-03:** Setiap ulasan baru dikirim dengan status is_approved = false dan hanya tampil di halaman produk setelah disetujui admin.
-- **REQ-C-REVIEW-04:** Sistem memverifikasi otorisasi via Gate::allows('writeReview') sebelum menyimpan ulasan.
+- **REQ-C-REVIEW-01:** Pelanggan hanya dapat mengulas produk yang terikat pada `order_item_id` miliknya — order harus berstatus `selesai`. Satu ulasan per item pesanan.
+- **REQ-C-REVIEW-02:** Ulasan: rating 1-5, komentar (max 1000 char), foto opsional (max 2MB, jpg/jpeg/png/webp).
+- **REQ-C-REVIEW-03:** Ulasan baru → `is_approved = false` — hanya tampil setelah admin approve.
+- **REQ-C-REVIEW-04:** Otorisasi via `Gate::allows('writeReview')` yang didefinisikan di `ReviewPolicy`.
+- **REQ-C-REVIEW-05:** `ReviewObserver` terdaftar di `AppServiceProvider` — secara otomatis menghitung ulang `rating_avg` dan `rating_count` pada tabel `products` setiap kali review dibuat, diupdate, atau dihapus.
 
 ---
 
 ## 5. Kebutuhan Fungsional — Admin
 
-> Seluruh fitur admin berada di bawah prefix route /admin/ dan dilindungi middleware auth + pengecekan role === 'admin'. Semua fitur di bawah ini belum diimplementasikan dan merupakan scope pengembangan berikutnya.
+> Seluruh fitur admin berada di bawah prefix route /admin/ dan dilindungi middleware auth + pengecekan role === 'admin'. **Seluruh fitur di bawah ini belum diimplementasikan** — tidak ada controller admin, tidak ada view admin, tidak ada route admin kecuali placeholder dashboard.
 
 ### 5.1 Dashboard (A1)
 
-- **REQ-A-DASH-01:** Dashboard menampilkan ringkasan: total pendapatan hari ini / bulan ini, jumlah pesanan baru (status pending), jumlah pesanan diproses, jumlah produk aktif, jumlah pengguna terdaftar.
-- **REQ-A-DASH-02:** Dashboard menampilkan grafik penjualan 7 hari / 30 hari terakhir.
-- **REQ-A-DASH-03:** Dashboard menampilkan tabel 5 pesanan terbaru dengan link ke detail.
-- **REQ-A-DASH-04:** Dashboard menampilkan 5 produk terlaris (berdasarkan total unit terjual dari pesanan berstatus paid/diproses/dikirim/selesai).
+- **REQ-A-DASH-01:** Dashboard menampilkan ringkasan: total pendapatan, jumlah pesanan per status, jumlah produk aktif, jumlah pengguna terdaftar.
+- **REQ-A-DASH-02:** Dashboard menampilkan grafik penjualan.
+- **REQ-A-DASH-03:** Dashboard menampilkan tabel pesanan terbaru.
+- **REQ-A-DASH-04:** Dashboard menampilkan produk terlaris.
 
 ### 5.2 Manajemen Produk (A2)
 
-- **REQ-A-PROD-01:** Admin dapat melihat daftar semua produk (aktif dan non-aktif) dengan filter kategori, status, dan pencarian nama. Paginasi diperlukan.
-- **REQ-A-PROD-02:** Admin dapat membuat produk baru dengan mengisi: nama, slug (auto-generate dari nama), kategori, deskripsi, harga dasar, berat (gram), status aktif, status unggulan (is_featured).
-- **REQ-A-PROD-03:** Admin dapat mengatur diskon produk: tipe (none/percent/nominal), nilai diskon, tanggal mulai, tanggal berakhir.
-- **REQ-A-PROD-04:** Admin dapat mengelola varian produk: tambah/ubah/hapus varian (nama varian, tipe, harga tambahan, stok, SKU, status aktif).
-- **REQ-A-PROD-05:** Admin dapat mengunggah satu atau lebih gambar produk, menandai gambar utama (is_primary), dan mengatur urutan tampil (sort_order).
-- **REQ-A-PROD-06:** Admin dapat menonaktifkan (is_active = false) atau menghapus produk. Produk tidak dapat dihapus jika memiliki order item terkait (restrictOnDelete).
-- **REQ-A-PROD-07:** Perubahan stok melalui antarmuka admin harus tercatat (minimal log aktivitas sederhana).
+- **REQ-A-PROD-01 s/d REQ-A-PROD-07:** CRUD produk, varian, gambar, diskon, stok. Belum ada implementasi.
 
 ### 5.3 Manajemen Kategori (A3)
 
-- **REQ-A-CAT-01:** Admin dapat membuat kategori baru: nama, slug, deskripsi, gambar, status aktif.
-- **REQ-A-CAT-02:** Admin dapat mengubah dan menonaktifkan kategori.
-- **REQ-A-CAT-03:** Kategori tidak dapat dihapus jika masih ada produk yang menggunakannya (restrictOnDelete pada FK products.category_id).
+- **REQ-A-CAT-01 s/d REQ-A-CAT-03:** CRUD kategori. Belum ada implementasi.
 
 ### 5.4 Manajemen Banner (A4)
 
-> **Catatan:** Tabel `banners` belum ada di database. Implementasi memerlukan migrasi baru.
-
-- **REQ-A-BANNER-01:** Admin dapat mengelola banner carousel pada halaman homepage (judul, gambar, URL tautan, urutan tampil, status aktif).
-- **REQ-A-BANNER-02:** Sistem membaca banner aktif secara dinamis dari database, bukan dari data statis di view.
+- **REQ-A-BANNER-01 / REQ-A-BANNER-02:** Tabel `banners` belum ada. Perlu migrasi baru.
 
 ### 5.5 Manajemen Pesanan (A5)
 
-- **REQ-A-ORDER-01:** Admin dapat melihat semua pesanan dari semua pengguna, dengan filter status, tanggal, dan pencarian nomor pesanan.
-- **REQ-A-ORDER-02:** Admin dapat melihat detail lengkap satu pesanan: item, pelanggan, alamat, pembayaran, dan pengiriman.
-- **REQ-A-ORDER-03:** Admin dapat memperbarui status pesanan mengikuti alur: pending ke paid (otomatis via webhook) ke diproses ke dikirim ke selesai.
-- **REQ-A-ORDER-04:** Saat status diubah ke dikirim, admin mengisi nomor resi dan nama kurir pada record shipments.
-- **REQ-A-ORDER-05:** Admin dapat membatalkan pesanan yang belum selesai dengan alasan, dan memulai proses refund jika pembayaran sudah terjadi.
+- **REQ-A-ORDER-01 s/d REQ-A-ORDER-05:** Alur pesanan admin. Belum ada implementasi.
 
 ### 5.6 Monitoring Pembayaran (A6)
 
-- **REQ-A-PAY-01:** Admin dapat melihat daftar semua record pembayaran dengan status (pending/success/failed/expired), metode pembayaran, dan jumlah.
-- **REQ-A-PAY-02:** Admin dapat melihat detail payload webhook Midtrans (response_data JSON) yang tersimpan per transaksi untuk keperluan investigasi.
-- **REQ-A-PAY-03:** Admin dapat menandai pembayaran secara manual sebagai success untuk kasus edge (misal: transfer manual yang tidak terdeteksi webhook).
+- **REQ-A-PAY-01 s/d REQ-A-PAY-03:** Tampilan pembayaran admin. Belum ada implementasi.
 
 ### 5.7 Manajemen Voucher (A7)
 
-- **REQ-A-VCHR-01:** Admin dapat membuat voucher baru dengan: kode unik, deskripsi, tipe diskon (percent/nominal), nilai diskon, minimum pembelian, batas maksimal diskon, kuota penggunaan, tanggal mulai, tanggal berakhir, dan status aktif.
-- **REQ-A-VCHR-02:** Admin dapat mengaktifkan atau menonaktifkan voucher kapan saja (is_active).
-- **REQ-A-VCHR-03:** Admin dapat melihat daftar penggunaan setiap voucher: siapa yang menggunakannya, di pesanan mana, dan kapan (voucher_usages).
-- **REQ-A-VCHR-04:** Admin tidak dapat menghapus voucher yang sudah digunakan untuk menjaga integritas data historis.
+- **REQ-A-VCHR-01 s/d REQ-A-VCHR-04:** CRUD voucher admin. Belum ada implementasi. (Catatan: tabel dan logic `apply()` sudah ada; yang belum ada hanya UI admin.)
 
 ### 5.8 Moderasi Ulasan (A8)
 
-- **REQ-A-REVIEW-01:** Admin dapat melihat semua ulasan dengan filter: belum disetujui (is_approved = false), sudah disetujui, semua.
-- **REQ-A-REVIEW-02:** Admin dapat menyetujui ulasan — mengubah is_approved menjadi true. Ulasan yang disetujui langsung tampil di halaman produk.
-- **REQ-A-REVIEW-03:** Admin dapat menolak (menghapus) ulasan yang tidak sesuai aturan.
-- **REQ-A-REVIEW-04:** Setelah moderasi, rating_avg dan rating_count pada tabel products harus diperbarui.
+- **REQ-A-REVIEW-01 s/d REQ-A-REVIEW-04:** Approve/reject ulasan. Belum ada implementasi.
 
 ### 5.9 Manajemen Pengguna (A9)
 
-- **REQ-A-USER-01:** Admin dapat melihat daftar semua pengguna dengan filter role dan status aktif.
-- **REQ-A-USER-02:** Admin dapat menonaktifkan akun pengguna (is_active = false). Pengguna yang dinonaktifkan tidak dapat login.
-- **REQ-A-USER-03:** Admin dapat melihat riwayat pesanan milik pengguna tertentu.
-- **REQ-A-USER-04:** Admin dapat mengubah role pengguna (customer ke admin) dengan konfirmasi eksplisit.
+- **REQ-A-USER-01 s/d REQ-A-USER-04:** Daftar pengguna, nonaktifkan, ubah role. Belum ada implementasi.
 
 ### 5.10 Manajemen Retur/Refund (A10)
 
-> **Catatan:** Tidak ada `ReturnController` dalam codebase saat ini. Ini adalah fitur baru sepenuhnya.
-
-- **REQ-A-RETURN-01:** Admin dapat membuat request retur/refund manual untuk pesanan berstatus selesai atau dikirim dengan mencatat alasan dan jumlah refund.
-- **REQ-A-RETURN-02:** Admin dapat mengubah status retur: diajukan ke disetujui ke diproses ke selesai.
-- **REQ-A-RETURN-03:** Setelah refund disetujui, stok produk terkait harus dikembalikan secara manual oleh admin atau otomatis oleh sistem.
+- **REQ-A-RETURN-01 s/d REQ-A-RETURN-03:** Tidak ada `ReturnController` di codebase. Fitur baru sepenuhnya.
 
 ---
 
@@ -255,38 +230,27 @@ el Craft adalah platform e-commerce *business-to-consumer* (B2C) yang dibangun u
 
 | Aspek | Implementasi Saat Ini |
 |-------|----------------------|
-| Validasi stok server-side | CheckoutController::createSnapToken() memvalidasi stok dari DB sebelum membuat token Midtrans |
-| Validasi harga server-side | Ongkos kirim di-re-fetch dari RajaOngkir API; tidak menggunakan nilai dari form client |
-| Pencegahan IDOR pesanan | Query pesanan di-scope pada auth()->user()->orders() |
-| Signature webhook | MidtransService::verifySignature() memverifikasi SHA-512 sebelum memproses notifikasi |
-| Otorisasi ulasan | Gate::allows('writeReview') — pelanggan hanya bisa mengulas item miliknya |
-| Perlindungan CSRF | Semua form menggunakan token CSRF Laravel; webhook Midtrans dikecualikan di bootstrap/app.php |
+| Validasi stok server-side | `CheckoutController::createSnapToken()` — cek stok dari DB sebelum token |
+| Pencegahan IDOR pesanan | Query di-scope pada `auth()->user()->orders()` |
+| Signature webhook | `MidtransService::verifySignature()` — SHA-512 |
+| Otorisasi ulasan | `Gate::allows('writeReview')` via `ReviewPolicy` |
+| Perlindungan CSRF | Semua form; webhook + shipping/cost dikecualikan di `bootstrap/app.php` |
 | Hashing password | Bcrypt via Laravel Hashing |
-| Admin role check | Route /admin/* memeriksa role === 'admin', abort 403 jika tidak |
-| Kolom sensitif hidden | password dan remember_token di-set #[Hidden] pada User.php |
+| Admin role check | Route `/admin/dashboard` memeriksa `role === 'admin'`, abort 403 |
+| Kolom sensitif hidden | `password`, `remember_token` di-set `#[Hidden]` pada `User.php` |
+| Alamat policy | `AddressPolicy` mencegah user mengubah/hapus alamat milik user lain |
 
 ### 6.2 Keandalan (Reliability)
 
-- **REQ-NFR-REL-01:** Transaksi DB (DB::transaction) digunakan pada operasi kritis: pembuatan order, pemrosesan webhook pembayaran, pembatalan dengan pemulihan stok — untuk menjamin atomisitas.
-- **REQ-NFR-REL-02:** Webhook Midtrans menggunakan cek idempotency (if order && order->status !== 'paid') untuk mencegah double-processing.
-- **REQ-NFR-REL-03:** Semua error API eksternal (RajaOngkir, Midtrans) di-catch dan di-log via Log::error(); respons pengguna menggunakan pesan yang user-friendly.
-- **REQ-NFR-REL-04:** Email transaksional direncanakan (belum diimplementasikan) untuk notifikasi pesanan dikonfirmasi dan dikirim. Pengiriman email harus menggunakan try-catch untuk mencegah kegagalan email memblokir alur pesanan.
-- **REQ-NFR-REL-05:** Queue worker (php artisan queue:listen) direncanakan untuk produksi guna mengisolasi proses email dan tugas async dari request HTTP.
+- **REQ-NFR-REL-01:** `DB::transaction()` digunakan pada: pembuatan order, webhook pembayaran, pembatalan + pemulihan stok, dan operasi alamat.
+- **REQ-NFR-REL-02:** Webhook Midtrans menggunakan cek idempotency (`if order && order->status !== 'paid'`).
+- **REQ-NFR-REL-03:** Semua error API eksternal di-catch dan di-log via `Log::error()`.
 
 ### 6.3 Performa (Performance)
 
-- **REQ-NFR-PERF-01:** Data provinsi dan kota RajaOngkir di-cache selama 7 hari. Data ongkos kirim di-cache selama 1 jam.
-- **REQ-NFR-PERF-02:** Semua query Eloquent pada halaman listing menggunakan eager loading (with(...)) untuk mencegah N+1 queries.
-- **REQ-NFR-PERF-03:** Aset frontend (CSS/JS) di-compile via Vite dan di-cache oleh browser menggunakan content hash.
-
-### 6.4 Skalabilitas (Scalability)
-
-Deployment produksi direncanakan pada VPS Linux (Nginx/Apache) dengan:
-- Queue worker (supervisor) untuk proses async
-- Cron job (php artisan schedule:run) untuk tugas terjadwal
-- Redis atau database cache driver untuk session dan cache
-
-Sistem tidak dirancang untuk high-concurrency ekstrem; target adalah UMKM skala menengah (ratusan order per hari).
+- **REQ-NFR-PERF-01:** Data provinsi/kota RajaOngkir di-cache 7 hari. Ongkir di-cache 1 jam.
+- **REQ-NFR-PERF-02:** Semua query pada halaman listing menggunakan eager loading (`with(...)`) — N+1 prevention.
+- **REQ-NFR-PERF-03:** Aset frontend di-compile via Vite.
 
 ---
 
@@ -294,27 +258,24 @@ Sistem tidak dirancang untuk high-concurrency ekstrem; target adalah UMKM skala 
 
 ### 7.1 Daftar Entitas
 
-| Tabel | Model | Tujuan |
-|-------|-------|--------|
-| users | User | Akun pengguna (customer dan admin) |
-| categories | Category | Kategori produk (gelang, kalung, dst.) |
-| products | Product | Katalog produk dengan harga, diskon, stok, dan berat |
-| product_images | ProductImage | Galeri gambar produk; mendukung flag is_primary dan sort_order |
-| product_variants | ProductVariant | Varian produk (warna, ukuran, dll.) dengan harga tambahan dan stok sendiri |
-| carts | Cart | Satu keranjang per pengguna terdaftar |
-| cart_items | CartItem | Item dalam keranjang — kombinasi unik (cart_id, product_id, variant_id) |
-| addresses | Address | Buku alamat pengiriman pengguna (mendukung city_id/province_id RajaOngkir) |
-| vouchers | Voucher | Kode voucher diskon dengan tipe, nilai, kuota, dan masa berlaku |
-| voucher_usages | VoucherUsage | Catatan penggunaan voucher per user per order |
-| orders | Order | Header pesanan dengan status (pending ke paid ke diproses ke dikirim ke selesai ke dibatalkan) |
-| order_items | OrderItem | Baris item dalam satu pesanan; menyimpan snapshot nama dan harga saat pembelian |
-| payments | Payment | Data transaksi Midtrans per order (snap_token, response_data webhook) |
-| shipments | Shipment | Data pengiriman per order (kurir, resi, waktu kirim/terima) |
-| reviews | Review | Ulasan produk terikat order_item_id; moderasi via is_approved |
-| wishlists | Wishlist | Daftar produk yang di-save pengguna |
-| sessions | (bawaan Laravel) | Manajemen sesi |
-| cache | (bawaan Laravel) | Penyimpanan cache |
-| jobs | (bawaan Laravel) | Antrian job (queue) |
+| Tabel | Model | Status | Tujuan |
+|-------|-------|--------|--------|
+| users | User | ✅ | Akun pengguna (customer dan admin) |
+| categories | Category | ✅ | Kategori produk |
+| products | Product | ✅ | Katalog produk dengan harga, diskon, stok, berat |
+| product_images | ProductImage | ✅ | Galeri gambar produk; is_primary + sort_order |
+| product_variants | ProductVariant | ✅ | Varian produk (warna, ukuran) dengan harga tambahan + stok sendiri |
+| carts | Cart | ✅ | Satu keranjang per user |
+| cart_items | CartItem | ✅ | Item dalam keranjang — unique (cart_id, product_id, variant_id) |
+| addresses | Address | ✅ | Buku alamat + city_id/province_id RajaOngkir |
+| vouchers | Voucher | ✅ | Kode voucher diskon |
+| voucher_usages | VoucherUsage | ✅ | Catatan penggunaan voucher per user per order |
+| orders | Order | ✅ | Header pesanan |
+| order_items | OrderItem | ✅ | Baris item pesanan; snapshot nama + harga saat beli |
+| payments | Payment | ✅ | Data transaksi Midtrans per order |
+| shipments | Shipment | ✅ | Data pengiriman per order |
+| reviews | Review | ✅ | Ulasan produk; moderasi via is_approved |
+| wishlists | Wishlist | ✅ | Daftar produk yang di-save pengguna |
 
 ### 7.2 Relasi Kunci
 
@@ -336,117 +297,122 @@ Product     --has many-->  Review
 Voucher     --has many-->  VoucherUsage
 ```
 
-### 7.3 Field Penting yang Perlu Diperhatikan
+### 7.3 Arsitektur Varian/Stok
+
+**Status aktual (diverifikasi):**
+
+- **ProductVariant model** (`app/Models/ProductVariant.php`): ✅ Ada — fillable fields: product_id, variant_name, variant_type, additional_price, stock, sku, is_active. Memiliki accessor `getFinalPriceAttribute()` = product.final_price + additional_price.
+- **Auto-created "Standar" variant logic**: ❌ **Tidak ada** — tidak ada ProductObserver, tidak ada trigger, tidak ada logic di mana pun yang otomatis membuat variant "Standar" saat produk dibuat tanpa varian. Ini murni design intention yang belum diimplementasikan.
+- **Stock-sync Observer**: ❌ **Tidak ada** — satu-satunya observer yang terdaftar adalah `ReviewObserver`. Tidak ada observer untuk Product atau ProductVariant.
+- **Actual stock decrement**: ✅ Dilakukan di `MidtransWebhookController::markAsPaid()` — decrement per item berdasarkan variant_id (jika ada) atau product_id.
+
+### 7.4 Field Penting
 
 | Tabel.Kolom | Tipe | Keterangan |
 |-------------|------|------------|
 | users.role | enum(customer, admin) | Hak akses pengguna |
-| users.is_active | boolean | Status aktif — belum di-enforce di login |
-| users.google_id | string nullable | Reserved untuk OAuth — belum digunakan |
+| users.is_active | boolean | Ada, **tidak di-enforce** di login |
+| users.google_id | string nullable | Reserved untuk OAuth — **tidak digunakan** |
+| products.weight | integer default 0 | Dalam gram, digunakan untuk ongkir |
 | products.discount_type | enum(none, percent, nominal) | Tipe diskon produk |
-| products.discount_start / discount_end | date nullable | Rentang tanggal diskon aktif |
-| products.rating_avg / rating_count | decimal/int | Cache agregat rating dari ulasan |
-| orders.status | enum 6 nilai | Alur status pesanan |
-| payments.status | enum(pending, success, failed, expired) | Status transaksi Midtrans |
+| products.rating_avg / rating_count | decimal/int | Di-update otomatis oleh ReviewObserver |
+| orders.status | string | Alur: pending → paid → diproses → dikirim → selesai / dibatalkan |
+| payments.status | string | pending / success / failed / expired |
 | reviews.is_approved | boolean default false | Flag moderasi ulasan |
-| shipments.tracking_number | string nullable | Diisi admin saat status dikirim |
 
 ---
 
 ## 8. Di Luar Cakupan Saat Ini (Out of Scope)
 
 ### 8.1 Login Google OAuth
+**Status:** Ditangguhkan. Kolom `google_id` ada; Socialite tidak terinstall.
 
-**Status:** Ditangguhkan (deferred).
+### 8.2 Otomatisasi Delivery Order (Komship API)
+**Status:** Ditangguhkan. RajaOngkir via Komerce hanya digunakan untuk kalkulasi biaya.
 
-**Alasan:** Kolom `users.google_id` sudah tersedia di database sebagai persiapan. Namun paket `laravel/socialite` belum terinstall di `composer.json` dan tidak ada satu pun baris kode logic OAuth dalam codebase. Implementasi membutuhkan: instalasi Socialite, pembuatan Google OAuth credentials (Google Cloud Console), serta penanganan edge case seperti akun email yang sudah terdaftar via password. Fitur ini akan dipertimbangkan pada rilis v1.1 berdasarkan prioritas klien.
-
-### 8.2 Otomatisasi Delivery Order (Komship/Collaborator API)
-
-**Status:** Ditangguhkan (deferred) — beda modul, beda integrasi.
-
-**Alasan:** Integrasi RajaOngkir yang ada (via `ShippingService`) hanya digunakan untuk kalkulasi biaya kirim. Pembuatan Delivery Order (DO) ke mitra logistik memerlukan API yang berbeda (Komship atau Collaborator API milik Komerce), dengan base URL dan API Key yang berbeda dari API RajaOngkir saat ini. Implementasi modul DO membutuhkan desain ulang alur shipments, integrasi callback pickup dari kurir, dan koordinasi dengan klien mengenai akun logistik yang akan digunakan.
+### 8.3 Upload Avatar Profil
+**Status:** Field `avatar` ada di DB; `ProfileController::update()` tidak meng-handle file upload.
 
 ---
 
 ## 9. Technical Debt yang Diketahui
 
-### 9.1 Status Otomatis 'Manual' pada Shipment Saat Pembayaran Diterima
+### 9.1 Kurir Pilihan Pelanggan Tidak Tersimpan ke Shipment
 
-**Lokasi:** `app/Http/Controllers/MidtransWebhookController.php`, baris 104-111
-
-**Masalah:** Saat webhook Midtrans menerima pembayaran sukses, sistem otomatis membuat record di tabel `shipments` dengan `courier = 'Manual'` dan `service = 'Reguler'`. Kurir dan layanan yang dipilih pelanggan di halaman checkout tidak disimpan ke kolom dedicated manapun di tabel orders atau shipments.
-
-**Dampak:** Admin tidak memiliki data kurir pilihan pelanggan secara terstruktur. Nomor resi dan kurir harus diisi ulang secara manual oleh admin.
-
-**Solusi yang Direncanakan:** Saat implementasi admin panel (A5), simpan kurir dan layanan pilihan pelanggan ke shipments saat order dibuat, dan hapus pembuatan otomatis courier = 'Manual' dari webhook.
+**Lokasi:** `MidtransWebhookController.php` line 104-111  
+**Masalah:** Saat webhook menerima pembayaran sukses, shipment dibuat dengan `courier = 'Manual'` dan `service = 'Reguler'`, bukan kurir yang dipilih pelanggan di checkout.  
+**Dampak:** Admin tidak punya data kurir pilihan pelanggan secara terstruktur.
 
 ### 9.2 Komentar TODO Sisa di MidtransWebhookController
 
-**Lokasi:** `app/Http/Controllers/MidtransWebhookController.php`, baris 58-59
-
-**Isi:**
+**Lokasi:** Line 58-59  
 ```php
 // TODO: Ganti dengan model Order yang sebenarnya setelah dibuat
 // $order = Order::where('order_number', $orderId)->firstOrFail();
 ```
+**Catatan:** Komentar sisa — Model Order sudah aktif digunakan. Bisa dihapus.
 
-**Catatan:** Komentar sisa dari masa pengembangan awal. Model Order sudah ada dan digunakan. Dapat dihapus tanpa dampak fungsional.
+### 9.3 Email Notifikasi Belum Ada
 
-### 9.3 Email Notifikasi Belum Diimplementasikan
+**Fakta:** Tidak ada `app/Mail/`, `app/Notifications/`, atau pemanggilan `Mail::send()` di seluruh codebase.  
+**Dampak:** Pelanggan tidak menerima email konfirmasi pembayaran atau pengiriman.
 
-**Konteks:** Dalam deskripsi proyek disebutkan notifikasi email via Mailtrap, namun tidak ada class Mailable, Notification, atau pemanggilan Mail::send() di seluruh codebase. Tidak ada direktori app/Mail/ maupun app/Notifications/.
+### 9.4 `users.is_active` Tidak Di-Enforce
 
-**Dampak:** Pelanggan tidak menerima email konfirmasi setelah membayar atau setelah pesanan dikirim.
+**Fakta:** Kolom ada, tapi tidak ada middleware atau guard yang memeriksanya saat login.
 
-**Prioritas:** Harus diselesaikan sebelum go-live produksi.
+### 9.5 Whitelist Kurir Hardcoded Tidak Sinkron Antar File
 
-### 9.4 users.is_active Tidak Di-Enforce
+**Lokasi:**
+- `ShippingService.php` line 128: `in_array($courier, ['jne', 'pos', 'tiki', 'jnt'])` — **4 kurir**
+- `ShippingController.php` line 90: `'courier' => 'required|string|in:jne,pos,tiki,jnt'` — **4 kurir**
+- `CheckoutController.php` line 94: `'courier' => 'nullable|string|in:jne,pos,tiki'` — **3 kurir** (jnt TIDAK termasuk!)
+- Checkout frontend line 195: `@foreach(['jne' => 'JNE', 'jnt' => 'J&T Express', 'pos' => 'POS Indonesia', 'tiki' => 'TIKI']` — **4 kurir**
 
-**Lokasi:** Migrasi `2026_06_15_144210_add_custom_fields_to_users_table.php`
+**Masalah:** `CheckoutController::createSnapToken()` hanya menerima `jne,pos,tiki` — sehingga order dengan courier J&T (`jnt`) yang dipilih pelanggan akan **gagal validasi** saat pembayaran. Frontend menampilkan J&T, tapi backend menolaknya.
 
-**Masalah:** Kolom `is_active` ada di database namun tidak ada middleware atau guard yang memeriksa nilai ini saat pengguna login. Pengguna yang di-set `is_active = false` tetap dapat masuk ke sistem.
+### 9.6 `MustVerifyEmail` Di-Comment
 
-**Solusi:** Tambahkan pengecekan is_active di middleware autentikasi.
+**Lokasi:** `User.php` line 5: `// use Illuminate\Contracts\Auth\MustVerifyEmail;`  
+**Dampak:** Verifikasi email tidak aktif. Controller Breeze (verify-email views) ada tapi tidak terpanggil.
 
-### 9.5 Kurir Checkout Terbatas pada RajaOngkir Starter
+### 9.7 Berat Produk Fallback Logic Tidak Sempurna
 
-**Lokasi:** `CheckoutController.php` (validasi in:jne,pos,tiki), `ShippingController.php`
+**Lokasi:** `CheckoutController.php` line 63  
+```php
+$weight = $item->product->weight ?? 100;
+```
+**Masalah:** Null-coalescing (`??`) tidak menangkap `weight = 0` (integer, bukan null). Produk dengan weight 0 akan dihitung 0 gram, bukan 100g fallback. Seharusnya: `max(100, (int) $item->product->weight)`.
 
-**Masalah:** RajaOngkir Starter Plan hanya mendukung 3 kurir (JNE, POS, TIKI). Kurir populer seperti JNT, SiCepat, AnterAja, dan Ninja tidak tersedia.
+### 9.8 Harga Ongkir Belum Diperiksa Server-Side
 
-**Solusi yang Direncanakan:** Upgrade ke RajaOngkir Pro/Basic atau migrasi ke provider alternatif (Binderbyte, dll.).
-
-### 9.6 rating_avg dan rating_count Tidak Diperbarui Otomatis
-
-**Lokasi:** Tabel `products`, kolom `rating_avg` dan `rating_count`
-
-**Masalah:** Kolom ini ada di database namun tidak ada trigger, observer, atau logika apapun yang memperbarui nilainya ketika ulasan baru disetujui atau dihapus.
-
-**Solusi:** Tambahkan pembaruan agregat di ReviewController saat moderasi diimplementasikan, atau gunakan database trigger/observer.
+**Lokasi:** `CheckoutController::createSnapToken()` line 149  
+```php
+$shipping = max(0, (int) $request->input('shipping_cost', 0));
+```
+**Masalah:** Ongkir yang dikirim dari frontend diterima apa adanya tanpa validasi ulang terhadap API. Client bisa mengirim shipping_cost=0 untuk mendapat gratis ongkir.
 
 ---
 
 ## 10. Rencana Implementasi Berikutnya
 
-Urutan prioritas pengembangan yang disarankan berdasarkan dampak bisnis:
-
 | Prioritas | Modul | Alasan |
 |-----------|-------|--------|
-| P0 (Kritis) | Notifikasi Email (C23) | Wajib sebelum go-live — kepercayaan pelanggan |
+| P0 (Kritis) | Fix whitelist kurir di CheckoutController (9.5) | J&T checkout broken sekarang |
+| P0 (Kritis) | Validasi ongkir server-side (9.8) | Security vulnerability |
 | P0 (Kritis) | Enforce is_active login (9.4) | Keamanan dasar |
-| P1 (Tinggi) | Admin: Manajemen Produk (A2) | Operasional toko tidak bisa berjalan tanpa ini |
-| P1 (Tinggi) | Admin: Manajemen Pesanan (A5) | Operasional toko tidak bisa berjalan tanpa ini |
+| P1 (Tinggi) | Admin: Manajemen Produk (A2) | Toko tidak bisa beroperasi tanpa ini |
+| P1 (Tinggi) | Admin: Manajemen Pesanan (A5) | Toko tidak bisa beroperasi tanpa ini |
 | P1 (Tinggi) | Admin: Dashboard (A1) | Visibilitas bisnis |
+| P2 (Sedang) | Notifikasi Email (C23) | Kepercayaan pelanggan |
 | P2 (Sedang) | Admin: Moderasi Ulasan (A8) | Reputasi produk |
 | P2 (Sedang) | Admin: Manajemen Voucher (A7) | Kampanye marketing |
-| P2 (Sedang) | Admin: Manajemen Banner (A4) | Promosi homepage (perlu migrasi DB baru) |
 | P3 (Rendah) | Admin: Manajemen Kategori (A3) | Mendukung A2 |
 | P3 (Rendah) | Admin: Manajemen Pengguna (A9) | Kontrol akses |
-| P4 (Masa Depan) | Admin: Retur/Refund (A10) | After-sales service |
+| P3 (Rendah) | Admin: Banner (A4) | Perlu migrasi baru |
+| P4 (Masa Depan) | Admin: Retur/Refund (A10) | After-sales |
 | P4 (Masa Depan) | Google OAuth (C21) | Nice-to-have |
-| P4 (Masa Depan) | Delivery Order API (Komship) | Otomatisasi logistik |
 
 ---
 
-*Dokumen ini dihasilkan berdasarkan investigasi langsung terhadap source code repository pada tanggal 31 Juli 2026. Semua pernyataan status fitur telah diverifikasi terhadap file aktual.*
+*Dokumen ini diverifikasi terhadap source code aktual repository el Craft pada 12 Agustus 2026. Setiap status fitur dikonfirmasi dengan membaca file-file terkait secara langsung.*

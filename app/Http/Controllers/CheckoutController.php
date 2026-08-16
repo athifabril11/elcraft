@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\MidtransService;
+use App\Services\ShippingService;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Order;
@@ -14,6 +15,8 @@ use Illuminate\Support\Str;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Class CheckoutController
@@ -26,8 +29,12 @@ class CheckoutController extends Controller
      * CheckoutController constructor.
      *
      * @param \App\Services\MidtransService $midtrans
+     * @param \App\Services\ShippingService $shipping
      */
-    public function __construct(private readonly MidtransService $midtrans) {}
+    public function __construct(
+        private readonly MidtransService $midtrans,
+        private readonly ShippingService $shipping,
+    ) {}
 
     /**
      * Tampilkan halaman checkout dengan ringkasan pesanan.
@@ -58,17 +65,28 @@ class CheckoutController extends Controller
             ];
         })->toArray();
 
+        // Hitung total berat asli produk dalam gram
+        $totalWeight = $cart->items->sum(function ($item) {
+            $weight = $item->product->weight ?? 100;
+            return max(1, (int) $weight) * $item->quantity;
+        });
+        $totalWeight = max(100, $totalWeight);
+
         $subtotal  = $cart->getTotalPrice();
-        $shipping  = 0; // Ongkos Kirim gratis
+        $shipping  = 0; // Ongkos Kirim awal
         $total     = $subtotal + $shipping;
         $addresses = $request->user()->addresses()->orderByDesc('is_default')->get();
 
-        return view('checkout.index', compact('cartItems', 'subtotal', 'shipping', 'total', 'addresses'));
+        return view('checkout.index', compact('cartItems', 'subtotal', 'shipping', 'total', 'addresses', 'totalWeight'));
     }
 
     /**
      * Buat Snap Token dan kembalikan sebagai JSON ke frontend.
-     * Validasi ketersediaan stok dan harga dilakukan server-side demi keamanan.
+     *
+     * Keamanan: stok dan ongkos kirim SELALU divalidasi ulang server-side.
+     * Nilai shipping_cost dari client TIDAK digunakan untuk perhitungan total —
+     * ongkir di-fetch ulang dari API RajaOngkir dalam request ini menggunakan
+     * city_id, courier, courier_service, dan berat aktual keranjang dari database.
      *
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -80,12 +98,12 @@ class CheckoutController extends Controller
             'recipient_phone' => 'required|string|max:50',
             'full_address'    => 'required|string',
             'city'            => 'required|string|max:100',
-            'city_id'         => 'nullable|integer|min:1',
+            'city_id'         => 'required|integer|min:1',
             'province_id'     => 'nullable|integer|min:1',
             'postal_code'     => 'nullable|string|max:10',
-            'shipping_cost'   => 'nullable|integer|min:0',
-            'courier'         => 'nullable|string|in:jne,pos,tiki',
-            'courier_service' => 'nullable|string|max:50',
+            'courier'         => 'required|string|in:jne,pos,tiki,jnt',
+            'courier_service' => 'required|string|max:50',
+            'payment_method'  => 'required|string|in:credit_card,bca_va,bni_va,bri_va,other_va,gopay,shopeepay,qris,indomaret,alfamart',
             'notes'           => 'nullable|string',
             'voucher_code'    => 'nullable|string|max:50',
         ]);
@@ -112,9 +130,40 @@ class CheckoutController extends Controller
             }
         }
 
+        // 3. Hitung ulang berat aktual dari database — jangan percaya nilai dari client
+        $totalWeight = $cart->items->sum(function ($item) {
+            return max(1, (int) ($item->product->weight ?? 0)) * $item->quantity;
+        });
+        $totalWeight = max(100, $totalWeight);
+
+        // 4. Verifikasi ongkos kirim server-side dari RajaOngkir
+        //    Nilai shipping_cost dari client DIABAIKAN sepenuhnya.
+        //    Ongkir di-fetch ulang menggunakan city_id, berat, dan kurir dari request yang sudah divalidasi.
+        $verifiedShipping = $this->resolveVerifiedShippingCost(
+            cityId:         (int) $request->city_id,
+            weightGrams:    $totalWeight,
+            courier:        $request->courier,
+            courierService: $request->courier_service,
+        );
+        // resolveVerifiedShippingCost() melempar ValidationException jika ongkir tidak dapat diverifikasi,
+        // sehingga eksekusi tidak akan sampai ke baris berikutnya jika terjadi kegagalan.
+
+        // Log jika client mengirim nilai ongkir yang berbeda (anomaly detection)
+        $clientSubmittedCost = (int) $request->input('shipping_cost', 0);
+        if ($clientSubmittedCost !== $verifiedShipping) {
+            Log::warning('Checkout: perbedaan ongkir client vs server', [
+                'user_id'         => $user->id,
+                'city_id'         => $request->city_id,
+                'courier'         => $request->courier,
+                'courier_service' => $request->courier_service,
+                'client_cost'     => $clientSubmittedCost,
+                'server_cost'     => $verifiedShipping,
+            ]);
+        }
+
         try {
-            return DB::transaction(function () use ($request, $user, $cart) {
-                // 3. Simpan atau perbarui alamat pengiriman (termasuk city_id & province_id untuk ongkir)
+            return DB::transaction(function () use ($request, $user, $cart, $verifiedShipping) {
+                // 5. Simpan atau perbarui alamat pengiriman
                 $address = $user->addresses()->updateOrCreate(
                     [
                         'recipient_name' => $request->recipient_name,
@@ -133,13 +182,12 @@ class CheckoutController extends Controller
                     ]
                 );
 
-                // 4. Susun data pesanan menggunakan data valid dari database
+                // 6. Susun data pesanan menggunakan nilai dari database dan API
                 $orderId  = 'ELCRAFT-' . strtoupper(Str::random(8)) . '-' . time();
                 $subtotal = $cart->getTotalPrice();
 
-                // Ambil ongkos kirim dari pilihan kurir yang sudah divalidasi RajaOngkir
-                // Nilai ini sudah di-fetch langsung dari API, sehingga aman digunakan.
-                $shipping = max(0, (int) $request->input('shipping_cost', 0));
+                // Ongkos kirim yang digunakan adalah nilai yang sudah diverifikasi server-side
+                $shipping = $verifiedShipping;
 
                 // Terapkan voucher jika ada
                 $voucherDiscount = 0;
@@ -154,6 +202,23 @@ class CheckoutController extends Controller
 
                 $total = $subtotal + $shipping - $voucherDiscount;
 
+                // 6a. Batalkan pesanan pending lama milik pengguna ini (jika ada).
+                //     Pesanan pending sebelumnya adalah sisa sesi Snap yang ditinggalkan
+                //     (popup ditutup, tab ditutup, dll). Stok TIDAK perlu dikembalikan
+                //     karena stok hanya dikurangi saat pembayaran berhasil (markAsPaid),
+                //     bukan saat pesanan dibuat.
+                $abandonedOrders = Order::where('user_id', $user->id)
+                    ->where('status', 'pending')
+                    ->with('payment')
+                    ->get();
+
+                foreach ($abandonedOrders as $abandoned) {
+                    $abandoned->update(['status' => 'dibatalkan']);
+                    if ($abandoned->payment) {
+                        $abandoned->payment->update(['status' => 'failed']);
+                    }
+                }
+
                 // Simpan Order
                 $order = Order::create([
                     'order_number'     => $orderId,
@@ -164,6 +229,8 @@ class CheckoutController extends Controller
                     'discount_amount'  => 0,
                     'voucher_discount' => $voucherDiscount,
                     'shipping_cost'    => $shipping,
+                    'courier'          => $request->courier,
+                    'courier_service'  => $request->courier_service,
                     'total_amount'     => max(0, $total),
                     'status'           => 'pending',
                     'notes'            => $request->notes,
@@ -173,30 +240,53 @@ class CheckoutController extends Controller
                 $items = [];
                 foreach ($cart->items as $item) {
                     $order->items()->create([
-                        'product_id' => $item->product_id,
-                        'variant_id' => $item->variant_id,
-                        'product_name' => $item->product->name,
-                        'variant_name' => $item->variant?->variant_name,
-                        'price' => $item->getUnitPrice(),
+                        'product_id'      => $item->product_id,
+                        'variant_id'      => $item->variant_id,
+                        'product_name'    => $item->product->name,
+                        'variant_name'    => $item->variant?->variant_name,
+                        'price'           => $item->getUnitPrice(),
                         'discount_amount' => 0,
-                        'quantity' => $item->quantity,
-                        'subtotal' => $item->getSubtotal(),
+                        'quantity'        => $item->quantity,
+                        'subtotal'        => $item->getSubtotal(),
                     ]);
 
                     $items[] = [
-                        'id' => $item->variant ? $item->product_id . '-' . $item->variant_id : (string) $item->product_id,
-                        'price' => (int) $item->getUnitPrice(),
+                        'id'       => $item->variant ? $item->product_id . '-' . $item->variant_id : (string) $item->product_id,
+                        'price'    => (int) $item->getUnitPrice(),
                         'quantity' => $item->quantity,
-                        'name' => $item->variant 
+                        'name'     => $item->variant 
                             ? substr($item->product->name . ' (' . $item->variant->variant_name . ')', 0, 50) 
                             : substr($item->product->name, 0, 50),
                     ];
                 }
 
+                // Tambahkan baris ongkos kirim ke item_details agar
+                // sum(price * qty) == gross_amount (wajib oleh Midtrans).
+                if ($shipping > 0) {
+                    $items[] = [
+                        'id'       => 'SHIPPING',
+                        'price'    => (int) $shipping,
+                        'quantity' => 1,
+                        'name'     => 'Ongkos Kirim',
+                    ];
+                }
+
+                // Tambahkan baris diskon voucher (nilai negatif) ke item_details
+                // agar total tetap seimbang saat ada potongan harga.
+                if ($voucherDiscount > 0) {
+                    $items[] = [
+                        'id'       => 'DISCOUNT',
+                        'price'    => -(int) $voucherDiscount,
+                        'quantity' => 1,
+                        'name'     => 'Diskon Voucher',
+                    ];
+                }
+
                 $orderData = [
-                    'id'    => $orderId,
-                    'total' => (int) $total,
-                    'items' => $items,
+                    'id'             => $orderId,
+                    'total'          => (int) $total,
+                    'items'          => $items,
+                    'payment_method' => $request->payment_method,
                 ];
 
                 $customer = [
@@ -205,16 +295,19 @@ class CheckoutController extends Controller
                     'phone' => $user->phone ?? $request->recipient_phone,
                 ];
 
-                // 5. Request token dari Midtrans
+                // 7. Request token dari Midtrans
                 $snapData = $this->midtrans->createSnapToken($orderData, $customer);
 
                 // Simpan data pembayaran
+                // expired_at = 24 jam dari sekarang (sesuai TTL default Midtrans Snap token)
                 Payment::create([
-                    'order_id' => $order->id,
+                    'order_id'          => $order->id,
                     'midtrans_order_id' => $orderId,
-                    'amount' => $total,
-                    'status' => 'pending',
-                    'snap_token' => $snapData['token'],
+                    'payment_method'    => $request->payment_method,
+                    'amount'            => $total,
+                    'status'            => 'pending',
+                    'snap_token'        => $snapData['token'],
+                    'expired_at'        => now()->addHours(24),
                 ]);
 
                 return response()->json([
@@ -223,9 +316,9 @@ class CheckoutController extends Controller
                 ]);
             });
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Checkout Snap Token Error: ' . $e->getMessage(), [
+            Log::error('Checkout Snap Token Error: ' . $e->getMessage(), [
                 'user_id' => $user->id,
-                'trace' => $e->getTraceAsString(),
+                'trace'   => $e->getTraceAsString(),
             ]);
 
             return response()->json([
@@ -233,6 +326,69 @@ class CheckoutController extends Controller
                 'message' => 'Gagal memproses pembayaran melalui Midtrans. Silakan coba kembali.',
             ], 500);
         }
+    }
+
+    /**
+     * Re-fetch dan verifikasi ongkos kirim dari API RajaOngkir server-side.
+     *
+     * Method ini memanggil ShippingService::calculateCost() dalam request cycle ini
+     * untuk mendapatkan biaya yang sahih dari API, kemudian mencocokkannya dengan
+     * layanan kurir yang dipilih pelanggan (courier_service).
+     *
+     * @param  int     $cityId         ID kota tujuan dari RajaOngkir
+     * @param  int     $weightGrams    Berat total keranjang dalam gram (dihitung server-side)
+     * @param  string  $courier        Kode kurir (jne, pos, tiki, jnt)
+     * @param  string  $courierService Kode layanan (misal: jne-REG, pos-Paket Biasa)
+     * @return int                     Ongkos kirim yang sudah diverifikasi (dalam Rupiah)
+     *
+     * @throws \Illuminate\Validation\ValidationException jika ongkir tidak dapat diverifikasi
+     */
+    private function resolveVerifiedShippingCost(
+        int $cityId,
+        int $weightGrams,
+        string $courier,
+        string $courierService,
+    ): int {
+        $services = $this->shipping->calculateCost($cityId, $weightGrams, $courier);
+
+        if (empty($services)) {
+            Log::error('Checkout: RajaOngkir tidak mengembalikan data ongkir', [
+                'city_id'      => $cityId,
+                'weight'       => $weightGrams,
+                'courier'      => $courier,
+            ]);
+
+            throw ValidationException::withMessages([
+                'courier_service' => 'Gagal memvalidasi ongkos kirim dari API. Silakan coba lagi atau pilih kurir lain.',
+            ]);
+        }
+
+        // Temukan layanan yang dipilih pelanggan dari hasil API.
+        // courier_service dikirim frontend sebagai "{code}-{service}" (misal: "jne-REG").
+        // ShippingController menyusunnya sebagai: ($item['code'] ?? '') . '-' . ($item['service'] ?? '')
+        $matched = null;
+        foreach ($services as $svc) {
+            $serviceKey = ($svc['code'] ?? '') . '-' . ($svc['service'] ?? '');
+            if (strcasecmp($serviceKey, $courierService) === 0) {
+                $matched = $svc;
+                break;
+            }
+        }
+
+        if ($matched === null) {
+            Log::warning('Checkout: layanan kurir tidak ditemukan dalam respons API', [
+                'city_id'         => $cityId,
+                'courier'         => $courier,
+                'courier_service' => $courierService,
+                'available'       => array_column($services, 'service'),
+            ]);
+
+            throw ValidationException::withMessages([
+                'courier_service' => 'Layanan kurir yang dipilih tidak tersedia untuk tujuan ini. Silakan pilih layanan lain.',
+            ]);
+        }
+
+        return (int) ($matched['cost'] ?? 0);
     }
 
     /**

@@ -85,6 +85,9 @@ class AddressController extends Controller
 
     /**
      * Hapus alamat dari database.
+     *
+     * Jika alamat yang dihapus adalah default, alamat pertama yang tersisa
+     * (by id) secara otomatis dipromosikan menjadi default dalam transaksi atomik.
      */
     public function destroy(Address $address)
     {
@@ -93,15 +96,17 @@ class AddressController extends Controller
         $wasDefault = $address->is_default;
         $user = Auth::user();
 
-        $address->delete();
+        DB::transaction(function () use ($address, $wasDefault, $user) {
+            $address->delete();
 
-        // Jika alamat yang dihapus adalah default, jadikan alamat pertama yang tersisa sebagai default
-        if ($wasDefault) {
-            $next = $user->addresses()->first();
-            if ($next) {
-                $next->update(['is_default' => true]);
+            // Jika alamat yang dihapus adalah default, jadikan alamat pertama yang tersisa sebagai default
+            if ($wasDefault) {
+                $next = $user->addresses()->orderBy('id')->first();
+                if ($next) {
+                    $next->update(['is_default' => true]);
+                }
             }
-        }
+        });
 
         return redirect()->route('profile.addresses')
             ->with('success', 'Alamat berhasil dihapus.');

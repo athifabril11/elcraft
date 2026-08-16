@@ -4,41 +4,40 @@
 @section('meta_description', 'Detail pesanan ' . $order->order_number . ' dari el Craft.')
 
 @section('content')
-<div class="bg-warmCream min-h-screen pb-24 md:pb-0">
+<div class="bg-white min-h-screen pb-24 md:pb-0">
 
     {{-- ─── HEADER ────────────────────────────────── --}}
-    <section class="bg-white border-b border-warmLightGrey py-10 px-5 md:px-8 lg:px-16">
-        <div class="max-w-[1280px] mx-auto">
-            <nav class="flex items-center space-x-2 text-xs text-warmGrey mb-2" aria-label="Breadcrumb">
-                <a href="/" class="hover:text-brand transition-colors">Beranda</a>
-                <span class="material-symbols-outlined !text-[12px]">chevron_right</span>
-                <a href="{{ route('orders.index') }}" class="hover:text-brand transition-colors">Riwayat Pesanan</a>
-                <span class="material-symbols-outlined !text-[12px]">chevron_right</span>
-                <span class="text-warmBlack font-medium font-mono">{{ $order->order_number }}</span>
-            </nav>
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <h1 class="text-2xl md:text-3xl font-semibold text-warmBlack font-sans">Detail Pesanan</h1>
+    <x-page-header title="Detail Pesanan" :back-url="route('orders.index')">
+        @if($order->status === 'pending')
+            <div class="flex items-center gap-2">
+                {{-- Lanjutkan Pembayaran --}}
+                <button id="btn-resume-payment"
+                    data-order="{{ $order->order_number }}"
+                    data-resume-url="{{ route('orders.resume-payment', $order->order_number) }}"
+                    onclick="resumeOrderPayment(this)"
+                    class="flex items-center gap-2 px-4 py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200">
+                    <span class="material-symbols-outlined !text-[16px]">payments</span>
+                    <span id="btn-resume-text">Lanjutkan Pembayaran</span>
+                </button>
 
-                {{-- Cancel Button --}}
-                @if($order->status === 'pending')
-                    <form method="POST" action="{{ route('orders.cancel', $order->order_number) }}"
-                        onsubmit="return confirm('Batalkan pesanan ini? Tindakan ini tidak dapat dibatalkan.')">
-                        @csrf
-                        <button type="submit"
-                            class="flex items-center gap-2 px-4 py-2.5 border border-red-300 text-red-500 hover:bg-red-50 font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200">
-                            <span class="material-symbols-outlined !text-[16px]">cancel</span>
-                            Batalkan Pesanan
-                        </button>
-                    </form>
-                @endif
+                {{-- Batalkan Pesanan --}}
+                <form method="POST" action="{{ route('orders.cancel', $order->order_number) }}"
+                    onsubmit="return confirm('Batalkan pesanan ini? Tindakan ini tidak dapat dibatalkan.')">
+                    @csrf
+                    <button type="submit"
+                        class="flex items-center gap-2 px-4 py-2.5 border border-red-300 text-red-500 hover:bg-red-50 font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200">
+                        <span class="material-symbols-outlined !text-[16px]">cancel</span>
+                        Batalkan Pesanan
+                    </button>
+                </form>
             </div>
-        </div>
-    </section>
+        @endif
+    </x-page-header>
 
     @php
         $statusMap = [
             'pending'    => ['label' => 'Menunggu Pembayaran', 'color' => 'text-yellow-700 bg-yellow-50 border-yellow-200', 'icon' => 'schedule'],
-            'paid'       => ['label' => 'Pembayaran Berhasil', 'color' => 'text-blue-700 bg-blue-50 border-blue-200',   'icon' => 'payments'],
+            'paid'       => ['label' => 'Pembayaran Berhasil', 'color' => 'text-green-700 bg-green-50 border-green-200',   'icon' => 'check_circle'],
             'processing' => ['label' => 'Sedang Diproses',     'color' => 'text-purple-700 bg-purple-50 border-purple-200', 'icon' => 'inventory'],
             'shipped'    => ['label' => 'Sedang Dikirim',      'color' => 'text-indigo-700 bg-indigo-50 border-indigo-200', 'icon' => 'local_shipping'],
             'delivered'  => ['label' => 'Pesanan Diterima',    'color' => 'text-green-700 bg-green-50 border-green-200', 'icon' => 'check_circle'],
@@ -94,7 +93,9 @@
                                 {{-- Thumbnail --}}
                                 <div class="w-16 h-16 rounded-img bg-warmCream flex-shrink-0 overflow-hidden border border-warmLightGrey/50">
                                     @if($item->product && $item->product->primary_image)
-                                        <img src="{{ $item->product->primary_image }}" alt="{{ $item->product_name }}" class="w-full h-full object-cover">
+                                        <a href="/products/{{ $item->product->slug }}" class="block w-full h-full">
+                                            <img src="{{ $item->product->primary_image }}" alt="{{ $item->product_name }}" class="w-full h-full object-cover">
+                                        </a>
                                     @else
                                         <div class="w-full h-full flex items-center justify-center">
                                             <span class="material-symbols-outlined text-warmGrey !text-[24px]">image</span>
@@ -103,7 +104,11 @@
                                 </div>
                                 {{-- Details --}}
                                 <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-warmBlack truncate">{{ $item->product_name }}</p>
+                                    @if($item->product)
+                                        <a href="/products/{{ $item->product->slug }}" class="text-sm font-medium text-warmBlack hover:text-brand truncate block transition-colors">{{ $item->product_name }}</a>
+                                    @else
+                                        <p class="text-sm font-medium text-warmBlack truncate">{{ $item->product_name }}</p>
+                                    @endif
                                     @if($item->variant_name)
                                         <p class="text-xs text-warmGrey">Varian: {{ $item->variant_name }}</p>
                                     @endif
@@ -416,3 +421,82 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+{{-- Midtrans Snap JS — diperlukan untuk membuka popup pembayaran --}}
+@if(config('midtrans.is_production'))
+    <script src="https://app.midtrans.com/snap/snap.js" data-client-key="{{ config('midtrans.client_key_production') }}"></script>
+@else
+    <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('midtrans.client_key_sandbox') }}"></script>
+@endif
+
+<script>
+/**
+ * resumeOrderPayment — dipanggil saat tombol "Lanjutkan Pembayaran" diklik.
+ *
+ * 1. Fetch endpoint resume-payment untuk mendapatkan snap_token.
+ * 2. Jika expired, tampilkan pesan dan redirect ke /checkout setelah 1.5 detik.
+ * 3. Jika masih valid, buka popup Midtrans Snap dengan handler yang sama
+ *    seperti di halaman checkout.
+ */
+async function resumeOrderPayment(btn) {
+    const resumeUrl = btn.dataset.resumeUrl;
+    const textEl    = document.getElementById('btn-resume-text');
+
+    btn.disabled   = true;
+    textEl.textContent = 'Memproses...';
+
+    try {
+        const response = await fetch(resumeUrl, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('Gagal memuat status pembayaran.');
+        }
+
+        const data = await response.json();
+
+        if (data.expired) {
+            // Token sudah kedaluwarsa — arahkan pengguna kembali ke checkout
+            // (createSnapToken akan otomatis membatalkan pesanan pending lama ini)
+            textEl.textContent = 'Sesi kedaluwarsa...';
+            const notice = document.createElement('p');
+            notice.className = 'text-xs text-yellow-700 mt-2 text-center';
+            notice.textContent = 'Sesi pembayaran sudah kedaluwarsa, mengarahkan ke checkout...';
+            btn.parentElement.insertAdjacentElement('afterend', notice);
+            setTimeout(() => { window.location.href = '/checkout'; }, 1500);
+            return;
+        }
+
+        // Token masih valid — buka popup Midtrans Snap
+        window.snap.pay(data.snap_token, {
+            onSuccess: (result) => {
+                window.location.href = `{{ route('checkout.finish') }}?order_id=${result.order_id}&transaction_status=${result.transaction_status}`;
+            },
+            onPending: (result) => {
+                window.location.href = `{{ route('checkout.finish') }}?order_id=${result.order_id}&transaction_status=pending`;
+            },
+            onError: (result) => {
+                console.error('Midtrans error:', result);
+                window.location.href = '{{ route("checkout.error") }}';
+            },
+            onClose: () => {
+                btn.disabled      = false;
+                textEl.textContent = 'Lanjutkan Pembayaran';
+            },
+        });
+
+    } catch (error) {
+        console.error('Resume payment error:', error);
+        alert('Terjadi kesalahan: ' + error.message);
+        btn.disabled      = false;
+        textEl.textContent = 'Lanjutkan Pembayaran';
+    }
+}
+</script>
+@endpush

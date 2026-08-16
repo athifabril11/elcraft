@@ -4,21 +4,10 @@
 @section('meta_description', 'Kelola alamat pengiriman Anda di el Craft untuk pengalaman checkout yang lebih cepat.')
 
 @section('content')
-<div class="bg-warmCream min-h-screen pb-24 md:pb-0">
+<div class="bg-white min-h-screen pb-24 md:pb-0">
 
     {{-- ─── HEADER ────────────────────────────────── --}}
-    <section class="bg-white border-b border-warmLightGrey py-10 px-5 md:px-8 lg:px-16">
-        <div class="max-w-[1280px] mx-auto">
-            <nav class="flex items-center space-x-2 text-xs text-warmGrey mb-2" aria-label="Breadcrumb">
-                <a href="/" class="hover:text-brand transition-colors">Beranda</a>
-                <span class="material-symbols-outlined !text-[12px]">chevron_right</span>
-                <a href="{{ route('profile.edit') }}" class="hover:text-brand transition-colors">Profil</a>
-                <span class="material-symbols-outlined !text-[12px]">chevron_right</span>
-                <span class="text-warmBlack font-medium">Buku Alamat</span>
-            </nav>
-            <h1 class="text-2xl md:text-3xl font-semibold text-warmBlack font-sans">Buku Alamat</h1>
-        </div>
-    </section>
+    <x-page-header title="Buku Alamat" />
 
     <section class="max-w-[1280px] mx-auto px-5 md:px-8 lg:px-16 py-10">
 

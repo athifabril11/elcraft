@@ -5,24 +5,21 @@
 @section('meta_description', 'Selesaikan pembelian aksesoris premium Anda di el Craft. Pembayaran aman dan pengiriman cepat ke seluruh Indonesia.')
 
 @section('content')
-<div class="pb-24 md:pb-0 bg-warmCream min-h-screen">
+<div class="pb-24 md:pb-0 bg-white min-h-screen">
 
     {{-- ─── HEADER CHECKOUT ───────────────────────────────── --}}
-    <section class="bg-white border-b border-warmLightGrey py-6 px-5 md:px-8 lg:px-16">
-        <div class="max-w-[1280px] mx-auto flex items-center justify-between">
-            {{-- Breadcrumb --}}
-            <nav class="flex items-center space-x-2 text-xs text-warmGrey" aria-label="Langkah checkout">
-                <a href="/cart" class="hover:text-brand transition-colors">Keranjang</a>
-                <span class="material-symbols-outlined !text-[12px]">chevron_right</span>
-                <span class="text-warmBlack font-semibold">Checkout</span>
-                <span class="material-symbols-outlined !text-[12px]">chevron_right</span>
-                <span class="text-warmGrey">Pembayaran</span>
-            </nav>
-            <span class="text-lg font-semibold text-brand tracking-wide font-sans">el Craft</span>
-        </div>
-    </section>
+    <x-page-header title="Checkout" back-url="/cart" />
 
     {{-- ─── NOTIFIKASI SESI ────────────────────────────────── --}}
+    @if(session('success'))
+        <div class="max-w-[1280px] mx-auto px-5 md:px-8 lg:px-16 pt-6">
+            <div class="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-card flex items-center space-x-3" role="alert">
+                <span class="material-symbols-outlined !text-[18px]">check_circle</span>
+                <span>{{ session('success') }}</span>
+            </div>
+        </div>
+    @endif
+
     @if(session('info'))
         <div class="max-w-[1280px] mx-auto px-5 md:px-8 lg:px-16 pt-6">
             <div class="bg-blue-50 border border-blue-200 text-blue-700 text-sm px-4 py-3 rounded-card flex items-center space-x-3" role="alert">
@@ -43,10 +40,11 @@
 
     {{-- ─── KONTEN UTAMA ───────────────────────────────────── --}}
     <section class="max-w-[1280px] mx-auto px-5 md:px-8 lg:px-16 py-10">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {{-- x-data on the outer grid so BOTH columns (left form + right sidebar) share the same Alpine scope --}}
+        <div id="checkout-alpine" class="grid grid-cols-1 lg:grid-cols-3 gap-8" x-data="checkoutPage({{ $subtotal }})">
 
             {{-- ── KIRI: Form Alamat Pengiriman ──────────────────── --}}
-            <div class="lg:col-span-2 space-y-6" x-data="checkoutPage({{ $subtotal }})">
+            <div class="lg:col-span-2 space-y-6">
 
 
                 {{-- Pilih Alamat Tersimpan (jika ada) --}}
@@ -64,6 +62,7 @@
                                 x-on:change="fillAddress({{ json_encode(['name' => $addr->recipient_name, 'phone' => $addr->phone, 'address' => $addr->full_address, 'city' => $addr->city, 'postal' => $addr->postal_code]) }})"
                                 {{ $addr->is_default ? 'checked' : '' }}>
                             <div class="flex-1 min-w-0">
+                                {{-- Label is always the user-typed field; badge is separate and only shown when is_default --}}
                                 <span class="text-xs font-semibold text-warmBlack">{{ $addr->label }}</span>
                                 @if($addr->is_default)
                                     <span class="ml-2 text-[10px] font-semibold text-brand bg-brand/10 px-1.5 py-0.5 rounded-full">Utama</span>
@@ -144,14 +143,15 @@
                                     :disabled="provincesLoading"
                                     aria-required="true">
                                     <option value="" disabled selected>-- Pilih Provinsi --</option>
-                                    <template x-for="prov in provinces" :key="prov.province_id">
-                                        <option :value="prov.province_id" x-text="prov.province"
-                                            :selected="selectedProvinceId == prov.province_id"></option>
+                                    <template x-for="prov in provinces" :key="prov.id">
+                                        <option :value="prov.id" x-text="prov.name"
+                                            :selected="selectedProvinceId == prov.id"></option>
                                     </template>
                                 </select>
                                 <p x-show="provincesLoading" class="text-[10px] text-warmGrey mt-1 flex items-center gap-1" x-cloak>
                                     <span class="material-symbols-outlined !text-[12px] animate-spin">sync</span> Memuat provinsi...
                                 </p>
+                                <p x-show="provincesError && !provincesLoading" x-text="provincesError" class="text-[10px] text-red-500 mt-1 flex items-center gap-1" x-cloak></p>
                             </div>
                             <div>
                                 <label for="city-select" class="block text-xs font-semibold text-warmGrey uppercase tracking-wider mb-1.5">
@@ -165,9 +165,9 @@
                                     :disabled="citiesLoading || !selectedProvinceId"
                                     aria-required="true">
                                     <option value="" disabled selected>-- Pilih Kota --</option>
-                                    <template x-for="city in cities" :key="city.city_id">
-                                        <option :value="city.city_id" x-text="city.type + ' ' + city.city_name"
-                                            :selected="selectedCityId == city.city_id"></option>
+                                    <template x-for="city in cities" :key="city.id">
+                                        <option :value="city.id" x-text="city.name"
+                                            :selected="selectedCityId == city.id"></option>
                                     </template>
                                 </select>
                                 <p x-show="citiesLoading" class="text-[10px] text-warmGrey mt-1 flex items-center gap-1" x-cloak>
@@ -203,7 +203,7 @@
 
                     {{-- Pilihan Kurir --}}
                     <div class="flex gap-3 mb-4 flex-wrap">
-                        @foreach(['jne' => 'JNE', 'pos' => 'POS Indonesia', 'tiki' => 'TIKI'] as $code => $label)
+                        @foreach(['jne' => 'JNE', 'jnt' => 'J&T Express', 'pos' => 'POS Indonesia', 'tiki' => 'TIKI'] as $code => $label)
                         <button type="button"
                             @click="selectCourier('{{ $code }}')"
                             :class="selectedCourier === '{{ $code }}' ? 'border-brand bg-brand/5 text-brand font-semibold' : 'border-warmLightGrey text-warmGrey hover:border-brand/50'"
@@ -240,12 +240,34 @@
                                         :checked="selectedShipping?.service === opt.service"
                                         class="text-brand focus:ring-brand border-warmGrey/40 flex-shrink-0">
                                     <div class="min-w-0">
-                                        <p class="text-xs font-semibold text-warmBlack" x-text="opt.courier + ' ' + opt.description"></p>
-                                        <p class="text-[10px] text-warmGrey" x-text="'Estimasi: ' + opt.etd + ' hari'"></p>
+                                        <p class="text-xs font-semibold text-warmBlack" x-text="opt.display_name"></p>
+                                        <p class="text-[10px] text-warmGrey" x-text="opt.etd === '-' ? 'Estimasi: -' : 'Estimasi: ' + opt.etd + ' hari'"></p>
                                     </div>
                                 </div>
                                 <span class="text-xs font-bold text-brand flex-shrink-0" x-text="formatRupiah(opt.cost)"></span>
                             </label>
+                        </template>
+                    </div>
+                </div>
+
+                {{-- Pilihan Metode Pembayaran --}}
+                <div class="bg-white rounded-card border border-warmLightGrey p-6">
+                    <h2 class="text-base font-semibold text-warmBlack mb-4 flex items-center space-x-2">
+                        <span class="material-symbols-outlined text-brand !text-[20px]">payments</span>
+                        <span>Metode Pembayaran</span>
+                    </h2>
+
+                    {{-- Pilihan Metode Pembayaran (Pill Buttons) --}}
+                    <div class="flex gap-3 flex-wrap">
+                        <template x-for="pm in paymentMethods" :key="pm.code">
+                            <button type="button"
+                                @click="selectedPaymentMethod = pm.code"
+                                :class="selectedPaymentMethod === pm.code ? 'border-brand bg-brand/5 text-brand font-semibold' : 'border-warmLightGrey text-warmGrey hover:border-brand/50'"
+                                class="px-4 py-2 text-xs border rounded-btn transition-all duration-200 flex items-center gap-1.5">
+                                <span class="material-symbols-outlined !text-[14px]"
+                                    :class="selectedPaymentMethod === pm.code ? 'text-brand' : 'text-warmGrey'">payments</span>
+                                <span x-text="pm.label"></span>
+                            </button>
                         </template>
                     </div>
                 </div>
@@ -376,7 +398,7 @@
                         id="pay-button"
                         onclick="initiatePayment()"
                         class="mt-6 w-full py-3.5 bg-brand hover:bg-brandDark text-white font-semibold text-sm uppercase tracking-widest rounded-btn transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                        @if(empty($cartItems)) disabled @endif
+                        :disabled="!selectedShipping || !selectedPaymentMethod {{ empty($cartItems) ? '|| true' : '' }}"
                         aria-label="Bayar sekarang via Midtrans">
                         <span class="material-symbols-outlined !text-[20px]">lock</span>
                         <span>Bayar Sekarang</span>
@@ -387,16 +409,6 @@
                         <span class="material-symbols-outlined !text-[13px]">verified_user</span>
                         <span>Pembayaran aman &amp; terenkripsi via Midtrans</span>
                     </p>
-
-                    {{-- Logo metode pembayaran --}}
-                    <div class="mt-4 flex flex-wrap justify-center gap-2 opacity-60">
-                        <span class="text-[9px] bg-warmCream border border-warmLightGrey px-2 py-1 rounded font-medium text-warmGrey">VISA</span>
-                        <span class="text-[9px] bg-warmCream border border-warmLightGrey px-2 py-1 rounded font-medium text-warmGrey">MASTERCARD</span>
-                        <span class="text-[9px] bg-warmCream border border-warmLightGrey px-2 py-1 rounded font-medium text-warmGrey">GoPay</span>
-                        <span class="text-[9px] bg-warmCream border border-warmLightGrey px-2 py-1 rounded font-medium text-warmGrey">ShopeePay</span>
-                        <span class="text-[9px] bg-warmCream border border-warmLightGrey px-2 py-1 rounded font-medium text-warmGrey">BCA VA</span>
-                        <span class="text-[9px] bg-warmCream border border-warmLightGrey px-2 py-1 rounded font-medium text-warmGrey">QRIS</span>
-                    </div>
                 </div>
 
             </div>
@@ -431,6 +443,7 @@
             provinces: [],
             cities: [],
             provincesLoading: false,
+            provincesError: '',
             citiesLoading: false,
             costLoading: false,
             selectedProvinceId: null,
@@ -440,6 +453,19 @@
             shippingOptions: [],
             selectedShipping: null,
             shippingError: '',
+            selectedPaymentMethod: '',
+            paymentMethods: [
+                { code: 'credit_card', label: 'Kartu Kredit/Debit' },
+                { code: 'bca_va',      label: 'BCA Virtual Account' },
+                { code: 'bni_va',      label: 'BNI Virtual Account' },
+                { code: 'bri_va',      label: 'BRI Virtual Account' },
+                { code: 'other_va',    label: 'VA Bank Lainnya' },
+                { code: 'gopay',       label: 'GoPay' },
+                { code: 'shopeepay',   label: 'ShopeePay' },
+                { code: 'qris',        label: 'QRIS' },
+                { code: 'indomaret',   label: 'Indomaret' },
+                { code: 'alfamart',    label: 'Alfamart' }
+            ],
             postalCode: '{{ $addresses->firstWhere("is_default", true)?->postal_code ?? "" }}',
 
             async init() {
@@ -467,12 +493,20 @@
 
             async loadProvinces() {
                 this.provincesLoading = true;
+                this.provincesError   = '';
                 try {
                     const res  = await fetch('{{ route("shipping.provinces") }}');
                     const json = await res.json();
-                    this.provinces = json.success ? json.data : [];
+                    if (json.success && json.data.length > 0) {
+                        this.provinces     = (json.data || []).sort((a, b) => a.name.localeCompare(b.name));
+                        this.provincesError = '';
+                    } else {
+                        this.provinces      = [];
+                        this.provincesError = json.message || 'Gagal memuat data provinsi, coba lagi.';
+                    }
                 } catch (e) {
                     console.error('Failed to load provinces', e);
+                    this.provincesError = 'Gagal memuat data provinsi, periksa koneksi internet Anda.';
                 } finally {
                     this.provincesLoading = false;
                 }
@@ -495,7 +529,7 @@
                 try {
                     const res  = await fetch(`/shipping/cities/${provinceId}`);
                     const json = await res.json();
-                    this.cities = json.success ? json.data : [];
+                    this.cities = json.success ? (json.data || []).sort((a, b) => a.name.localeCompare(b.name)) : [];
                 } catch (e) {
                     console.error('Failed to load cities', e);
                 } finally {
@@ -505,11 +539,10 @@
 
             async onCityChange(event) {
                 const cityId = parseInt(event.target.value);
-                const cityOpt = this.cities.find(c => c.city_id == cityId);
+                const cityOpt = this.cities.find(c => c.id == cityId);
                 this.selectedCityId   = cityId;
-                this.selectedCityName = cityOpt ? (cityOpt.type + ' ' + cityOpt.city_name) : '';
-                // Auto-fill postal code from RajaOngkir city data
-                if (cityOpt?.postal_code) this.postalCode = cityOpt.postal_code;
+                this.selectedCityName = cityOpt ? cityOpt.name : '';
+                // Komerce API city data does not include postal_code; field omitted
                 this.shippingOptions  = [];
                 this.selectedShipping = null;
                 this.shippingError    = '';
@@ -531,8 +564,8 @@
                 if (!this.selectedCityId) return;
                 this.costLoading   = true;
                 this.shippingError = '';
-                // Estimate total weight: 500g per item (fallback)
-                const weight = Math.max(100, {{ $cartItems ? count($cartItems) : 1 }} * 500);
+                // Use actual total weight of products in cart (in grams)
+                const weight = {{ $totalWeight ?? 100 }};
                 try {
                     const res = await fetch('{{ route("shipping.cost") }}', {
                         method: 'POST',
@@ -631,7 +664,7 @@
         const notes   = document.getElementById('order-notes').value;
 
         // Ambil Alpine state untuk kota, provinsi, kurir
-        const alpineEl = document.querySelector('[x-data]');
+        const alpineEl = document.getElementById('checkout-alpine');
         const alpine   = alpineEl ? Alpine.$data(alpineEl) : null;
 
         const cityId       = alpine?.selectedCityId  ?? null;
@@ -656,6 +689,15 @@
             return;
         }
 
+        const paymentMethod = alpine?.selectedPaymentMethod ?? '';
+
+        if (!paymentMethod) {
+            alert('Silakan pilih metode pembayaran terlebih dahulu.');
+            btn.disabled = false;
+            btn.innerHTML = `<span class="material-symbols-outlined !text-[20px]">lock</span><span>Bayar Sekarang</span>`;
+            return;
+        }
+
         // Ambil voucher code dari Alpine state jika ada
         const voucherInput = document.getElementById('voucher-code');
         const voucherCode  = voucherInput ? voucherInput.value.trim() : '';
@@ -666,6 +708,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                 },
                 body: JSON.stringify({
@@ -679,6 +722,7 @@
                     shipping_cost:   shippingCost,
                     courier:         courier,
                     courier_service: service,
+                    payment_method:  paymentMethod,
                     notes:           notes,
                     voucher_code:    voucherCode || null,
                 }),

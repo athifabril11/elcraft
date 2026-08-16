@@ -72,4 +72,43 @@ class OrderController extends Controller
         return redirect()->route('orders.show', $orderNumber)
             ->with('success', 'Pesanan berhasil dibatalkan.');
     }
+
+    /**
+     * Kembalikan snap_token untuk melanjutkan pembayaran pesanan yang tertunda.
+     *
+     * Dipanggil via fetch() dari halaman detail pesanan saat tombol
+     * "Lanjutkan Pembayaran" diklik. Response JSON:
+     *   { "expired": false, "snap_token": "..." }  — token masih valid
+     *   { "expired": true }                        — token habis, arahkan ke checkout
+     *
+     * @param  string  $orderNumber
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function resumePayment(string $orderNumber)
+    {
+        // Scoping melalui relasi user() sudah mencegah IDOR —
+        // firstOrFail() akan 404 jika pesanan bukan milik user ini.
+        $order = Auth::user()
+            ->orders()
+            ->with('payment')
+            ->where('order_number', $orderNumber)
+            ->firstOrFail();
+
+        // Hanya pesanan berstatus 'pending' yang dapat dilanjutkan
+        if ($order->status !== 'pending') {
+            return response()->json(['expired' => true], 200);
+        }
+
+        $payment = $order->payment;
+
+        // Tidak ada data pembayaran, atau token sudah melewati 24 jam TTL-nya
+        if (!$payment || $payment->isExpired()) {
+            return response()->json(['expired' => true], 200);
+        }
+
+        return response()->json([
+            'expired'    => false,
+            'snap_token' => $payment->snap_token,
+        ], 200);
+    }
 }

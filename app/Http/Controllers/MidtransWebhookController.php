@@ -104,8 +104,8 @@ class MidtransWebhookController extends Controller
                 // Create shipment record
                 if (!$order->shipment) {
                     $order->shipment()->create([
-                        'courier' => 'Manual',
-                        'service' => 'Reguler',
+                        'courier' => $order->courier ?? 'Manual',
+                        'service' => $order->courier_service ?? 'Reguler',
                         'shipping_cost' => $order->shipping_cost,
                     ]);
                 }

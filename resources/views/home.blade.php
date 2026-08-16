@@ -38,60 +38,62 @@
                 this.currentSlide = Math.round(container.scrollLeft / container.clientWidth);
             }
         }
-    }" x-init="startTimer()" class="relative bg-[#FAF6F3] overflow-hidden w-full h-[640px] md:h-[500px] lg:h-[580px] flex items-center">
+    }" x-init="startTimer()" class="relative bg-[#FAF6F3] overflow-hidden w-full">
+
         <!-- Horizontal Scroll Snap Container -->
-        <div x-ref="slider" @scroll.debounce.50ms="onScroll()" class="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar w-full h-full">
+        <div x-ref="slider" @scrollend="onScroll()" class="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar w-full">
+
             <!-- Slide 1 (Exclusive Selection - Ring Showcase) -->
-            <div class="w-full flex-shrink-0 snap-start h-full flex flex-col md:flex-row items-center justify-between px-6 md:px-12 lg:px-20 max-w-[1280px] mx-auto py-6 md:py-0 pb-16 md:pb-0">
-                <div class="flex-1 md:pr-12 flex flex-col items-start text-left justify-center h-full order-2 md:order-1 mt-4 md:mt-0 pb-4 md:pb-0">
-                    <span class="text-[12px] font-bold uppercase text-[#C17B6F] tracking-[0.25em] mb-4">EXCLUSIVE SELECTION</span>
-                    <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold text-[#1C1917] leading-[1.12] mb-4 font-sans max-w-xl">Timeless Beauty in Detail</h1>
-                    <p class="text-sm md:text-base text-[#6B6661] mb-6 leading-relaxed max-w-md">Elevating everyday moments through artisanal precision and feminine designs.</p>
-                    <a href="/products" class="px-8 py-3.5 bg-[#C17B6F] hover:bg-[#A86458] text-white font-semibold text-xs tracking-widest uppercase rounded-lg transition-all duration-300 shadow-xs hover:shadow-md">VIEW COLLECTION</a>
+            <div class="w-full flex-shrink-0 snap-start flex flex-col md:flex-row items-center justify-between px-6 md:px-12 lg:px-20 max-w-[1280px] mx-auto py-10 md:py-16 lg:py-20 pb-16 md:pb-16 gap-6 md:gap-0">
+                <div class="flex-1 md:pr-12 flex flex-col items-start text-left justify-center order-2 md:order-1">
+                    <span class="text-[11px] md:text-[12px] font-bold uppercase text-[#C17B6F] tracking-[0.25em] mb-3 md:mb-4">EXCLUSIVE SELECTION</span>
+                    <h2 class="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-[#1C1917] leading-[1.12] mb-3 md:mb-4 font-sans max-w-xl">Timeless Beauty in Detail</h2>
+                    <p class="text-sm md:text-base text-[#6B6661] mb-5 md:mb-6 leading-relaxed max-w-md">Elevating everyday moments through artisanal precision and feminine designs.</p>
+                    <a href="/products" class="px-6 md:px-8 py-3 md:py-3.5 bg-[#C17B6F] hover:bg-[#A86458] text-white font-semibold text-xs tracking-widest uppercase rounded-lg transition-all duration-300 shadow-xs hover:shadow-md">VIEW COLLECTION</a>
                 </div>
-                <div class="flex-1 w-full h-1/2 md:h-full flex items-center justify-center order-1 md:order-2">
-                    <div class="relative w-full max-w-[480px] aspect-[4/3] md:aspect-[5/4] lg:aspect-[4/3] overflow-hidden rounded-2xl bg-[#1C1917] shadow-lg">
+                <div class="flex-1 w-full flex items-center justify-center order-1 md:order-2">
+                    <div class="relative w-full max-w-[320px] md:max-w-[480px] aspect-[4/3] overflow-hidden rounded-2xl bg-[#1C1917] shadow-lg">
                         <img src="/images/hero_ring.png" alt="Timeless Beauty Ring" class="w-full h-full object-cover transition-transform duration-700 hover:scale-105">
                     </div>
                 </div>
             </div>
 
             <!-- Slide 2 (New Collection 2024) -->
-            <div class="w-full flex-shrink-0 snap-start h-full flex flex-col md:flex-row items-center justify-between px-6 md:px-12 lg:px-20 max-w-[1280px] mx-auto py-6 md:py-0 pb-16 md:pb-0">
-                <div class="flex-1 md:pr-12 flex flex-col items-start text-left justify-center h-full order-2 md:order-1 mt-4 md:mt-0 pb-4 md:pb-0">
-                    <span class="text-[12px] font-bold uppercase text-[#C17B6F] tracking-[0.25em] mb-4">NEW COLLECTION 2024</span>
-                    <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold text-[#1C1917] leading-[1.12] mb-4 font-sans max-w-xl">Accessories for Every Moment</h1>
-                    <p class="text-sm md:text-base text-[#6B6661] mb-6 leading-relaxed max-w-md">Handpicked pieces for the modern woman. Curated with love, crafted with care.</p>
-                    <a href="/products" class="px-8 py-3.5 bg-[#C17B6F] hover:bg-[#A86458] text-white font-semibold text-xs tracking-widest uppercase rounded-lg transition-all duration-300 shadow-xs hover:shadow-md">EXPLORE COLLECTION</a>
+            <div class="w-full flex-shrink-0 snap-start flex flex-col md:flex-row items-center justify-between px-6 md:px-12 lg:px-20 max-w-[1280px] mx-auto py-10 md:py-16 lg:py-20 pb-16 md:pb-16 gap-6 md:gap-0">
+                <div class="flex-1 md:pr-12 flex flex-col items-start text-left justify-center order-2 md:order-1">
+                    <span class="text-[11px] md:text-[12px] font-bold uppercase text-[#C17B6F] tracking-[0.25em] mb-3 md:mb-4">NEW COLLECTION 2024</span>
+                    <h2 class="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-[#1C1917] leading-[1.12] mb-3 md:mb-4 font-sans max-w-xl">Accessories for Every Moment</h2>
+                    <p class="text-sm md:text-base text-[#6B6661] mb-5 md:mb-6 leading-relaxed max-w-md">Handpicked pieces for the modern woman. Curated with love, crafted with care.</p>
+                    <a href="/products" class="px-6 md:px-8 py-3 md:py-3.5 bg-[#C17B6F] hover:bg-[#A86458] text-white font-semibold text-xs tracking-widest uppercase rounded-lg transition-all duration-300 shadow-xs hover:shadow-md">EXPLORE COLLECTION</a>
                 </div>
-                <div class="flex-1 w-full h-1/2 md:h-full flex items-center justify-center order-1 md:order-2">
-                    <div class="relative w-full max-w-[480px] aspect-[4/3] md:aspect-[5/4] lg:aspect-[4/3] overflow-hidden rounded-2xl bg-[#1C1917] shadow-lg">
+                <div class="flex-1 w-full flex items-center justify-center order-1 md:order-2">
+                    <div class="relative w-full max-w-[320px] md:max-w-[480px] aspect-[4/3] overflow-hidden rounded-2xl bg-[#1C1917] shadow-lg">
                         <img src="https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=1200&auto=format&fit=crop" alt="High-fashion minimalist photography shot of fine jewelry" class="w-full h-full object-cover transition-transform duration-700 hover:scale-105">
                     </div>
                 </div>
             </div>
 
             <!-- Slide 3 (Elegant Statement) -->
-            <div class="w-full flex-shrink-0 snap-start h-full flex flex-col md:flex-row items-center justify-between px-6 md:px-12 lg:px-20 max-w-[1280px] mx-auto py-6 md:py-0 pb-16 md:pb-0">
-                <div class="flex-1 md:pr-12 flex flex-col items-start text-left justify-center h-full order-2 md:order-1 mt-4 md:mt-0 pb-4 md:pb-0">
-                    <span class="text-[12px] font-bold uppercase text-[#C17B6F] tracking-[0.25em] mb-4">ELEGANT STATEMENT</span>
-                    <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold text-[#1C1917] leading-[1.12] mb-4 font-sans max-w-xl">Crafted to Sparkle and Last</h1>
-                    <p class="text-sm md:text-base text-[#6B6661] mb-6 leading-relaxed max-w-md">Find necklaces, bracelets, and rings made from premium materials for your everyday style.</p>
-                    <a href="/products" class="px-8 py-3.5 bg-[#C17B6F] hover:bg-[#A86458] text-white font-semibold text-xs tracking-widest uppercase rounded-lg transition-all duration-300 shadow-xs hover:shadow-md">SHOP NEW ARRIVALS</a>
+            <div class="w-full flex-shrink-0 snap-start flex flex-col md:flex-row items-center justify-between px-6 md:px-12 lg:px-20 max-w-[1280px] mx-auto py-10 md:py-16 lg:py-20 pb-16 md:pb-16 gap-6 md:gap-0">
+                <div class="flex-1 md:pr-12 flex flex-col items-start text-left justify-center order-2 md:order-1">
+                    <span class="text-[11px] md:text-[12px] font-bold uppercase text-[#C17B6F] tracking-[0.25em] mb-3 md:mb-4">ELEGANT STATEMENT</span>
+                    <h2 class="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-[#1C1917] leading-[1.12] mb-3 md:mb-4 font-sans max-w-xl">Crafted to Sparkle and Last</h2>
+                    <p class="text-sm md:text-base text-[#6B6661] mb-5 md:mb-6 leading-relaxed max-w-md">Find necklaces, bracelets, and rings made from premium materials for your everyday style.</p>
+                    <a href="/products" class="px-6 md:px-8 py-3 md:py-3.5 bg-[#C17B6F] hover:bg-[#A86458] text-white font-semibold text-xs tracking-widest uppercase rounded-lg transition-all duration-300 shadow-xs hover:shadow-md">SHOP NEW ARRIVALS</a>
                 </div>
-                <div class="flex-1 w-full h-1/2 md:h-full flex items-center justify-center order-1 md:order-2">
-                    <div class="relative w-full max-w-[480px] aspect-[4/3] md:aspect-[5/4] lg:aspect-[4/3] overflow-hidden rounded-2xl bg-[#1C1917] shadow-lg">
+                <div class="flex-1 w-full flex items-center justify-center order-1 md:order-2">
+                    <div class="relative w-full max-w-[320px] md:max-w-[480px] aspect-[4/3] overflow-hidden rounded-2xl bg-[#1C1917] shadow-lg">
                         <img src="https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=1200&auto=format&fit=crop" alt="Premium rings stacking showcase" class="w-full h-full object-cover transition-transform duration-700 hover:scale-105">
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Dot Indicators (Active dot is Rose Gold pill shape) -->
-        <div class="hero-dots-container absolute bottom-4 md:bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex space-x-3 items-center" role="tablist" aria-label="Pilihan Slide">
-            <button @click="goToSlide(0)" class="hero-dot rounded-full transition-all duration-300" :class="currentSlide === 0 ? 'w-8 h-2 bg-[#C17B6F]' : 'w-2 h-2 bg-[#D5CECB] hover:bg-[#C17B6F]/50'" role="tab" :aria-selected="currentSlide === 0" aria-label="Tampilkan slide 1"></button>
-            <button @click="goToSlide(1)" class="hero-dot rounded-full transition-all duration-300" :class="currentSlide === 1 ? 'w-8 h-2 bg-[#C17B6F]' : 'w-2 h-2 bg-[#D5CECB] hover:bg-[#C17B6F]/50'" role="tab" :aria-selected="currentSlide === 1" aria-label="Tampilkan slide 2"></button>
-            <button @click="goToSlide(2)" class="hero-dot rounded-full transition-all duration-300" :class="currentSlide === 2 ? 'w-8 h-2 bg-[#C17B6F]' : 'w-2 h-2 bg-[#D5CECB] hover:bg-[#C17B6F]/50'" role="tab" :aria-selected="currentSlide === 2" aria-label="Tampilkan slide 3"></button>
+        <!-- Dot Indicators — always visible, centered horizontally, sits at the bottom of the section -->
+        <div class="flex justify-center items-center space-x-3 py-4 md:py-5" role="tablist" aria-label="Pilihan Slide">
+            <button @click="goToSlide(0)" class="rounded-full transition-all duration-300" :class="currentSlide === 0 ? 'w-8 h-2 bg-[#C17B6F]' : 'w-2 h-2 bg-[#D5CECB] hover:bg-[#C17B6F]/50'" role="tab" :aria-selected="currentSlide === 0" aria-label="Tampilkan slide 1"></button>
+            <button @click="goToSlide(1)" class="rounded-full transition-all duration-300" :class="currentSlide === 1 ? 'w-8 h-2 bg-[#C17B6F]' : 'w-2 h-2 bg-[#D5CECB] hover:bg-[#C17B6F]/50'" role="tab" :aria-selected="currentSlide === 1" aria-label="Tampilkan slide 2"></button>
+            <button @click="goToSlide(2)" class="rounded-full transition-all duration-300" :class="currentSlide === 2 ? 'w-8 h-2 bg-[#C17B6F]' : 'w-2 h-2 bg-[#D5CECB] hover:bg-[#C17B6F]/50'" role="tab" :aria-selected="currentSlide === 2" aria-label="Tampilkan slide 3"></button>
         </div>
     </section>
 
@@ -155,7 +157,7 @@
                 <span class="text-xs font-semibold text-warmGrey tracking-[0.05em] uppercase">Best Sellers</span>
             </div>
             <a href="/products" class="text-sm font-semibold text-brand hover:text-brandDark flex items-center transition-colors duration-200 uppercase tracking-wider">
-                Lihat Semua <span class="material-symbols-outlined ml-1 !text-sm">arrow_forward</span>
+                View All <span class="material-symbols-outlined ml-1 !text-sm">arrow_forward</span>
             </a>
         </div>
 
@@ -177,7 +179,7 @@
                 <span class="text-xs font-semibold text-warmGrey tracking-[0.05em] uppercase">On Sale</span>
             </div>
             <a href="/products" class="text-sm font-semibold text-brand hover:text-brandDark flex items-center transition-colors duration-200 uppercase tracking-wider">
-                Lihat Semua <span class="material-symbols-outlined ml-1 !text-sm">arrow_forward</span>
+                View All <span class="material-symbols-outlined ml-1 !text-sm">arrow_forward</span>
             </a>
         </div>
 

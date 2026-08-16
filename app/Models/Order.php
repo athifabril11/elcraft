@@ -18,6 +18,8 @@ class Order extends Model
         'discount_amount',
         'voucher_discount',
         'shipping_cost',
+        'courier',
+        'courier_service',
         'total_amount',
         'status',
         'notes',

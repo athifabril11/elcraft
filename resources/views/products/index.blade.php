@@ -6,28 +6,18 @@
 
 @section('content')
 <div x-data="{ mobileFilterOpen: false }" @pageshow.window="mobileFilterOpen = false">
-    <!-- Breadcrumb & Header Section -->
-    <section class="bg-warmCream py-10 px-5 md:px-8 lg:px-16 border-b border-warmLightGrey/50">
-        <div class="max-w-[1280px] mx-auto flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
-            <div>
-                <nav class="flex items-center space-x-2 text-xs text-warmGrey mb-2">
-                    <a href="/" class="hover:text-brand transition-colors">Beranda</a>
-                    <span class="material-symbols-outlined !text-[12px]">chevron_right</span>
-                    <span class="text-warmBlack font-medium">Produk</span>
-                </nav>
-                <h1 class="text-2xl md:text-3xl font-semibold text-warmBlack font-sans">Koleksi Aksesoris</h1>
-            </div>
-            @if(request()->anyFilled(['search', 'category', 'min_price', 'max_price', 'sort_by']))
-                <a href="/products" class="inline-flex items-center space-x-1.5 text-xs text-brand hover:text-brandDark font-semibold uppercase tracking-wider transition-colors duration-200">
-                    <span class="material-symbols-outlined !text-[16px]">close</span>
-                    <span>Hapus Semua Filter</span>
-                </a>
-            @endif
-        </div>
-    </section>
+    <!-- Header Section -->
+    <x-page-header title="Koleksi Aksesoris">
+        @if(request()->anyFilled(['search', 'category', 'min_price', 'max_price', 'sort_by']))
+            <a href="/products" class="inline-flex items-center space-x-1.5 text-xs text-brand hover:text-brandDark font-semibold uppercase tracking-wider transition-colors duration-200">
+                <span class="material-symbols-outlined !text-[16px]">close</span>
+                <span>Hapus Semua Filter</span>
+            </a>
+        @endif
+    </x-page-header>
 
     <!-- Main Listing Layout -->
-    <section class="bg-white py-12 px-5 md:px-8 lg:px-16 max-w-[1280px] mx-auto">
+    <section class="bg-white pt-4 pb-12 px-5 md:px-8 lg:px-16 max-w-[1280px] mx-auto">
         <div class="flex flex-col lg:flex-row gap-10">
             
             <!-- 1. SIDEBAR FILTER (Desktop View Only) -->
@@ -129,7 +119,9 @@
                             <div class="group relative flex flex-col justify-between bg-white border border-warmLightGrey rounded-card overflow-hidden transition-all duration-300 hover:border-brand/40">
                                 <!-- Image Area -->
                                 <div class="relative aspect-square w-full bg-warmCream overflow-hidden flex items-center justify-center">
-                                    <img src="{{ $imgUrl }}" alt="{{ $product->name }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                                    <a href="/products/{{ $product->slug }}" class="block w-full h-full">
+                                        <img src="{{ $imgUrl }}" alt="{{ $product->name }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                                    </a>
                                     
                                     <!-- Discount Badge -->
                                     @if($isDiscount)
@@ -146,12 +138,12 @@
                                         @if($product->variants->isNotEmpty())
                                             <a href="/products/{{ $product->slug }}" class="w-full py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-wider uppercase rounded-btn transition-colors duration-200 flex items-center justify-center space-x-1.5">
                                                 <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
-                                                <span>ADD TO CART</span>
+                                                <span>+ Keranjang</span>
                                             </a>
                                         @else
                                             <button onclick="addToCart('{{ $product->id }}', '{{ addslashes($product->name) }}', '{{ $product->final_price }}')" class="w-full py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-wider uppercase rounded-btn transition-colors duration-200 flex items-center justify-center space-x-1.5">
                                                 <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
-                                                <span>ADD TO CART</span>
+                                                <span>+ Keranjang</span>
                                             </button>
                                         @endif
                                     </div>
@@ -179,12 +171,12 @@
                                     @if($product->variants->isNotEmpty())
                                         <a href="/products/{{ $product->slug }}" class="w-full py-2 bg-brand text-white font-semibold text-[11px] tracking-wider uppercase rounded-btn flex items-center justify-center space-x-1.5 active:bg-brandDark">
                                             <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
-                                            <span>ADD TO CART</span>
+                                            <span>+ Keranjang</span>
                                         </a>
                                     @else
                                         <button onclick="addToCart('{{ $product->id }}', '{{ addslashes($product->name) }}', '{{ $product->final_price }}')" class="w-full py-2 bg-brand text-white font-semibold text-[11px] tracking-wider uppercase rounded-btn flex items-center justify-center space-x-1.5 active:bg-brandDark">
                                             <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
-                                            <span>ADD TO CART</span>
+                                            <span>+ Keranjang</span>
                                         </button>
                                     @endif
                                 </div>

@@ -63,18 +63,9 @@ class MidtransService
             ],
 
             // ── Metode Pembayaran yang Diaktifkan ───────────────────
-            // Sesuaikan dengan metode yang sudah diaktifkan di dashboard Midtrans
+            // Sesuaikan dengan metode yang dipilih pelanggan di checkout
             'enabled_payments' => [
-                'credit_card',
-                'bca_va',
-                'bni_va',
-                'bri_va',
-                'other_va',
-                'gopay',
-                'shopeepay',
-                'qris',
-                'indomaret',
-                'alfamart',
+                $order['payment_method'] ?? 'credit_card',
             ],
 
             // ── Konfigurasi Kredit Kard (Opsional) ─────────────────

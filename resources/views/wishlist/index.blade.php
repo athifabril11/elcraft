@@ -4,35 +4,23 @@
 @section('meta_description', 'Daftar produk aksesoris wanita premium el Craft yang Anda simpan di wishlist.')
 
 @section('content')
-<div class="bg-warmCream min-h-screen pb-24 md:pb-0">
+<div class="bg-white min-h-screen pb-24 md:pb-0">
 
     {{-- ─── HEADER ────────────────────────────────── --}}
-    <section class="bg-white border-b border-warmLightGrey py-10 px-5 md:px-8 lg:px-16">
-        <div class="max-w-[1280px] mx-auto">
-            <nav class="flex items-center space-x-2 text-xs text-warmGrey mb-2" aria-label="Breadcrumb">
-                <a href="/" class="hover:text-brand transition-colors">Beranda</a>
-                <span class="material-symbols-outlined !text-[12px]">chevron_right</span>
-                <span class="text-warmBlack font-medium">Wishlist Saya</span>
-            </nav>
-            <div class="flex items-center justify-between">
-                <h1 class="text-2xl md:text-3xl font-semibold text-warmBlack font-sans">
-                    Wishlist Saya
-                    @if($wishlists->isNotEmpty())
-                        <span class="text-base font-normal text-warmGrey ml-2">({{ $wishlists->count() }} produk)</span>
-                    @endif
-                </h1>
-                @if($wishlists->isNotEmpty())
-                    <a href="/products" class="hidden md:flex items-center gap-1.5 text-xs text-brand hover:text-brandDark font-semibold transition-colors">
-                        <span class="material-symbols-outlined !text-[16px]">add</span>
-                        Tambah Produk
-                    </a>
-                @endif
-            </div>
-        </div>
-    </section>
+    <x-page-header title="Wishlist Saya">
+        @if($wishlists->isNotEmpty())
+            <x-slot:subtitle>
+                <span class="text-sm font-normal text-warmGrey ml-2">({{ $wishlists->count() }} produk)</span>
+            </x-slot:subtitle>
+            <a href="/products" class="hidden md:flex items-center gap-1.5 text-xs text-brand hover:text-brandDark font-semibold transition-colors">
+                <span class="material-symbols-outlined !text-[16px]">add</span>
+                Tambah Produk
+            </a>
+        @endif
+    </x-page-header>
 
     {{-- ─── KONTEN UTAMA ────────────────────────────── --}}
-    <section class="max-w-[1280px] mx-auto px-5 md:px-8 lg:px-16 py-10">
+    <section class="max-w-[1280px] mx-auto px-5 md:px-8 lg:px-16 pt-4 pb-12">
 
         @if($wishlists->isEmpty())
             {{-- Empty State --}}
@@ -156,7 +144,7 @@
                                     class="w-full py-2 bg-brand hover:bg-brandDark text-white text-xs font-semibold uppercase tracking-wider rounded-btn transition-colors duration-200 flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed">
                                     <span x-show="movingToCart" class="material-symbols-outlined !text-[14px] animate-spin">sync</span>
                                     <span class="material-symbols-outlined !text-[14px]" x-show="!movingToCart">shopping_bag</span>
-                                    <span x-text="movingToCart ? 'Menambahkan...' : 'Tambah ke Keranjang'"></span>
+                                    <span x-text="movingToCart ? 'Menambahkan...' : '+ Keranjang'"></span>
                                 </button>
                             @endif
                         </div>

@@ -14,8 +14,19 @@
 <div x-data="productDetail('{{ $product->id }}', {{ $product->final_price }}, {{ $product->stock }}, '{{ $product->primary_image ?? 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop' }}', {{ $product->variants->where('is_active', true)->groupBy('variant_type')->count() }})" class="pb-24 md:pb-0">
 
     {{-- ─── PRODUCT MAIN SECTION ───────────────── --}}
-    <section class="bg-white py-10 px-5 md:px-8 lg:px-16">
-        <div class="max-w-[1280px] mx-auto flex flex-col lg:flex-row gap-12">
+    <section class="bg-white py-6 md:py-10 px-5 md:px-8 lg:px-16">
+        <div class="max-w-[1280px] mx-auto">
+            {{-- Standalone Back Button --}}
+            <a href="/products"
+                class="w-8 h-8 rounded-full inline-flex items-center justify-center transition-opacity duration-200 hover:opacity-90 mb-4 md:mb-6"
+                style="background-color:#F6E3DF; border:none;"
+                aria-label="Kembali ke Produk">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10 4L6 8L10 12" stroke="#993C1D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </a>
+
+            <div class="flex flex-col lg:flex-row gap-8 lg:gap-12">
 
             {{-- LEFT: Image Gallery --}}
             <div class="lg:w-[52%] flex flex-col-reverse md:flex-row gap-4">
@@ -149,27 +160,27 @@
                 @endif
 
                 {{-- Quantity + CTA --}}
-                <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                <div class="flex items-center justify-center md:justify-start gap-3 pt-2">
                     {{-- Qty Selector --}}
-                    <div class="flex items-center border border-warmLightGrey rounded-btn overflow-hidden">
-                        <button @click="changeQty(-1)" aria-label="Kurangi jumlah" class="w-10 h-11 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-r border-warmLightGrey">
+                    <div class="w-32 h-11 flex items-center justify-between border border-warmLightGrey rounded-btn overflow-hidden bg-white shrink-0">
+                        <button @click="changeQty(-1)" type="button" aria-label="Kurangi jumlah" class="w-10 h-11 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-r border-warmLightGrey shrink-0">
                             <span class="material-symbols-outlined !text-[18px]">remove</span>
                         </button>
                         <input type="number" x-model.number="qty" readonly min="1" :max="maxStock" aria-label="Jumlah beli"
-                            class="w-12 h-11 text-center text-sm font-semibold text-warmBlack border-none outline-none focus:ring-0 bg-white">
-                        <button @click="changeQty(1)" aria-label="Tambah jumlah" class="w-10 h-11 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-l border-warmLightGrey">
+                            class="w-12 h-11 text-center text-sm font-semibold text-warmBlack border-none outline-none focus:ring-0 bg-white p-0">
+                        <button @click="changeQty(1)" type="button" aria-label="Tambah jumlah" class="w-10 h-11 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-l border-warmLightGrey shrink-0">
                             <span class="material-symbols-outlined !text-[18px]">add</span>
                         </button>
                     </div>
 
-                    {{-- Add to Cart --}}
+                    {{-- Add to Cart (Desktop only, hidden on mobile since mobile uses sticky bottom bar) --}}
                     <button @click="handleAddToCart()"
-                        class="flex-1 py-3 bg-brand hover:bg-brandDark text-white font-semibold text-sm uppercase tracking-widest rounded-btn transition-colors duration-200 flex items-center justify-center space-x-2"
+                        class="hidden md:flex flex-1 py-3 bg-brand hover:bg-brandDark text-white font-semibold text-sm uppercase tracking-widest rounded-btn transition-colors duration-200 items-center justify-center space-x-2"
                         :class="maxStock === 0 || isAdding ? 'opacity-50 cursor-not-allowed' : ''"
                         :disabled="maxStock === 0 || isAdding">
                         <span x-show="isAdding" x-cloak class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                         <span x-show="!isAdding" class="material-symbols-outlined !text-[20px]">shopping_bag</span>
-                        <span x-text="maxStock === 0 ? 'Habis Terjual' : (isAdding ? 'Menambahkan...' : 'Tambah ke Keranjang')">Tambah ke Keranjang</span>
+                        <span x-text="maxStock === 0 ? 'Habis Terjual' : (isAdding ? 'Menambahkan...' : '+ Keranjang')">+ Keranjang</span>
                     </button>
                 </div>
 
@@ -194,7 +205,8 @@
                 </div>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 
     {{-- ─── DESCRIPTION + REVIEWS TABS ─────────── --}}
     <section class="bg-white py-12 px-5 md:px-8 lg:px-16 border-t border-warmLightGrey/50">
@@ -343,7 +355,9 @@
                         @endphp
                         <div class="group relative flex flex-col bg-white border border-warmLightGrey rounded-card overflow-hidden transition-all duration-300 hover:border-brand/40">
                             <div class="relative aspect-square w-full bg-warmCream overflow-hidden">
-                                <img src="{{ $relImg }}" alt="{{ $rel->name }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                                <a href="/products/{{ $rel->slug }}" class="block w-full h-full">
+                                    <img src="{{ $relImg }}" alt="{{ $rel->name }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                                </a>
                                 @if($relDiscount)
                                     <span class="absolute top-2.5 left-2.5 bg-brand text-white text-[10px] font-semibold px-2 py-0.5 rounded-[4px]">-{{ $rel->discount_percent }}%</span>
                                 @endif
@@ -356,12 +370,12 @@
                                     @if($rel->variants->isNotEmpty())
                                         <a href="/products/{{ $rel->slug }}" class="w-full py-2 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-wider uppercase rounded-btn transition-colors flex items-center justify-center space-x-1.5">
                                             <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
-                                            <span>ADD TO CART</span>
+                                            <span>+ Keranjang</span>
                                         </a>
                                     @else
                                         <button onclick="addToCart('{{ $rel->id }}', '{{ addslashes($rel->name) }}', '{{ $rel->final_price }}')" class="w-full py-2 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-wider uppercase rounded-btn transition-colors flex items-center justify-center space-x-1.5">
                                             <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
-                                            <span>ADD TO CART</span>
+                                            <span>+ Keranjang</span>
                                         </button>
                                     @endif
                                 </div>
@@ -384,12 +398,12 @@
                                 @if($rel->variants->isNotEmpty())
                                     <a href="/products/{{ $rel->slug }}" class="w-full py-1.5 bg-brand text-white font-semibold text-[11px] uppercase rounded-btn flex items-center justify-center space-x-1.5 active:bg-brandDark">
                                         <span class="material-symbols-outlined !text-[14px]">shopping_bag</span>
-                                        <span>ADD TO CART</span>
+                                        <span>+ Keranjang</span>
                                     </a>
                                 @else
                                     <button onclick="addToCart('{{ $rel->id }}', '{{ addslashes($rel->name) }}', '{{ $rel->final_price }}')" class="w-full py-1.5 bg-brand text-white font-semibold text-[11px] uppercase rounded-btn flex items-center justify-center space-x-1.5 active:bg-brandDark">
                                         <span class="material-symbols-outlined !text-[14px]">shopping_bag</span>
-                                        <span>ADD TO CART</span>
+                                        <span>+ Keranjang</span>
                                     </button>
                                 @endif
                             </div>
@@ -399,6 +413,28 @@
             </div>
         </section>
     @endif
+
+    {{-- ─── MOBILE STICKY BOTTOM ACTION BAR (Product Detail Only) ─── --}}
+    <div class="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-warmLightGrey z-50 p-3 shadow-lg flex items-center gap-3 pb-safe">
+        {{-- + Keranjang Button --}}
+        <button @click="handleAddToCart()"
+            class="flex-1 py-3 border border-brand text-brand hover:bg-warmCream font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200 flex items-center justify-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            :class="maxStock === 0 || isAdding ? 'opacity-50 cursor-not-allowed' : ''"
+            :disabled="maxStock === 0 || isAdding">
+            <span x-show="isAdding" x-cloak class="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin"></span>
+            <span x-show="!isAdding" class="material-symbols-outlined !text-[18px]">shopping_bag</span>
+            <span x-text="maxStock === 0 ? 'Habis' : (isAdding ? 'Menambahkan...' : '+ Keranjang')">+ Keranjang</span>
+        </button>
+
+        {{-- Beli Button --}}
+        <button @click="handleBuyNow()"
+            class="flex-1 py-3 bg-brand hover:bg-brandDark text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200 flex items-center justify-center space-x-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            :class="maxStock === 0 || isAdding ? 'opacity-50 cursor-not-allowed' : ''"
+            :disabled="maxStock === 0 || isAdding">
+            <span class="material-symbols-outlined !text-[18px]">bolt</span>
+            <span>Beli</span>
+        </button>
+    </div>
 </div>
 
 @push('scripts')
@@ -479,6 +515,53 @@
                 .catch(err => {
                     if (window.showToast) {
                         window.showToast(err.message || 'Gagal menambahkan produk.', 'error');
+                    }
+                })
+                .finally(() => {
+                    this.isAdding = false;
+                });
+            },
+            handleBuyNow() {
+                if (Object.keys(this.selectedVariants).length < requiredVariantsCount) {
+                    if (window.showToast) {
+                        window.showToast('Silakan pilih varian produk terlebih dahulu.', 'error');
+                    }
+                    return;
+                }
+
+                const variantId = requiredVariantsCount > 0 ? Object.values(this.selectedVariants)[0]?.id : null;
+                this.isAdding = true;
+
+                fetch('/cart/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        product_id: productId,
+                        variant_id: variantId,
+                        quantity: this.qty
+                    })
+                })
+                .then(res => {
+                    if (res.status === 401) {
+                        window.location.href = '/login?redirect=' + encodeURIComponent('/checkout');
+                        return;
+                    }
+                    if (!res.ok) {
+                        return res.json().then(err => { throw new Error(err.message || 'Gagal memproses pembelian.'); });
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    if (data && data.success) {
+                        window.location.href = '/checkout';
+                    }
+                })
+                .catch(err => {
+                    if (window.showToast) {
+                        window.showToast(err.message || 'Gagal memproses pembelian.', 'error');
                     }
                 })
                 .finally(() => {

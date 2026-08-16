@@ -17,6 +17,11 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
  *
  * Semua request ke RajaOngkir di-mock dengan Http::fake()
  * sehingga test bisa berjalan offline tanpa mengkonsumsi kuota API.
+ *
+ * Response format mengikuti Komerce API (rajaongkir.komerce.id/api/v1):
+ *   Province: { "data": [{ "id": int, "name": string }, ...] }
+ *   City:     { "data": [{ "id": int, "name": string }, ...] }
+ *   Cost:     { "data": [{ "code": string, "service": string, "description": string, "cost": int, "etd": string }, ...] }
  */
 class ShippingTest extends TestCase
 {
@@ -35,13 +40,13 @@ class ShippingTest extends TestCase
 
     public function test_it_returns_provinces_from_rajaongkir(): void
     {
+        // Komerce API format: { "data": [{ "id": int, "name": string }] }
         Http::fake([
             '*/province*' => Http::response([
-                'rajaongkir' => [
-                    'results' => [
-                        ['province_id' => '11', 'province' => 'Aceh'],
-                        ['province_id' => '9',  'province' => 'Jawa Barat'],
-                    ],
+                'meta' => ['code' => 200],
+                'data' => [
+                    ['id' => 11, 'name' => 'Aceh'],
+                    ['id' => 9,  'name' => 'Jawa Barat'],
                 ],
             ], 200),
         ]);
@@ -52,8 +57,9 @@ class ShippingTest extends TestCase
                  ->assertJson(['success' => true])
                  ->assertJsonCount(2, 'data');
 
-        $this->assertEquals('Aceh',      $response->json('data.0.province'));
-        $this->assertEquals('Jawa Barat', $response->json('data.1.province'));
+        // Sorted A-Z by ShippingService: Aceh before Jawa Barat
+        $this->assertEquals('Aceh',      $response->json('data.0.name'));
+        $this->assertEquals('Jawa Barat', $response->json('data.1.name'));
     }
 
     public function test_provinces_returns_503_when_api_fails(): void
@@ -72,9 +78,8 @@ class ShippingTest extends TestCase
     {
         Http::fake([
             '*/province*' => Http::response([
-                'rajaongkir' => [
-                    'results' => [['province_id' => '9', 'province' => 'Jawa Barat']],
-                ],
+                'meta' => ['code' => 200],
+                'data' => [['id' => 9, 'name' => 'Jawa Barat']],
             ], 200),
         ]);
 
@@ -91,13 +96,13 @@ class ShippingTest extends TestCase
 
     public function test_it_returns_cities_for_a_province(): void
     {
+        // Komerce API format: { "data": [{ "id": int, "name": string }] }
         Http::fake([
             '*/city*' => Http::response([
-                'rajaongkir' => [
-                    'results' => [
-                        ['city_id' => '23', 'city_name' => 'Bandung', 'type' => 'Kota', 'postal_code' => '40111'],
-                        ['city_id' => '24', 'city_name' => 'Bogor',   'type' => 'Kota', 'postal_code' => '16001'],
-                    ],
+                'meta' => ['code' => 200],
+                'data' => [
+                    ['id' => 23, 'name' => 'Bandung'],
+                    ['id' => 24, 'name' => 'Bogor'],
                 ],
             ], 200),
         ]);
@@ -108,7 +113,7 @@ class ShippingTest extends TestCase
                  ->assertJson(['success' => true])
                  ->assertJsonCount(2, 'data');
 
-        $this->assertEquals('Bandung', $response->json('data.0.city_name'));
+        $this->assertEquals('Bandung', $response->json('data.0.name'));
     }
 
     public function test_cities_returns_422_for_invalid_province_id(): void
@@ -137,26 +142,26 @@ class ShippingTest extends TestCase
 
     public function test_it_calculates_shipping_cost(): void
     {
+        // Komerce API format: { "data": [{ "code", "service", "description", "cost", "etd" }] }
         Http::fake([
-            '*/cost*' => Http::response([
-                'rajaongkir' => [
-                    'results' => [
-                        [
-                            'code'  => 'jne',
-                            'name'  => 'Jalur Nugraha Ekakurir (JNE)',
-                            'costs' => [
-                                [
-                                    'service'     => 'OKE',
-                                    'description' => 'Ongkos Kirim Ekonomis',
-                                    'cost'        => [['value' => 15000, 'etd' => '3-4', 'note' => '']],
-                                ],
-                                [
-                                    'service'     => 'REG',
-                                    'description' => 'Layanan Reguler',
-                                    'cost'        => [['value' => 20000, 'etd' => '2-3', 'note' => '']],
-                                ],
-                            ],
-                        ],
+            '*/domestic-cost*' => Http::response([
+                'meta' => ['code' => 200],
+                'data' => [
+                    [
+                        'code'        => 'jne',
+                        'name'        => 'Jalur Nugraha Ekakurir (JNE)',
+                        'service'     => 'OKE',
+                        'description' => 'Ongkos Kirim Ekonomis',
+                        'cost'        => 15000,
+                        'etd'         => '3-4',
+                    ],
+                    [
+                        'code'        => 'jne',
+                        'name'        => 'Jalur Nugraha Ekakurir (JNE)',
+                        'service'     => 'REG',
+                        'description' => 'Layanan Reguler',
+                        'cost'        => 20000,
+                        'etd'         => '2-3',
                     ],
                 ],
             ], 200),
@@ -172,9 +177,11 @@ class ShippingTest extends TestCase
                  ->assertJson(['success' => true])
                  ->assertJsonCount(2, 'data');
 
-        $this->assertEquals(15000, $response->json('data.0.cost'));
-        $this->assertEquals('JNE', $response->json('data.0.courier'));
-        $this->assertEquals('3-4', $response->json('data.0.etd'));
+        // ShippingController transforms: service = code + '-' + service
+        $this->assertEquals('jne-OKE', $response->json('data.0.service'));
+        $this->assertEquals(15000,     $response->json('data.0.cost'));
+        $this->assertEquals('JNE',     $response->json('data.0.courier'));
+        $this->assertEquals('3-4',     $response->json('data.0.etd'));
     }
 
     public function test_cost_validates_request_fields(): void
@@ -182,7 +189,7 @@ class ShippingTest extends TestCase
         $response = $this->postJson('/shipping/cost', [
             'city_id' => 0,      // invalid: min:1
             'weight'  => -1,     // invalid: min:1
-            'courier' => 'dhl',  // invalid: not in jne,pos,tiki
+            'courier' => 'dhl',  // invalid: not in jne,pos,tiki,jnt
         ]);
 
         $response->assertStatus(422);
@@ -197,7 +204,7 @@ class ShippingTest extends TestCase
     public function test_cost_returns_503_when_api_fails(): void
     {
         Http::fake([
-            '*/cost*' => Http::response([], 500),
+            '*/domestic-cost*' => Http::response([], 500),
         ]);
 
         $response = $this->postJson('/shipping/cost', [

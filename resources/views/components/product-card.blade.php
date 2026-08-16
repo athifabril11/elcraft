@@ -9,7 +9,9 @@
 <div class="group relative flex flex-col justify-between h-full bg-white border border-warmLightGrey rounded-card overflow-hidden transition-all duration-300 hover:border-brand/40">
     <!-- Image Area -->
     <div class="relative aspect-square w-full bg-warmCream overflow-hidden flex items-center justify-center">
-        <img src="{{ $imgUrl }}" alt="{{ $product->name }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+        <a href="/products/{{ $product->slug }}" class="block w-full h-full">
+            <img src="{{ $imgUrl }}" alt="{{ $product->name }}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+        </a>
 
         <!-- Discount Badge -->
         @if($isDiscount)
@@ -26,12 +28,12 @@
             @if($product->variants->isNotEmpty())
                 <a href="/products/{{ $product->slug }}" class="w-full py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-wider uppercase rounded-btn transition-colors duration-200 flex items-center justify-center space-x-1.5">
                     <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
-                    <span>ADD TO CART</span>
+                    <span>+ Keranjang</span>
                 </a>
             @else
                 <button onclick="addToCart('{{ $product->id }}', '{{ addslashes($product->name) }}', '{{ $product->final_price }}')" class="w-full py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-wider uppercase rounded-btn transition-colors duration-200 flex items-center justify-center space-x-1.5">
                     <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
-                    <span>ADD TO CART</span>
+                    <span>+ Keranjang</span>
                 </button>
             @endif
         </div>
@@ -59,12 +61,12 @@
         @if($product->variants->isNotEmpty())
             <a href="/products/{{ $product->slug }}" class="w-full py-1.5 sm:py-2 bg-brand text-white font-semibold text-[10px] sm:text-[11px] tracking-wider uppercase rounded-btn flex items-center justify-center space-x-1 active:bg-brandDark">
                 <span class="material-symbols-outlined !text-[14px]">shopping_bag</span>
-                <span>ADD TO CART</span>
+                <span>+ Keranjang</span>
             </a>
         @else
             <button onclick="addToCart('{{ $product->id }}', '{{ addslashes($product->name) }}', '{{ $product->final_price }}')" class="w-full py-1.5 sm:py-2 bg-brand text-white font-semibold text-[10px] sm:text-[11px] tracking-wider uppercase rounded-btn flex items-center justify-center space-x-1 active:bg-brandDark">
                 <span class="material-symbols-outlined !text-[14px]">shopping_bag</span>
-                <span>ADD TO CART</span>
+                <span>+ Keranjang</span>
             </button>
         @endif
     </div>

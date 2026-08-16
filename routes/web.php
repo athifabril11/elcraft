@@ -61,6 +61,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{orderNumber}', [OrderController::class, 'show'])->name('orders.show');
     Route::post('/orders/{orderNumber}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+    Route::get('/orders/{orderNumber}/resume-payment', [OrderController::class, 'resumePayment'])->name('orders.resume-payment');
 
     // Ulasan Produk
     Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
@@ -93,7 +94,7 @@ Route::middleware(['auth'])->group(function () {
         if (auth()->user()->role === 'admin') {
             return redirect()->route('admin.dashboard');
         }
-        return redirect()->route('home');
+        return redirect()->route('profile.edit');
     })->name('dashboard');
 
     Route::get('/admin/dashboard', function () {
