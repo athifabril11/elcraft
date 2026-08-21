@@ -24,9 +24,9 @@
 
         @if($wishlists->isEmpty())
             {{-- Empty State --}}
-            <div class="flex flex-col items-center justify-center py-20 text-center bg-white rounded-card border border-warmLightGrey">
-                <div class="w-20 h-20 rounded-full bg-warmCream flex items-center justify-center mb-6">
-                    <span class="material-symbols-outlined text-brand !text-[36px]">favorite</span>
+            <div class="flex flex-col items-center justify-center py-20 text-center">
+                <div class="w-20 h-20 rounded-full bg-warmCream flex items-center justify-center mb-6 text-brand">
+                    <span class="material-symbols-outlined !text-[36px]">favorite</span>
                 </div>
                 <h2 class="text-xl font-semibold text-warmBlack mb-2 font-sans">Wishlist Masih Kosong</h2>
                 <p class="text-xs text-warmGrey max-w-xs leading-relaxed mb-8">
@@ -158,108 +158,114 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('wishlistCard', (wishlistId) => ({
-            removing: false,
-            movingToCart: false,
+    const wishlistCard = (wishlistId) => ({
+        removing: false,
+        movingToCart: false,
 
-            async removeFromWishlist() {
-                if (this.removing) return;
-                this.removing = true;
+        async removeFromWishlist() {
+            if (this.removing) return;
+            this.removing = true;
 
-                try {
-                    const res = await fetch(`/wishlist/${wishlistId}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                            'Accept': 'application/json',
-                        },
-                    });
-                    const data = await res.json();
+            try {
+                const res = await fetch(`/wishlist/${wishlistId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                    },
+                });
+                const data = await res.json();
 
-                    if (data.success) {
-                        // Update badge di navbar
-                        window.updateWishlistBadge && window.updateWishlistBadge(data.count, data.ids);
+                if (data.success) {
+                    // Update badge di navbar
+                    window.updateWishlistBadge && window.updateWishlistBadge(data.count, data.ids);
 
-                        // Animate dan hapus card dari DOM
-                        const card = document.getElementById(`wishlist-card-${wishlistId}`);
-                        if (card) {
-                            card.style.transition = 'opacity 0.3s, transform 0.3s';
-                            card.style.opacity = '0';
-                            card.style.transform = 'scale(0.95)';
-                            setTimeout(() => {
-                                card.remove();
-                                // Jika grid kosong, reload untuk tampilkan empty state
-                                if (!document.querySelector('[id^="wishlist-card-"]')) {
-                                    window.location.reload();
-                                }
-                            }, 300);
-                        }
-                        showToast('Produk dihapus dari wishlist.', 'info');
+                    // Animate dan hapus card dari DOM
+                    const card = document.getElementById(`wishlist-card-${wishlistId}`);
+                    if (card) {
+                        card.style.transition = 'opacity 0.3s, transform 0.3s';
+                        card.style.opacity = '0';
+                        card.style.transform = 'scale(0.95)';
+                        setTimeout(() => {
+                            card.remove();
+                            // Jika grid kosong, reload untuk tampilkan empty state
+                            if (!document.querySelector('[id^="wishlist-card-"]')) {
+                                window.location.reload();
+                            }
+                        }, 300);
                     }
-                } catch {
-                    showToast('Gagal menghapus. Coba lagi.', 'error');
-                    this.removing = false;
+                    showToast('Produk dihapus dari wishlist.', 'info');
                 }
-            },
+            } catch {
+                showToast('Gagal menghapus. Coba lagi.', 'error');
+                this.removing = false;
+            }
+        },
 
-            async moveToCart(productId, productName) {
-                if (this.movingToCart) return;
-                this.movingToCart = true;
+        async moveToCart(productId, productName) {
+            if (this.movingToCart) return;
+            this.movingToCart = true;
 
-                try {
-                    // Step 1: Tambah ke keranjang
-                    const cartRes = await fetch('/cart/add', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        },
-                        body: JSON.stringify({ product_id: productId, variant_id: null, quantity: 1 }),
-                    });
-                    const cartData = await cartRes.json();
+            try {
+                // Step 1: Tambah ke keranjang
+                const cartRes = await fetch('/cart/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    },
+                    body: JSON.stringify({ product_id: productId, variant_id: null, quantity: 1 }),
+                });
+                const cartData = await cartRes.json();
 
-                    if (!cartData.success) {
-                        showToast(cartData.message || 'Gagal menambahkan ke keranjang.', 'error');
-                        this.movingToCart = false;
-                        return;
-                    }
-
-                    // Update cart badge
-                    window.updateCartBadge && window.updateCartBadge(cartData.cart_count);
-                    showToast(`"${productName}" dipindahkan ke keranjang.`, 'success');
-
-                    // Step 2: Hapus dari wishlist (hanya jika cart sukses)
-                    const delRes = await fetch(`/wishlist/${wishlistId}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                            'Accept': 'application/json',
-                        },
-                    });
-                    const delData = await delRes.json();
-
-                    if (delData.success) {
-                        window.updateWishlistBadge && window.updateWishlistBadge(delData.count, delData.ids);
-                        const card = document.getElementById(`wishlist-card-${wishlistId}`);
-                        if (card) {
-                            card.style.transition = 'opacity 0.3s, transform 0.3s';
-                            card.style.opacity = '0';
-                            card.style.transform = 'scale(0.95)';
-                            setTimeout(() => {
-                                card.remove();
-                                if (!document.querySelector('[id^="wishlist-card-"]')) {
-                                    window.location.reload();
-                                }
-                            }, 300);
-                        }
-                    }
-                } catch {
-                    showToast('Terjadi kesalahan. Coba lagi.', 'error');
+                if (!cartData.success) {
+                    showToast(cartData.message || 'Gagal menambahkan ke keranjang.', 'error');
                     this.movingToCart = false;
+                    return;
                 }
-            },
-        }));
+
+                // Update cart badge
+                window.updateCartBadge && window.updateCartBadge(cartData.cart_count);
+                showToast(`"${productName}" dipindahkan ke keranjang.`, 'success');
+
+                // Step 2: Hapus dari wishlist (hanya jika cart sukses)
+                const delRes = await fetch(`/wishlist/${wishlistId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                    },
+                });
+                const delData = await delRes.json();
+
+                if (delData.success) {
+                    window.updateWishlistBadge && window.updateWishlistBadge(delData.count, delData.ids);
+                    const card = document.getElementById(`wishlist-card-${wishlistId}`);
+                    if (card) {
+                        card.style.transition = 'opacity 0.3s, transform 0.3s';
+                        card.style.opacity = '0';
+                        card.style.transform = 'scale(0.95)';
+                        setTimeout(() => {
+                            card.remove();
+                            if (!document.querySelector('[id^="wishlist-card-"]')) {
+                                window.location.reload();
+                            }
+                        }, 300);
+                    }
+                }
+            } catch {
+                showToast('Terjadi kesalahan. Coba lagi.', 'error');
+                this.movingToCart = false;
+            }
+        },
+    });
+
+    window.wishlistCard = wishlistCard;
+    if (window.Alpine) {
+        Alpine.data('wishlistCard', wishlistCard);
+    }
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('wishlistCard', wishlistCard);
     });
 
     // Global helper untuk update wishlist badge di navbar dari luar Alpine scope

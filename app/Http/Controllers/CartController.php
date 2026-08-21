@@ -18,8 +18,9 @@ class CartController extends Controller
 {
     /**
      * Menampilkan halaman utama keranjang belanja.
+     * Hanya dapat diakses oleh pengguna yang sudah login (dilindungi oleh middleware guest.modal).
      *
-     * @return \Illuminate\Contracts\View\View|\Illuminate\Http\RedirectResponse
+     * @return \Illuminate\Contracts\View\View
      */
     public function index()
     {

@@ -17,6 +17,7 @@ class WishlistController extends Controller
 {
     /**
      * Tampilkan halaman wishlist pelanggan.
+     * Hanya dapat diakses oleh pengguna yang sudah login (dilindungi oleh middleware guest.modal).
      * Eager load product + gambar + kategori dalam satu kueri (N+1 prevention).
      */
     public function index()

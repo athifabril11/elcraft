@@ -1,29 +1,37 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ __('Profile') }}
-        </h2>
-    </x-slot>
+@extends('layouts.storefront')
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+@section('title', 'Profil Saya | el Craft')
+@section('meta_description', 'Kelola informasi profil, kata sandi, dan pengaturan akun Anda di el Craft.')
+
+@section('content')
+<div class="bg-white min-h-screen pb-24 md:pb-0">
+
+    {{-- ─── HEADER ────────────────────────────────── --}}
+    <x-page-header title="Profil Saya" />
+
+    <section class="max-w-[1280px] mx-auto px-5 md:px-8 lg:px-16 py-10">
+        <div class="max-w-3xl mx-auto space-y-8">
+            {{-- Update Profile Information --}}
+            <div class="p-6 sm:p-8 bg-white border border-warmLightGrey rounded-card shadow-xs">
                 <div class="max-w-xl">
                     @include('profile.partials.update-profile-information-form')
                 </div>
             </div>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+            {{-- Update Password --}}
+            <div class="p-6 sm:p-8 bg-white border border-warmLightGrey rounded-card shadow-xs">
                 <div class="max-w-xl">
                     @include('profile.partials.update-password-form')
                 </div>
             </div>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+            {{-- Delete Account --}}
+            <div class="p-6 sm:p-8 bg-white border border-warmLightGrey rounded-card shadow-xs">
                 <div class="max-w-xl">
                     @include('profile.partials.delete-user-form')
                 </div>
             </div>
         </div>
-    </div>
-</x-app-layout>
+    </section>
+</div>
+@endsection

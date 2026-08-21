@@ -557,4 +557,86 @@ class CheckoutTest extends TestCase
             'status'     => 'pending',
         ]);
     }
+
+    public function test_guest_add_to_cart_returns_401_json(): void
+    {
+        $category = Category::create(['name' => 'Anting', 'slug' => 'anting', 'is_active' => true]);
+        $product = Product::create([
+            'category_id' => $category->id,
+            'name' => 'Anting Emas',
+            'slug' => 'anting-emas',
+            'price' => 50000,
+            'stock' => 10,
+            'weight' => 5,
+            'is_active' => true,
+        ]);
+
+        $response = $this->postJson(route('cart.add'), [
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]);
+
+        $response->assertStatus(401);
+    }
+
+    public function test_authenticated_user_can_add_to_cart(): void
+    {
+        $user = User::factory()->create();
+        $category = Category::create(['name' => 'Kalung', 'slug' => 'kalung', 'is_active' => true]);
+        $product = Product::create([
+            'category_id' => $category->id,
+            'name' => 'Kalung Berlian',
+            'slug' => 'kalung-berlian',
+            'price' => 150000,
+            'stock' => 5,
+            'weight' => 10,
+            'is_active' => true,
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->postJson(route('cart.add'), [
+                'product_id' => $product->id,
+                'quantity' => 1,
+            ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'cart_count' => 1,
+            ]);
+    }
+
+    public function test_guest_visiting_cart_is_redirected_with_modal_flash(): void
+    {
+        $response = $this->get(route('cart.index'));
+
+        // Guest gets redirected back (to home since there's no referrer), not to /login
+        $response->assertRedirect();
+        $redirectUrl = $response->headers->get('Location');
+        $this->assertStringNotContainsString('/login', $redirectUrl);
+        $response->assertSessionHas('show_login_modal', true);
+    }
+
+    public function test_authenticated_user_can_view_cart_page(): void
+    {
+        $user = User::factory()->create();
+        $response = $this
+            ->actingAs($user)
+            ->get(route('cart.index'));
+
+        $response->assertOk();
+        $response->assertViewHas('cart');
+    }
+
+    public function test_guest_visiting_checkout_is_redirected_with_modal_flash(): void
+    {
+        $response = $this->get(route('checkout.index'));
+
+        // Guest gets redirected back, not to /login or /cart
+        $response->assertRedirect();
+        $redirectUrl = $response->headers->get('Location');
+        $this->assertStringNotContainsString('/login', $redirectUrl);
+        $response->assertSessionHas('show_login_modal', true);
+    }
 }

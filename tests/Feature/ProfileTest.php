@@ -10,6 +10,16 @@ class ProfileTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_guest_visiting_profile_is_redirected_with_modal_flash(): void
+    {
+        $response = $this->get('/profile');
+
+        $response->assertRedirect();
+        $redirectUrl = $response->headers->get('Location');
+        $this->assertStringNotContainsString('/login', $redirectUrl);
+        $response->assertSessionHas('show_login_modal', true);
+    }
+
     public function test_profile_page_is_displayed(): void
     {
         $user = User::factory()->create();
@@ -19,6 +29,8 @@ class ProfileTest extends TestCase
             ->get('/profile');
 
         $response->assertOk();
+        $response->assertViewIs('profile.edit');
+        $response->assertViewHas('user');
     }
 
     public function test_profile_information_can_be_updated(): void

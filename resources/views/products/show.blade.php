@@ -470,6 +470,13 @@
                 return 'Rp ' + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
             },
             handleAddToCart() {
+                if (!isUserLoggedIn) {
+                    if (window.openLoginModal) {
+                        window.openLoginModal();
+                    }
+                    return;
+                }
+
                 if (Object.keys(this.selectedVariants).length < requiredVariantsCount) {
                     if (window.showToast) {
                         window.showToast('Silakan pilih varian produk terlebih dahulu.', 'error');
@@ -484,6 +491,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     },
                     body: JSON.stringify({
@@ -494,7 +502,9 @@
                 })
                 .then(res => {
                     if (res.status === 401) {
-                        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+                        if (window.openLoginModal) {
+                            window.openLoginModal();
+                        }
                         return;
                     }
                     if (!res.ok) {
@@ -522,6 +532,13 @@
                 });
             },
             handleBuyNow() {
+                if (!isUserLoggedIn) {
+                    if (window.openLoginModal) {
+                        window.openLoginModal();
+                    }
+                    return;
+                }
+
                 if (Object.keys(this.selectedVariants).length < requiredVariantsCount) {
                     if (window.showToast) {
                         window.showToast('Silakan pilih varian produk terlebih dahulu.', 'error');
@@ -536,6 +553,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     },
                     body: JSON.stringify({
@@ -546,7 +564,9 @@
                 })
                 .then(res => {
                     if (res.status === 401) {
-                        window.location.href = '/login?redirect=' + encodeURIComponent('/checkout');
+                        if (window.openLoginModal) {
+                            window.openLoginModal();
+                        }
                         return;
                     }
                     if (!res.ok) {

@@ -17,6 +17,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'midtrans/webhook',
             'shipping/cost',
         ]);
+
+        // Alias middleware tamu — menggantikan redirect ke /login dengan
+        // redirect ke halaman sebelumnya + modal login otomatis.
+        $middleware->alias([
+            'guest.modal' => \App\Http\Middleware\RedirectGuestsWithModal::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Kembalikan JSON untuk semua request yang menginginkan JSON (AJAX, API, test postJson)

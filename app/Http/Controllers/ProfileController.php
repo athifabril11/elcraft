@@ -13,6 +13,7 @@ class ProfileController extends Controller
 {
     /**
      * Display the user's profile form.
+     * Hanya dapat diakses oleh pengguna yang sudah login (dilindungi oleh middleware guest.modal).
      */
     public function edit(Request $request): View
     {

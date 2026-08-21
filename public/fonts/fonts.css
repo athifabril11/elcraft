@@ -1,0 +1,73 @@
+/*
+ * Self-hosted fonts untuk el Craft Storefront
+ * File ini menggantikan link ke fonts.googleapis.com
+ * sehingga icon dan teks tidak bergantung pada koneksi eksternal.
+ *
+ * File font berada di /public/fonts/
+ */
+
+/* ─── Inter (font teks utama) ─────────────────────────────────────────────── */
+/* latin-ext: karakter seperti é, ã, ñ — berguna untuk beberapa nama produk */
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 300 700;
+    font-display: swap;
+    src: url('/fonts/inter-latin-ext.woff2') format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* latin: karakter standar A-Z, 0-9, simbol dasar */
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 300 700;
+    font-display: swap;
+    src: url('/fonts/inter-latin.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ─── Material Symbols Outlined (font icon) ───────────────────────────────── */
+/*
+ * Font variable yang mencakup semua icon Material Symbols dalam satu file.
+ * Icon ditampilkan menggunakan ligature — nama icon ditulis sebagai teks
+ * di dalam <span class="material-symbols-outlined"> dan dikonversi oleh font.
+ *
+ * Penggunaan: <span class="material-symbols-outlined">shopping_bag</span>
+ *
+ * CSS class di bawah menetapkan axes variabel:
+ *   opsz (optical size): mengontrol ketebalan stroke sesuai ukuran
+ *   wght (weight): ketebalan icon (100-700)
+ *   FILL (fill): 0 = outline, 1 = filled
+ *   GRAD (grade): penyesuaian bobot visual halus
+ */
+@font-face {
+    font-family: 'Material Symbols Outlined';
+    font-style: normal;
+    font-weight: 100 700;
+    font-display: block; /* block = tidak ada FOUT (flash of unstyled text) untuk icon */
+    src: url('/fonts/material-symbols-outlined.woff2') format('woff2');
+}
+
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    /* Aktifkan font features untuk ligature */
+    -webkit-font-feature-settings: 'liga';
+    font-feature-settings: 'liga';
+    /* Aktifkan font variation axes */
+    font-variation-settings: 'opsz' 24, 'wght' 400, 'FILL' 0, 'GRAD' 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    user-select: none;
+}

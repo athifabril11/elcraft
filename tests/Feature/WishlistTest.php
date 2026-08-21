@@ -39,12 +39,18 @@ class WishlistTest extends TestCase
         ]);
     }
 
-    public function test_guest_cannot_access_wishlist_endpoints(): void
+    public function test_guest_visiting_wishlist_is_redirected_with_modal_flash(): void
     {
-        // Index
         $response = $this->get(route('wishlist.index'));
-        $response->assertRedirect('/login');
 
+        $response->assertRedirect();
+        $redirectUrl = $response->headers->get('Location');
+        $this->assertStringNotContainsString('/login', $redirectUrl);
+        $response->assertSessionHas('show_login_modal', true);
+    }
+
+    public function test_guest_cannot_modify_wishlist_endpoints(): void
+    {
         // Toggle
         $response = $this->post(route('wishlist.toggle'), ['product_id' => $this->product->id]);
         $response->assertRedirect('/login');

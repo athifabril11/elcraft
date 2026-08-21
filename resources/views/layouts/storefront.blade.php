@@ -22,16 +22,409 @@
         <meta property="og:image" content="@yield('og_image')"/>
     @endif
 
-    <!-- Google Fonts: Inter (font utama) + Material Symbols (ikon) -->
-    <!-- Preconnect untuk mempercepat resolusi DNS ke server Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com"/>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
+    <!-- Self-hosted fonts: Inter + Material Symbols Outlined -->
+    <!-- Tidak bergantung pada koneksi eksternal ke Google Fonts CDN -->
+    <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/fonts/material-symbols-outlined.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/fonts/fonts.css">
 
     <!-- CSS & JS dikompilasi oleh Vite — token desain dari tailwind.config.js -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>[x-cloak] { display: none !important; }</style>
+
+    <script>
+        window.isUserLoggedIn = {{ auth()->check() ? 'true' : 'false' }};
+        const isUserLoggedIn = window.isUserLoggedIn;
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `transform translate-x-12 opacity-0 transition-all duration-300 pointer-events-auto bg-white border border-warmLightGrey shadow-xs rounded-[6px] p-4 flex items-center space-x-3 min-w-[280px] max-w-sm`;
+            
+            const iconColor = type === 'success' ? 'text-brand' : 'text-warmGrey';
+            const iconName = type === 'success' ? 'check_circle' : 'info';
+            
+            toast.innerHTML = `
+                <span class="material-symbols-outlined ${iconColor}"> ${iconName} </span>
+                <div class="flex-1 text-xs font-semibold text-warmBlack">${message}</div>
+                <button onclick="this.parentElement.remove()" class="text-warmGrey hover:text-warmBlack flex items-center justify-center p-0.5">
+                    <span class="material-symbols-outlined !text-[16px]">close</span>
+                </button>
+            `;
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('translate-x-12', 'opacity-0');
+            }, 10);
+            
+            setTimeout(() => {
+                toast.classList.add('translate-x-12', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+        window.showToast = showToast;
+
+        window.openLoginModal = () => {
+            if (window.Alpine) {
+                const data = Alpine.$data(document.body);
+                if (data) {
+                    data.loginModalOpen = true;
+                    return;
+                }
+            }
+            const openAfterReady = () => {
+                if (window.Alpine) {
+                    const data = Alpine.$data(document.body);
+                    if (data) data.loginModalOpen = true;
+                }
+            };
+            document.addEventListener('DOMContentLoaded', openAfterReady, { once: true });
+            document.addEventListener('alpine:initialized', openAfterReady, { once: true });
+            setTimeout(openAfterReady, 100);
+        };
+
+        // Buka modal login otomatis jika middleware RedirectGuestsWithModal mem-flash kunci ini
+        @if(session('show_login_modal'))
+        document.addEventListener('alpine:initialized', () => {
+            window.openLoginModal();
+            const data = Alpine.$data(document.body);
+            if (data) data.authTab = @json(session('auth_modal_tab', 'login'));
+        }, { once: true });
+        setTimeout(() => {
+            window.openLoginModal();
+            if (window.Alpine) {
+                const data = Alpine.$data(document.body);
+                if (data) data.authTab = @json(session('auth_modal_tab', 'login'));
+            }
+        }, 200);
+        @endif
+
+        // ─── GLOBAL GUEST NAVIGATION GUARD ────────────────────────────────────────
+        // Mencegah tamu mengakses halaman yang dilindungi SEBELUM request dikirim ke server.
+        // Tidak ada page load, tidak ada network request — modal langsung muncul di halaman saat ini.
+        //
+        // Daftar path yang dilindungi (exact-match atau prefix-match):
+        window._protectedPaths = [
+            '/cart',
+            '/wishlist',
+            '/profile',
+            '/checkout',
+            '/orders',
+            '/dashboard',
+        ];
+
+        // Periksa apakah sebuah URL path termasuk protected route
+        window._isProtectedPath = function(pathname) {
+            if (window.isUserLoggedIn) return false; // sudah login, lewatkan
+            return window._protectedPaths.some(function(protected_) {
+                // Exact match ATAU prefix match (mis. /orders/ABC-123 cocok dengan /orders)
+                return pathname === protected_ || pathname.startsWith(protected_ + '/');
+            });
+        };
+
+        // Intersep semua klik pada elemen <a> (termasuk klik pada child element)
+        document.addEventListener('click', function(e) {
+            // Temukan elemen <a> terdekat dari target klik
+            const anchor = e.target.closest('a[href]');
+            if (!anchor) return;
+
+            const href = anchor.getAttribute('href');
+            if (!href) return;
+
+            // Abaikan anchor (#), link eksternal, mailto, tel, javascript:
+            if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('javascript:')) return;
+
+            // Parse pathname dari href (handle relatif maupun absolut)
+            let pathname;
+            try {
+                // Jika href relatif (/cart), URL constructor butuh base
+                pathname = new URL(href, window.location.origin).pathname;
+            } catch (_) {
+                return; // URL tidak valid, biarkan browser tangani
+            }
+
+            // Cek apakah path ini dilindungi dan user adalah tamu
+            if (window._isProtectedPath(pathname)) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                window.openLoginModal();
+            }
+        }, true); // capture phase = intersep sebelum Alpine/handler lain
+        // ─────────────────────────────────────────────────────────────────────────
+
+        window.storefrontLayout = function() {
+            return {
+                searchOpen: false,
+                mobileMenuOpen: false,
+                loginModalOpen: false,
+                cartCount: 0,
+                wishlistItems: [],
+                wishlistCount: 0,
+                authTab: 'login',
+                authLoading: false,
+                authErrors: {},
+
+                switchAuthTab(tab) {
+                    this.authTab = tab;
+                    this.authErrors = {};
+                },
+
+                submitLogin(event) {
+                    this.authLoading = true;
+                    this.authErrors = {};
+                    const form = event.target;
+                    const formData = new FormData(form);
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        },
+                        body: formData,
+                    })
+                    .then(async res => {
+                        const data = await res.json().catch(() => ({}));
+                        if (res.status === 422) {
+                            this.authErrors = data.errors || {};
+                            return;
+                        }
+                        if (!res.ok) {
+                            this.authErrors = { email: [data.message || 'Terjadi kesalahan. Coba lagi.'] };
+                            return;
+                        }
+                        window.location.reload();
+                    })
+                    .catch(() => {
+                        this.authErrors = { email: ['Terjadi kesalahan jaringan. Coba lagi.'] };
+                    })
+                    .finally(() => {
+                        this.authLoading = false;
+                    });
+                },
+
+                submitRegister(event) {
+                    this.authLoading = true;
+                    this.authErrors = {};
+                    const form = event.target;
+                    const formData = new FormData(form);
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        },
+                        body: formData,
+                    })
+                    .then(async res => {
+                        const data = await res.json().catch(() => ({}));
+                        if (res.status === 422) {
+                            this.authErrors = data.errors || {};
+                            return;
+                        }
+                        if (!res.ok) {
+                            this.authErrors = { email: [data.message || 'Terjadi kesalahan. Coba lagi.'] };
+                            return;
+                        }
+                        window.location.reload();
+                    })
+                    .catch(() => {
+                        this.authErrors = { email: ['Terjadi kesalahan jaringan. Coba lagi.'] };
+                    })
+                    .finally(() => {
+                        this.authLoading = false;
+                    });
+                },
+
+                init() {
+                    this.wishlistItems = JSON.parse(localStorage.getItem('elcraft_wishlist_items') || '[]');
+                    this.wishlistCount = this.wishlistItems.length;
+
+                    window.addEventListener('storage', () => {
+                        this.cartCount = parseInt(localStorage.getItem('elcraft_cart_count') || '0', 10);
+                        this.wishlistItems = JSON.parse(localStorage.getItem('elcraft_wishlist_items') || '[]');
+                        this.wishlistCount = this.wishlistItems.length;
+                    });
+
+                    window.addEventListener('pageshow', (event) => {
+                        this.searchOpen = false;
+                        this.mobileMenuOpen = false;
+                        this.loginModalOpen = false;
+                    });
+
+                    if (window.isUserLoggedIn) {
+                        fetch('/cart/count')
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data && typeof data.count !== 'undefined') {
+                                    this.cartCount = data.count;
+                                    localStorage.setItem('elcraft_cart_count', data.count);
+                                }
+                            })
+                            .catch(err => console.error('Gagal menyinkronkan keranjang:', err));
+
+                        fetch('/wishlist/count')
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data && typeof data.count !== 'undefined') {
+                                    this.wishlistCount = data.count;
+                                    this.wishlistItems = data.ids || [];
+                                    localStorage.setItem('elcraft_wishlist_items', JSON.stringify(data.ids || []));
+                                }
+                            })
+                            .catch(err => console.error('Gagal menyinkronkan wishlist:', err));
+                    } else {
+                        this.cartCount = 0;
+                        this.wishlistCount = 0;
+                        this.wishlistItems = [];
+                        localStorage.setItem('elcraft_cart_count', '0');
+                        localStorage.setItem('elcraft_wishlist_items', '[]');
+                    }
+                },
+
+                toggleSearch() {
+                    this.searchOpen = !this.searchOpen;
+                    if (this.searchOpen) {
+                        this.$nextTick(() => {
+                            this.$refs.searchInput.focus();
+                        });
+                    }
+                },
+
+                toggleMobileMenu() {
+                    this.mobileMenuOpen = !this.mobileMenuOpen;
+                },
+
+                toggleLoginModal() {
+                    this.loginModalOpen = !this.loginModalOpen;
+                },
+
+                addToCart(productId, productName, productPrice) {
+                    if (!window.isUserLoggedIn) {
+                        this.toggleLoginModal();
+                        return;
+                    }
+                    
+                    fetch('/cart/add', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        },
+                        body: JSON.stringify({
+                            product_id: productId,
+                            variant_id: null,
+                            quantity: 1
+                        })
+                    })
+                    .then(res => {
+                        if (!res.ok) {
+                            return res.json().then(err => { throw new Error(err.message || 'Gagal menambahkan produk.'); });
+                        }
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (data && data.success) {
+                            this.cartCount = data.cart_count;
+                            localStorage.setItem('elcraft_cart_count', data.cart_count);
+                            window.showToast && window.showToast(data.message, 'success');
+                        }
+                    })
+                    .catch(err => {
+                        window.showToast && window.showToast(err.message || 'Gagal menambahkan produk.', 'error');
+                    });
+                },
+
+                toggleWishlistItem(productId, productName) {
+                    if (!window.isUserLoggedIn) {
+                        this.toggleLoginModal();
+                        return;
+                    }
+
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+                    fetch('/wishlist/toggle', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
+                        body: JSON.stringify({ product_id: productId }),
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            this.wishlistCount = data.count;
+                            if (data.in_wishlist) {
+                                if (!this.wishlistItems.includes(productId)) {
+                                    this.wishlistItems.push(productId);
+                                }
+                                window.showToast && window.showToast(`"${productName}" ditambahkan ke wishlist.`, 'success');
+                            } else {
+                                this.wishlistItems = this.wishlistItems.filter(id => id !== productId);
+                                window.showToast && window.showToast(`"${productName}" dihapus dari wishlist.`, 'info');
+                            }
+                            localStorage.setItem('elcraft_wishlist_items', JSON.stringify(this.wishlistItems));
+                        }
+                    })
+                    .catch(() => window.showToast && window.showToast('Gagal memperbarui wishlist. Coba lagi.', 'error'));
+                },
+
+                isInWishlist(productId) {
+                    return this.wishlistItems.includes(productId);
+                }
+            };
+        };
+
+        window.addToCart = (productId, productName, productPrice) => {
+            if (window.Alpine) {
+                const data = Alpine.$data(document.body);
+                if (data && typeof data.addToCart === 'function') {
+                    data.addToCart(productId, productName, productPrice);
+                }
+            }
+        };
+
+        window.updateCartBadge = (count) => {
+            if (window.Alpine) {
+                const data = Alpine.$data(document.body);
+                if (data) {
+                    data.cartCount = count;
+                    localStorage.setItem('elcraft_cart_count', count);
+                }
+            }
+        };
+
+        window.updateWishlistBadge = (count, ids = null) => {
+            if (window.Alpine) {
+                const data = Alpine.$data(document.body);
+                if (data) {
+                    if (typeof data.wishlistCount !== 'undefined') {
+                        data.wishlistCount = count;
+                    }
+                    if (ids !== null && typeof data.wishlistItems !== 'undefined') {
+                        data.wishlistItems = ids;
+                        localStorage.setItem('elcraft_wishlist_items', JSON.stringify(ids));
+                    }
+                }
+            }
+            localStorage.setItem('elcraft_wishlist_count', count);
+        };
+
+        window.toggleWishlistItem = (btnElement, productId, productName) => {
+            if (window.Alpine) {
+                const data = Alpine.$data(document.body);
+                if (data && typeof data.toggleWishlistItem === 'function') {
+                    data.toggleWishlistItem(productId, productName);
+                }
+            }
+        };
+    </script>
 
     @stack('styles')
 </head>
@@ -101,8 +494,8 @@
                     @else
                     <div x-show="profileOpen" @click.outside="profileOpen = false" x-cloak
                         class="absolute right-0 top-full mt-2 w-36 bg-white border border-warmLightGrey rounded-card shadow-md py-1 z-50">
-                        <a href="/login" class="block px-4 py-2.5 text-xs text-warmBlack hover:bg-warmCream hover:text-brand transition-colors">Masuk</a>
-                        <a href="/register" class="block px-4 py-2.5 text-xs text-warmBlack hover:bg-warmCream hover:text-brand transition-colors">Daftar</a>
+                        <button type="button" @click="profileOpen = false; switchAuthTab('login'); toggleLoginModal()" class="w-full text-left block px-4 py-2.5 text-xs text-warmBlack hover:bg-warmCream hover:text-brand transition-colors">Masuk</button>
+                        <button type="button" @click="profileOpen = false; switchAuthTab('register'); toggleLoginModal()" class="w-full text-left block px-4 py-2.5 text-xs text-warmBlack hover:bg-warmCream hover:text-brand transition-colors">Daftar</button>
                     </div>
                     @endauth
                 </div>
@@ -170,8 +563,8 @@
                 </div>
             @else
                 <div class="border-t border-warmLightGrey pt-6 flex flex-col space-y-3">
-                    <a href="/login" class="w-full text-center py-2.5 border border-brand text-brand font-semibold text-sm rounded-btn hover:bg-warmCream transition-colors duration-200">Masuk</a>
-                    <a href="/register" class="w-full text-center py-2.5 bg-brand text-white font-semibold text-sm rounded-btn hover:bg-brandDark transition-colors duration-200">Daftar</a>
+                    <button type="button" @click="toggleMobileMenu(); switchAuthTab('login'); toggleLoginModal()" class="w-full text-center py-2.5 border border-brand text-brand font-semibold text-sm rounded-btn hover:bg-warmCream transition-colors duration-200">Masuk</button>
+                    <button type="button" @click="toggleMobileMenu(); switchAuthTab('register'); toggleLoginModal()" class="w-full text-center py-2.5 bg-brand text-white font-semibold text-sm rounded-btn hover:bg-brandDark transition-colors duration-200">Daftar</button>
                 </div>
             @endauth
         </div>
@@ -274,23 +667,309 @@
     </div>
     @endunless
 
-    <!-- Login Prompt Modal -->
-    <div id="login-modal" x-cloak class="fixed inset-0 z-[60] bg-warmBlack/40 backdrop-blur-xs flex items-center justify-center transition-all duration-300 opacity-0 pointer-events-none" :class="loginModalOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'">
-        <div class="bg-white border border-warmLightGrey rounded-card max-w-sm w-full mx-5 p-6 shadow-md transition-all duration-300" :class="loginModalOpen ? 'scale-100' : 'scale-95'">
-            <div class="flex justify-between items-start mb-4">
-                <h3 class="text-lg font-semibold text-warmBlack">Masuk ke Akun Anda</h3>
-                <button @click="toggleLoginModal()" class="text-warmGrey hover:text-warmBlack flex items-center justify-center p-1" aria-label="Close modal">
+    <!-- Tabbed Login & Register Modal -->
+    <div id="login-modal" x-cloak class="fixed inset-0 z-[60] bg-warmBlack/40 backdrop-blur-xs flex items-center justify-center transition-all duration-300 opacity-0 pointer-events-none p-4 md:p-6" :class="loginModalOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'">
+        <div class="bg-white border border-[#E8B4AC]/40 rounded-2xl shadow-lg transition-all duration-300 overflow-hidden flex flex-col max-h-[90vh]" style="width: 100%; max-width: 400px; max-height: 90vh; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;" :class="loginModalOpen ? 'scale-100' : 'scale-95'">
+            
+            <!-- Tab Navigation Header (Sticky) -->
+            <div class="flex border-b border-[#E8B4AC]/40 relative bg-[#FDFBFB] shrink-0 sticky top-0 z-10" style="position: sticky; top: 0; z-index: 10; flex-shrink: 0;">
+                <button
+                    type="button"
+                    @click="switchAuthTab('login')"
+                    class="flex-1 py-3 text-sm font-semibold transition-colors duration-200 border-b-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C17B6F]/40 select-none"
+                    :class="authTab === 'login' ? 'text-[#C17B6F] border-[#C17B6F]' : 'text-[#A98077] border-transparent hover:text-[#9E5A4E]'">
+                    Masuk
+                </button>
+                <button
+                    type="button"
+                    @click="switchAuthTab('register')"
+                    class="flex-1 py-3 text-sm font-semibold transition-colors duration-200 border-b-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C17B6F]/40 select-none"
+                    :class="authTab === 'register' ? 'text-[#C17B6F] border-[#C17B6F]' : 'text-[#A98077] border-transparent hover:text-[#9E5A4E]'">
+                    Daftar
+                </button>
+                <button
+                    type="button"
+                    @click="toggleLoginModal()"
+                    class="absolute right-2 top-2 p-1.5 text-[#A98077] hover:text-warmBlack rounded-full hover:bg-warmCream transition-colors focus:outline-none"
+                    aria-label="Tutup modal">
                     <span class="material-symbols-outlined !text-[20px]">close</span>
                 </button>
             </div>
-            <p class="text-sm text-warmGrey mb-6 leading-relaxed">Untuk menyimpan produk ke wishlist atau menambahkan ke keranjang belanja, silakan masuk ke akun Anda atau daftar terlebih dahulu.</p>
-            <div class="flex flex-col space-y-3">
-                <a href="/login" class="w-full text-center py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-sm rounded-btn transition-colors duration-200">
-                    Masuk
-                </a>
-                <a href="/register" class="w-full text-center py-2.5 border border-brand text-brand hover:bg-warmCream font-semibold text-sm rounded-btn transition-colors duration-200">
-                    Daftar Akun Baru
-                </a>
+
+            <!-- Modal Content (Scrollable) -->
+            <div class="p-6 overflow-y-auto" style="overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1 1 auto; max-height: calc(90vh - 49px); box-sizing: border-box;">
+                
+                <!-- ─── LOGIN PANEL ─── -->
+                <div x-show="authTab === 'login'" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0">
+                    <div class="text-center mb-5">
+                        <span class="text-xl font-bold text-[#C17B6F] tracking-tight font-sans inline-block">el Craft</span>
+                        <p class="text-xs font-medium text-[#A98077] mt-0.5">Masuk ke akun Anda</p>
+                    </div>
+
+                    <form action="{{ route('login') }}" method="POST" @submit.prevent="submitLogin($event)" id="modal-login-form">
+                        @csrf
+
+                        <!-- Email -->
+                        <div class="mb-3.5" style="margin-bottom: 16px;">
+                            <label for="modal-login-email" class="block text-xs font-medium text-[#5F5E5A] mb-1.5" style="margin-bottom: 6px;">Email</label>
+                            <input
+                                id="modal-login-email"
+                                type="email"
+                                name="email"
+                                required
+                                autocomplete="username"
+                                class="w-full px-3.5 py-2.5 text-sm text-[#9E5A4E] border border-[#E8B4AC] rounded-xl bg-white placeholder-[#E8B4AC] focus:outline-none focus:ring-2 focus:ring-[#C17B6F]/30 focus:border-[#C17B6F] transition-colors duration-200"
+                                style="width: 100%; box-sizing: border-box;"
+                                placeholder="nama@email.com"
+                            >
+                            <template x-if="authErrors.email">
+                                <p class="mt-1.5 text-xs text-red-500" style="margin-top: 6px;" x-text="authErrors.email[0]"></p>
+                            </template>
+                        </div>
+
+                        <!-- Password -->
+                        <div class="mb-4" style="margin-bottom: 18px;">
+                            <label for="modal-login-password" class="block text-xs font-medium text-[#5F5E5A] mb-1.5" style="margin-bottom: 6px;">Kata Sandi</label>
+                            <div class="relative" style="position: relative;" x-data="{ showPassword: false }">
+                                <input
+                                    id="modal-login-password"
+                                    :type="showPassword ? 'text' : 'password'"
+                                    name="password"
+                                    required
+                                    autocomplete="current-password"
+                                    class="w-full px-3.5 py-2.5 pr-11 text-sm text-[#9E5A4E] border border-[#E8B4AC] rounded-xl bg-white placeholder-[#E8B4AC] focus:outline-none focus:ring-2 focus:ring-[#C17B6F]/30 focus:border-[#C17B6F] transition-colors duration-200"
+                                    style="width: 100%; padding: 10px 44px 10px 14px; box-sizing: border-box;"
+                                    placeholder="••••••••"
+                                >
+                                <button
+                                    type="button"
+                                    @click="showPassword = !showPassword"
+                                    class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-[#A98077] hover:text-[#C17B6F] transition-colors focus:outline-none"
+                                    style="position: absolute; top: 0; right: 0; bottom: 0; width: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; padding: 0;"
+                                    tabindex="-1"
+                                    :aria-label="showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'">
+                                    <svg x-show="!showPassword" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                    <svg x-show="showPassword" x-cloak width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                        <line x1="1" y1="1" x2="23" y2="23"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <template x-if="authErrors.password">
+                                <p class="mt-1.5 text-xs text-red-500" style="margin-top: 6px;" x-text="authErrors.password[0]"></p>
+                            </template>
+                        </div>
+
+                        <!-- Remember Me & Forgot Password -->
+                        <div class="flex items-center justify-between mb-5" style="margin-bottom: 20px;">
+                            <label for="modal-remember-me" class="flex items-center gap-2 cursor-pointer select-none">
+                                <input
+                                    id="modal-remember-me"
+                                    type="checkbox"
+                                    name="remember"
+                                    class="w-4 h-4 rounded border-[#E8B4AC] text-[#C17B6F] focus:ring-[#C17B6F]/30 cursor-pointer"
+                                    style="accent-color: #C17B6F;"
+                                >
+                                <span class="text-xs text-[#A98077] font-medium">Ingat saya</span>
+                            </label>
+                            <a href="{{ route('password.request') }}"
+                               class="text-xs text-[#C17B6F] hover:text-[#9E5A4E] font-semibold transition-colors duration-200">
+                                Lupa kata sandi?
+                            </a>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button
+                            type="submit"
+                            :disabled="authLoading"
+                            class="w-full py-2.5 bg-[#C17B6F] hover:bg-[#9E5A4E] disabled:opacity-60 text-white font-semibold text-sm rounded-xl transition-colors duration-200 shadow-xs flex items-center justify-center gap-2">
+                            <span x-text="authLoading ? 'Memproses...' : 'Masuk'"></span>
+                        </button>
+                    </form>
+
+                    <!-- Divider -->
+                    <div class="flex items-center gap-3 my-4">
+                        <div class="flex-1 h-px bg-[#E8B4AC]"></div>
+                        <span class="text-xs font-medium text-[#A98077]">atau</span>
+                        <div class="flex-1 h-px bg-[#E8B4AC]"></div>
+                    </div>
+
+                    <!-- Google Button -->
+                    <a href="{{ route('auth.google.redirect') }}"
+                       class="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl border border-[#E8B4AC] bg-white hover:bg-[#F5F0EE] text-[#9E5A4E] font-semibold text-sm transition-colors duration-200 shadow-xs">
+                        <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+                            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+                            <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+                        </svg>
+                        Masuk dengan Google
+                    </a>
+
+                    <!-- Switch to Register -->
+                    <p class="mt-4 text-center text-xs text-[#A98077]">
+                        Belum punya akun?
+                        <button type="button" @click="switchAuthTab('register')" class="text-[#C17B6F] hover:text-[#9E5A4E] font-semibold transition-colors">
+                            Daftar
+                        </button>
+                    </p>
+                </div>
+
+                <!-- ─── REGISTER PANEL ─── -->
+                <div x-show="authTab === 'register'" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0">
+                    <div class="text-center mb-4" style="margin-bottom: 14px;">
+                        <span class="text-xl font-bold text-[#C17B6F] tracking-tight font-sans inline-block">el Craft</span>
+                        <p class="text-xs font-medium text-[#A98077] mt-0.5">Daftarkan akun baru Anda</p>
+                    </div>
+
+                    <form action="{{ route('register') }}" method="POST" @submit.prevent="submitRegister($event)" id="modal-register-form">
+                        @csrf
+
+                        <!-- Name -->
+                        <div class="mb-3" style="margin-bottom: 12px;">
+                            <label for="modal-register-name" class="block text-xs font-medium text-[#5F5E5A] mb-1" style="margin-bottom: 4px;">Nama Lengkap</label>
+                            <input
+                                id="modal-register-name"
+                                type="text"
+                                name="name"
+                                required
+                                autocomplete="name"
+                                class="w-full px-3.5 py-2 text-sm text-[#9E5A4E] border border-[#E8B4AC] rounded-xl bg-white placeholder-[#E8B4AC] focus:outline-none focus:ring-2 focus:ring-[#C17B6F]/30 focus:border-[#C17B6F] transition-colors duration-200"
+                                style="width: 100%; box-sizing: border-box;"
+                                placeholder="Nama Anda"
+                            >
+                            <template x-if="authErrors.name">
+                                <p class="mt-1 text-xs text-red-500" style="margin-top: 4px;" x-text="authErrors.name[0]"></p>
+                            </template>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="mb-3" style="margin-bottom: 12px;">
+                            <label for="modal-register-email" class="block text-xs font-medium text-[#5F5E5A] mb-1" style="margin-bottom: 4px;">Email</label>
+                            <input
+                                id="modal-register-email"
+                                type="email"
+                                name="email"
+                                required
+                                autocomplete="username"
+                                class="w-full px-3.5 py-2 text-sm text-[#9E5A4E] border border-[#E8B4AC] rounded-xl bg-white placeholder-[#E8B4AC] focus:outline-none focus:ring-2 focus:ring-[#C17B6F]/30 focus:border-[#C17B6F] transition-colors duration-200"
+                                style="width: 100%; box-sizing: border-box;"
+                                placeholder="nama@email.com"
+                            >
+                            <template x-if="authErrors.email">
+                                <p class="mt-1 text-xs text-red-500" style="margin-top: 4px;" x-text="authErrors.email[0]"></p>
+                            </template>
+                        </div>
+
+                        <!-- Password -->
+                        <div class="mb-3" style="margin-bottom: 12px;">
+                            <label for="modal-register-password" class="block text-xs font-medium text-[#5F5E5A] mb-1" style="margin-bottom: 4px;">Kata Sandi</label>
+                            <div class="relative" style="position: relative;" x-data="{ showPassword: false }">
+                                <input
+                                    id="modal-register-password"
+                                    :type="showPassword ? 'text' : 'password'"
+                                    name="password"
+                                    required
+                                    autocomplete="new-password"
+                                    class="w-full px-3.5 py-2 pr-11 text-sm text-[#9E5A4E] border border-[#E8B4AC] rounded-xl bg-white placeholder-[#E8B4AC] focus:outline-none focus:ring-2 focus:ring-[#C17B6F]/30 focus:border-[#C17B6F] transition-colors duration-200"
+                                    style="width: 100%; padding: 8px 44px 8px 14px; box-sizing: border-box;"
+                                    placeholder="••••••••"
+                                >
+                                <button
+                                    type="button"
+                                    @click="showPassword = !showPassword"
+                                    class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-[#A98077] hover:text-[#C17B6F] transition-colors focus:outline-none"
+                                    style="position: absolute; top: 0; right: 0; bottom: 0; width: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; padding: 0;"
+                                    tabindex="-1"
+                                    :aria-label="showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'">
+                                    <svg x-show="!showPassword" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                    <svg x-show="showPassword" x-cloak width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                        <line x1="1" y1="1" x2="23" y2="23"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <template x-if="authErrors.password">
+                                <p class="mt-1 text-xs text-red-500" style="margin-top: 4px;" x-text="authErrors.password[0]"></p>
+                            </template>
+                        </div>
+
+                        <!-- Confirm Password -->
+                        <div class="mb-4" style="margin-bottom: 16px;">
+                            <label for="modal-register-password-confirmation" class="block text-xs font-medium text-[#5F5E5A] mb-1" style="margin-bottom: 4px;">Konfirmasi Kata Sandi</label>
+                            <div class="relative" style="position: relative;" x-data="{ showPasswordConfirm: false }">
+                                <input
+                                    id="modal-register-password-confirmation"
+                                    :type="showPasswordConfirm ? 'text' : 'password'"
+                                    name="password_confirmation"
+                                    required
+                                    autocomplete="new-password"
+                                    class="w-full px-3.5 py-2 pr-11 text-sm text-[#9E5A4E] border border-[#E8B4AC] rounded-xl bg-white placeholder-[#E8B4AC] focus:outline-none focus:ring-2 focus:ring-[#C17B6F]/30 focus:border-[#C17B6F] transition-colors duration-200"
+                                    style="width: 100%; padding: 8px 44px 8px 14px; box-sizing: border-box;"
+                                    placeholder="••••••••"
+                                >
+                                <button
+                                    type="button"
+                                    @click="showPasswordConfirm = !showPasswordConfirm"
+                                    class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-[#A98077] hover:text-[#C17B6F] transition-colors focus:outline-none"
+                                    style="position: absolute; top: 0; right: 0; bottom: 0; width: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; padding: 0;"
+                                    tabindex="-1"
+                                    :aria-label="showPasswordConfirm ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'">
+                                    <svg x-show="!showPasswordConfirm" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                    <svg x-show="showPasswordConfirm" x-cloak width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                        <line x1="1" y1="1" x2="23" y2="23"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button
+                            type="submit"
+                            :disabled="authLoading"
+                            class="w-full py-2.5 bg-[#C17B6F] hover:bg-[#9E5A4E] disabled:opacity-60 text-white font-semibold text-sm rounded-xl transition-colors duration-200 shadow-xs flex items-center justify-center gap-2">
+                            <span x-text="authLoading ? 'Memproses...' : 'Daftar'"></span>
+                        </button>
+                    </form>
+
+                    <!-- Divider -->
+                    <div class="flex items-center gap-3 my-3" style="margin-top: 12px; margin-bottom: 12px;">
+                        <div class="flex-1 h-px bg-[#E8B4AC]"></div>
+                        <span class="text-xs font-medium text-[#A98077]">atau</span>
+                        <div class="flex-1 h-px bg-[#E8B4AC]"></div>
+                    </div>
+
+                    <!-- Google Button -->
+                    <a href="{{ route('auth.google.redirect') }}"
+                       class="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl border border-[#E8B4AC] bg-white hover:bg-[#F5F0EE] text-[#9E5A4E] font-semibold text-sm transition-colors duration-200 shadow-xs">
+                        <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+                            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+                            <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+                        </svg>
+                        Daftar dengan Google
+                    </a>
+
+                    <!-- Switch to Login -->
+                    <p class="mt-3 text-center text-xs text-[#A98077]" style="margin-top: 12px;">
+                        Sudah punya akun?
+                        <button type="button" @click="switchAuthTab('login')" class="text-[#C17B6F] hover:text-[#9E5A4E] font-semibold transition-colors">
+                            Masuk
+                        </button>
+                    </p>
+                </div>
+
             </div>
         </div>
     </div>
@@ -300,39 +979,6 @@
 
     <!-- Client-side Interactive Functionality Script -->
     <script>
-        // Check if user is logged in
-        const isUserLoggedIn = {{ auth()->check() ? 'true' : 'false' }};
-
-        // 5. Toast Notification System
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
-            if (!container) return;
-            const toast = document.createElement('div');
-            toast.className = `transform translate-x-12 opacity-0 transition-all duration-300 pointer-events-auto bg-white border border-warmLightGrey shadow-xs rounded-[6px] p-4 flex items-center space-x-3 min-w-[280px] max-w-sm`;
-            
-            const iconColor = type === 'success' ? 'text-brand' : 'text-warmGrey';
-            const iconName = type === 'success' ? 'check_circle' : 'info';
-            
-            toast.innerHTML = `
-                <span class="material-symbols-outlined ${iconColor}"> ${iconName} </span>
-                <div class="flex-1 text-xs font-semibold text-warmBlack">${message}</div>
-                <button onclick="this.parentElement.remove()" class="text-warmGrey hover:text-warmBlack flex items-center justify-center p-0.5">
-                    <span class="material-symbols-outlined !text-[16px]">close</span>
-                </button>
-            `;
-            
-            container.appendChild(toast);
-            setTimeout(() => {
-                toast.classList.remove('translate-x-12', 'opacity-0');
-            }, 10);
-            
-            setTimeout(() => {
-                toast.classList.add('translate-x-12', 'opacity-0');
-                setTimeout(() => toast.remove(), 300);
-            }, 3500);
-        }
-        window.showToast = showToast;
-
         // Subscriptions Form Handler (non-ajax welcome form)
         function handleSubscribe(e) {
             e.preventDefault();
@@ -341,206 +987,6 @@
             showToast(`Terima kasih! ${email} telah bergabung dengan Inner Circle kami.`);
             input.value = '';
         }
-
-        // Bridge functions for Vanilla JS files or legacy event handlers to proxy to Alpine
-        window.addToCart = (productId, productName, productPrice) => {
-            if (window.Alpine) {
-                const data = Alpine.$data(document.body);
-                if (data && typeof data.addToCart === 'function') {
-                    data.addToCart(productId, productName, productPrice);
-                }
-            }
-        };
-
-        window.updateCartBadge = (count) => {
-            if (window.Alpine) {
-                const data = Alpine.$data(document.body);
-                if (data) {
-                    data.cartCount = count;
-                    localStorage.setItem('elcraft_cart_count', count);
-                }
-            }
-        };
-
-        window.updateWishlistBadge = (count, ids = null) => {
-            if (window.Alpine) {
-                const data = Alpine.$data(document.body);
-                if (data) {
-                    if (typeof data.wishlistCount !== 'undefined') {
-                        data.wishlistCount = count;
-                    }
-                    if (ids !== null && typeof data.wishlistItems !== 'undefined') {
-                        data.wishlistItems = ids;
-                        localStorage.setItem('elcraft_wishlist_items', JSON.stringify(ids));
-                    }
-                }
-            }
-            localStorage.setItem('elcraft_wishlist_count', count);
-        };
-
-        window.toggleWishlistItem = (btnElement, productId, productName) => {
-            if (window.Alpine) {
-                const data = Alpine.$data(document.body);
-                if (data && typeof data.toggleWishlistItem === 'function') {
-                    data.toggleWishlistItem(productId, productName);
-                }
-            }
-        };
-
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('storefrontLayout', () => ({
-                searchOpen: false,
-                mobileMenuOpen: false,
-                loginModalOpen: false,
-                cartCount: 0,
-                wishlistItems: [],
-                wishlistCount: 0,
-
-                init() {
-                    // Inicialização: baca dari localStorage dulu (cepat), lalu sinkronkan dari DB
-                    this.wishlistItems = JSON.parse(localStorage.getItem('elcraft_wishlist_items') || '[]');
-                    this.wishlistCount = this.wishlistItems.length;
-
-                    // Sync changes across tabs
-                    window.addEventListener('storage', () => {
-                        this.cartCount = parseInt(localStorage.getItem('elcraft_cart_count') || '0', 10);
-                        this.wishlistItems = JSON.parse(localStorage.getItem('elcraft_wishlist_items') || '[]');
-                        this.wishlistCount = this.wishlistItems.length;
-                    });
-
-                    // Reset open modals/drawers when navigated back/forward via browser cache (bfcache)
-                    window.addEventListener('pageshow', (event) => {
-                        this.searchOpen = false;
-                        this.mobileMenuOpen = false;
-                        this.loginModalOpen = false;
-                    });
-
-                    // Sinkronisasi keranjang & wishlist dari database jika pengguna login
-                    if (isUserLoggedIn) {
-                        // Sinkronisasi keranjang
-                        fetch('/cart/count')
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data && typeof data.count !== 'undefined') {
-                                    this.cartCount = data.count;
-                                    localStorage.setItem('elcraft_cart_count', data.count);
-                                }
-                            })
-                            .catch(err => console.error('Gagal menyinkronkan keranjang:', err));
-
-                        // Sinkronisasi wishlist dari database
-                        fetch('/wishlist/count')
-                            .then(res => res.json())
-                            .then(data => {
-                                if (data && typeof data.count !== 'undefined') {
-                                    this.wishlistCount = data.count;
-                                    this.wishlistItems  = data.ids || [];
-                                    localStorage.setItem('elcraft_wishlist_items', JSON.stringify(data.ids || []));
-                                }
-                            })
-                            .catch(err => console.error('Gagal menyinkronkan wishlist:', err));
-                    } else {
-                        this.cartCount    = 0;
-                        this.wishlistCount = 0;
-                        this.wishlistItems = [];
-                        localStorage.setItem('elcraft_cart_count', '0');
-                        localStorage.setItem('elcraft_wishlist_items', '[]');
-                    }
-                },
-
-                toggleSearch() {
-                    this.searchOpen = !this.searchOpen;
-                    if (this.searchOpen) {
-                        this.$nextTick(() => {
-                            this.$refs.searchInput.focus();
-                        });
-                    }
-                },
-
-                toggleMobileMenu() {
-                    this.mobileMenuOpen = !this.mobileMenuOpen;
-                },
-
-                toggleLoginModal() {
-                    this.loginModalOpen = !this.loginModalOpen;
-                },
-
-                addToCart(productId, productName, productPrice) {
-                    if (!isUserLoggedIn) {
-                        this.toggleLoginModal();
-                        return;
-                    }
-                    
-                    fetch('/cart/add', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                        },
-                        body: JSON.stringify({
-                            product_id: productId,
-                            variant_id: null,
-                            quantity: 1
-                        })
-                    })
-                    .then(res => {
-                        if (!res.ok) {
-                            return res.json().then(err => { throw new Error(err.message || 'Gagal menambahkan produk.'); });
-                        }
-                        return res.json();
-                    })
-                    .then(data => {
-                        if (data && data.success) {
-                            this.cartCount = data.cart_count;
-                            localStorage.setItem('elcraft_cart_count', data.cart_count);
-                            showToast(data.message, 'success');
-                        }
-                    })
-                    .catch(err => {
-                        showToast(err.message || 'Gagal menambahkan produk.', 'error');
-                    });
-                },
-
-                toggleWishlistItem(productId, productName) {
-                    if (!isUserLoggedIn) {
-                        this.toggleLoginModal();
-                        return;
-                    }
-
-                    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-                    fetch('/wishlist/toggle', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': csrfToken,
-                        },
-                        body: JSON.stringify({ product_id: productId }),
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success) {
-                            this.wishlistCount = data.count;
-                            if (data.in_wishlist) {
-                                if (!this.wishlistItems.includes(productId)) {
-                                    this.wishlistItems.push(productId);
-                                }
-                                showToast(`"${productName}" ditambahkan ke wishlist.`, 'success');
-                            } else {
-                                this.wishlistItems = this.wishlistItems.filter(id => id !== productId);
-                                showToast(`"${productName}" dihapus dari wishlist.`, 'info');
-                            }
-                            localStorage.setItem('elcraft_wishlist_items', JSON.stringify(this.wishlistItems));
-                        }
-                    })
-                    .catch(() => showToast('Gagal memperbarui wishlist. Coba lagi.', 'error'));
-                },
-
-                isInWishlist(productId) {
-                    return this.wishlistItems.includes(productId);
-                }
-            }));
-        });
     </script>
     @stack('scripts')
 </body>

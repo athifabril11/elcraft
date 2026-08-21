@@ -13,7 +13,7 @@
 
         @if($orders->isEmpty())
             {{-- Empty State --}}
-            <div class="flex flex-col items-center justify-center py-20 text-center bg-white rounded-card border border-warmLightGrey">
+            <div class="flex flex-col items-center justify-center py-20 text-center">
                 <div class="w-20 h-20 rounded-full bg-warmCream flex items-center justify-center mb-6 text-brand">
                     <span class="material-symbols-outlined !text-[36px]">receipt_long</span>
                 </div>

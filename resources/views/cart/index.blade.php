@@ -41,6 +41,7 @@
             
             <!-- Kolom Kiri: Daftar Item Keranjang -->
             <div class="w-full lg:flex-1 space-y-6">
+                @if($cart)
                 @foreach($cart->items as $item)
                     <div x-show="items.some(i => i.id === {{ $item->id }})" 
                          class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-warmLightGrey/70 pb-6 last:border-b-0 space-y-4 sm:space-y-0">
@@ -107,6 +108,7 @@
                         </div>
                     </div>
                 @endforeach
+                @endif
             </div>
 
             <!-- Kolom Kanan: Ringkasan Belanja (Sticky) -->
@@ -117,7 +119,7 @@
                     <div class="space-y-4 text-xs">
                         <div class="flex justify-between text-warmGrey">
                             <span>Subtotal Produk</span>
-                            <span x-text="formatRupiah(cartTotal)">@rupiah($cart->getTotalPrice())</span>
+                            <span x-text="formatRupiah(cartTotal)">@rupiah($cart ? $cart->getTotalPrice() : 0)</span>
                         </div>
                         <div class="flex justify-between text-warmGrey">
                             <span>Biaya Pengiriman</span>
@@ -126,7 +128,7 @@
                         
                         <div class="border-t border-warmLightGrey pt-4 flex justify-between items-center text-warmBlack">
                             <span class="font-semibold text-sm">Total Belanja</span>
-                            <span class="font-bold text-lg text-brandDark" x-text="formatRupiah(cartTotal)">@rupiah($cart->getTotalPrice())</span>
+                            <span class="font-bold text-lg text-brandDark" x-text="formatRupiah(cartTotal)">@rupiah($cart ? $cart->getTotalPrice() : 0)</span>
                         </div>
                     </div>
 
@@ -147,107 +149,113 @@
 
 @push('scripts')
 <script>
+    const cartPage = (initialCartTotal, initialItems) => ({
+        cartTotal: initialCartTotal,
+        items: initialItems,
+        isLoading: false,
+
+        formatRupiah(value) {
+            return 'Rp ' + Number(value).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        },
+
+        updateQuantity(itemId, newQty) {
+            if (newQty < 1) return;
+            this.isLoading = true;
+
+            fetch('/cart/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    item_id: itemId,
+                    quantity: newQty
+                })
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(err => { throw new Error(err.message || 'Gagal memperbarui kuantitas.'); });
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    const item = this.items.find(i => i.id === itemId);
+                    if (item) {
+                        item.quantity = newQty;
+                        item.subtotal = data.item_subtotal;
+                    }
+                    this.cartTotal = data.cart_total;
+
+                    if (window.updateCartBadge) {
+                        window.updateCartBadge(data.cart_count);
+                    }
+                    if (window.showToast) {
+                        window.showToast(data.message, 'success');
+                    }
+                }
+            })
+            .catch(err => {
+                if (window.showToast) {
+                    window.showToast(err.message || 'Gagal memperbarui kuantitas.', 'error');
+                }
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
+        },
+
+        removeItem(itemId) {
+            if (!confirm('Apakah Anda yakin ingin menghapus produk ini dari keranjang?')) return;
+            this.isLoading = true;
+
+            fetch('/cart/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    item_id: itemId
+                })
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(err => { throw new Error(err.message || 'Gagal menghapus item.'); });
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    this.items = this.items.filter(i => i.id !== itemId);
+                    this.cartTotal = data.cart_total;
+
+                    if (window.updateCartBadge) {
+                        window.updateCartBadge(data.cart_count);
+                    }
+                    if (window.showToast) {
+                        window.showToast(data.message, 'info');
+                    }
+                }
+            })
+            .catch(err => {
+                if (window.showToast) {
+                    window.showToast(err.message || 'Gagal menghapus produk.', 'error');
+                }
+            })
+            .finally(() => {
+                this.isLoading = false;
+            });
+        }
+    });
+
+    window.cartPage = cartPage;
+    if (window.Alpine) {
+        Alpine.data('cartPage', cartPage);
+    }
     document.addEventListener('alpine:init', () => {
-        Alpine.data('cartPage', (initialCartTotal, initialItems) => ({
-            cartTotal: initialCartTotal,
-            items: initialItems,
-            isLoading: false,
-
-            formatRupiah(value) {
-                return 'Rp ' + Number(value).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-            },
-
-            updateQuantity(itemId, newQty) {
-                if (newQty < 1) return;
-                this.isLoading = true;
-
-                fetch('/cart/update', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({
-                        item_id: itemId,
-                        quantity: newQty
-                    })
-                })
-                .then(res => {
-                    if (!res.ok) {
-                        return res.json().then(err => { throw new Error(err.message || 'Gagal memperbarui kuantitas.'); });
-                    }
-                    return res.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        const item = this.items.find(i => i.id === itemId);
-                        if (item) {
-                            item.quantity = newQty;
-                            item.subtotal = data.item_subtotal;
-                        }
-                        this.cartTotal = data.cart_total;
-
-                        if (window.updateCartBadge) {
-                            window.updateCartBadge(data.cart_count);
-                        }
-                        if (window.showToast) {
-                            window.showToast(data.message, 'success');
-                        }
-                    }
-                })
-                .catch(err => {
-                    if (window.showToast) {
-                        window.showToast(err.message || 'Gagal memperbarui kuantitas.', 'error');
-                    }
-                })
-                .finally(() => {
-                    this.isLoading = false;
-                });
-            },
-
-            removeItem(itemId) {
-                if (!confirm('Apakah Anda yakin ingin menghapus produk ini dari keranjang?')) return;
-                this.isLoading = true;
-
-                fetch('/cart/remove', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({
-                        item_id: itemId
-                    })
-                })
-                .then(res => {
-                    if (!res.ok) {
-                        return res.json().then(err => { throw new Error(err.message || 'Gagal menghapus item.'); });
-                    }
-                    return res.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        this.items = this.items.filter(i => i.id !== itemId);
-                        this.cartTotal = data.cart_total;
-
-                        if (window.updateCartBadge) {
-                            window.updateCartBadge(data.cart_count);
-                        }
-                        if (window.showToast) {
-                            window.showToast(data.message, 'info');
-                        }
-                    }
-                })
-                .catch(err => {
-                    if (window.showToast) {
-                        window.showToast(err.message || 'Gagal menghapus produk.', 'error');
-                    }
-                })
-                .finally(() => {
-                    this.isLoading = false;
-                });
-            }
-        }));
+        Alpine.data('cartPage', cartPage);
     });
 </script>
 @endpush
