@@ -50,6 +50,16 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        // Reject inactive / anonymized accounts even if credentials were correct
+        if (! Auth::user()->is_active) {
+            Auth::logout();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => 'Akun ini sudah tidak aktif.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

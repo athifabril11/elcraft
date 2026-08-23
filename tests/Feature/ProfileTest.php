@@ -108,4 +108,44 @@ class ProfileTest extends TestCase
 
         $this->assertNotNull($user->fresh());
     }
+
+    public function test_google_user_can_delete_their_account_with_text_confirmation(): void
+    {
+        $user = User::factory()->create([
+            'google_id' => 'google-test-12345',
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->delete('/profile', [
+                'confirmation' => 'HAPUS',
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/');
+
+        $this->assertGuest();
+        $this->assertNull($user->fresh());
+    }
+
+    public function test_google_user_deletion_fails_with_incorrect_confirmation(): void
+    {
+        $user = User::factory()->create([
+            'google_id' => 'google-test-12345',
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->from('/profile')
+            ->delete('/profile', [
+                'confirmation' => 'hapus',
+            ]);
+
+        $response
+            ->assertSessionHasErrorsIn('userDeletion', 'confirmation')
+            ->assertRedirect('/profile');
+
+        $this->assertNotNull($user->fresh());
+    }
 }

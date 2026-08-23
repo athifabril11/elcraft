@@ -1,6 +1,7 @@
 @props([
     'title',
     'backUrl' => null,
+    'subtitle' => null,
 ])
 
 @php

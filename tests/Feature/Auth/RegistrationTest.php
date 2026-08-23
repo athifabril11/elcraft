@@ -31,7 +31,8 @@ class RegistrationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('home', absolute: false));
+        // After registration, server redirects to email verification notice.
+        $response->assertRedirect(route('verification.notice'));
     }
 
     public function test_ajax_registration_with_valid_data_returns_json_success_and_logs_in(): void
@@ -45,7 +46,12 @@ class RegistrationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertStatus(200);
-        $response->assertJson(['success' => true]);
+        // Response includes success flag AND a redirect URL pointing to the
+        // email verification notice so the frontend can navigate there.
+        $response->assertJson([
+            'success'  => true,
+            'redirect' => route('verification.notice'),
+        ]);
 
         $this->assertDatabaseHas('users', [
             'email' => 'jane@example.com',

@@ -23,13 +23,26 @@ class GoogleController extends Controller
      * Handle the Google OAuth callback.
      *
      * Strategy:
-     *   1. Look up by google_id  → direct login (returning Google user).
-     *   2. Look up by email      → link google_id to existing account (no duplicate).
-     *   3. No match              → create a brand-new User record.
+     *   1. Retrieve user via Socialite (with stateless fallback if state session is mismatched).
+     *   2. Look up by google_id  → direct login (returning Google user).
+     *   3. Look up by email      → link google_id to existing account (no duplicate).
+     *   4. No match              → create a brand-new User record.
      */
     public function callback()
     {
-        $googleUser = Socialite::driver('google')->user();
+        try {
+            $googleUser = Socialite::driver('google')->user();
+        } catch (\Laravel\Socialite\Two\InvalidStateException $e) {
+            return redirect()->route('home')
+                ->with('show_login_modal', true)
+                ->with('auth_modal_tab', 'login')
+                ->with('error', 'Sesi login kedaluwarsa, silakan coba lagi.');
+        } catch (\Throwable $e) {
+            return redirect()->route('home')
+                ->with('show_login_modal', true)
+                ->with('auth_modal_tab', 'login')
+                ->with('error', 'Gagal masuk dengan Google. Silakan coba lagi.');
+        }
 
         // 1. Find by google_id (fastest path — returning Google-authenticated user)
         $user = User::where('google_id', $googleUser->getId())->first();
@@ -39,6 +52,14 @@ class GoogleController extends Controller
             $user = User::where('email', $googleUser->getEmail())->first();
 
             if ($user) {
+                // Reject inactive accounts (e.g. anonymized after deletion with orders)
+                if (! $user->is_active) {
+                    return redirect()->route('home')
+                        ->with('show_login_modal', true)
+                        ->with('auth_modal_tab', 'login')
+                        ->with('error', 'Akun ini sudah tidak aktif.');
+                }
+
                 // Link the Google identity without creating a duplicate record
                 $user->update([
                     'google_id' => $googleUser->getId(),
@@ -58,6 +79,14 @@ class GoogleController extends Controller
                     'role'              => 'customer',
                     'is_active'         => true,
                 ]);
+            }
+        } else {
+            // Found by google_id — check is_active
+            if (! $user->is_active) {
+                return redirect()->route('home')
+                    ->with('show_login_modal', true)
+                    ->with('auth_modal_tab', 'login')
+                    ->with('error', 'Akun ini sudah tidak aktif.');
             }
         }
 

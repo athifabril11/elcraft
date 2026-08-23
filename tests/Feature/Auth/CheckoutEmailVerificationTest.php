@@ -43,6 +43,37 @@ class CheckoutEmailVerificationTest extends TestCase
         ]);
     }
 
+    // ─── Unverified user is blocked from ALL protected pages ─────────────────
+
+    public function test_unverified_user_cannot_access_cart_wishlist_profile_or_orders(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        // Cart
+        $this->actingAs($user)->get('/cart')
+            ->assertRedirect(route('verification.notice'));
+
+        // Wishlist
+        $this->actingAs($user)->get('/wishlist')
+            ->assertRedirect(route('verification.notice'));
+
+        // Profile
+        $this->actingAs($user)->get('/profile')
+            ->assertRedirect(route('verification.notice'));
+
+        // Profile addresses
+        $this->actingAs($user)->get('/profile/addresses')
+            ->assertRedirect(route('verification.notice'));
+
+        // Orders list
+        $this->actingAs($user)->get('/orders')
+            ->assertRedirect(route('verification.notice'));
+
+        // Order detail (any order number — middleware fires before controller)
+        $this->actingAs($user)->get('/orders/ELC-TEST-0001')
+            ->assertRedirect(route('verification.notice'));
+    }
+
     public function test_unverified_user_hitting_checkout_is_redirected_to_verification_notice(): void
     {
         $user = User::factory()->unverified()->create();
@@ -71,28 +102,22 @@ class CheckoutEmailVerificationTest extends TestCase
         $response->assertRedirect(route('verification.notice'));
     }
 
-    public function test_unverified_user_can_access_cart_wishlist_and_profile(): void
+    // ─── Verified user can access everything ─────────────────────────────────
+
+    public function test_verified_user_can_access_cart_wishlist_profile_and_orders(): void
     {
-        $user = User::factory()->unverified()->create();
+        $user = User::factory()->create(); // verified by default in factory
 
-        // Cart page
-        $cartResponse = $this->actingAs($user)->get('/cart');
-        $cartResponse->assertStatus(200);
-
-        // Wishlist page
-        $wishlistResponse = $this->actingAs($user)->get('/wishlist');
-        $wishlistResponse->assertStatus(200);
-
-        // Profile page
-        $profileResponse = $this->actingAs($user)->get('/profile');
-        $profileResponse->assertStatus(200);
+        $this->actingAs($user)->get('/cart')->assertStatus(200);
+        $this->actingAs($user)->get('/wishlist')->assertStatus(200);
+        $this->actingAs($user)->get('/profile')->assertStatus(200);
+        $this->actingAs($user)->get('/orders')->assertStatus(200);
     }
 
     public function test_verified_user_can_access_checkout(): void
     {
         $user = User::factory()->create(); // verified by default in factory
 
-        // Setup active cart and address
         $cart = $user->getOrCreateCart();
         $product = $this->createProduct();
         $cart->items()->create(['product_id' => $product->id, 'quantity' => 1]);
@@ -101,6 +126,26 @@ class CheckoutEmailVerificationTest extends TestCase
         $response = $this->actingAs($user)->get('/checkout');
 
         $response->assertStatus(200);
+    }
+
+    // ─── Google user is auto-verified — no friction anywhere ─────────────────
+
+    public function test_google_user_has_verified_email_and_can_access_all_protected_routes(): void
+    {
+        $googleUser = User::create([
+            'name'              => 'Google User',
+            'email'             => 'googleuser@example.com',
+            'google_id'         => 'google-123456789',
+            'email_verified_at' => now(),
+            'role'              => 'customer',
+            'is_active'         => true,
+            'password'          => bcrypt('random-secret-hash'),
+        ]);
+
+        $this->actingAs($googleUser)->get('/cart')->assertStatus(200);
+        $this->actingAs($googleUser)->get('/wishlist')->assertStatus(200);
+        $this->actingAs($googleUser)->get('/profile')->assertStatus(200);
+        $this->actingAs($googleUser)->get('/orders')->assertStatus(200);
     }
 
     public function test_google_user_has_verified_email_and_can_access_checkout(): void
@@ -123,5 +168,23 @@ class CheckoutEmailVerificationTest extends TestCase
         $response = $this->actingAs($googleUser)->get('/checkout');
 
         $response->assertStatus(200);
+    }
+
+    // ─── Guests still get the existing modal-flash redirect (unaffected) ─────
+
+    public function test_guest_visiting_cart_is_redirected_with_modal_flash(): void
+    {
+        $response = $this->get('/cart');
+
+        $response->assertRedirect();
+        $response->assertSessionHas('show_login_modal', true);
+    }
+
+    public function test_guest_visiting_profile_is_redirected_with_modal_flash(): void
+    {
+        $response = $this->get('/profile');
+
+        $response->assertRedirect();
+        $response->assertSessionHas('show_login_modal', true);
     }
 }

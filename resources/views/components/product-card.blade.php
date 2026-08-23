@@ -24,15 +24,15 @@
         </button>
 
         <!-- Add to Cart Full Width Button (appears on hover on desktop) -->
-        <div class="absolute bottom-3 left-3 right-3 transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 hidden md:block">
+        <div class="absolute bottom-2.5 left-2.5 right-2.5 md:bottom-3 md:left-3 md:right-3 transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 hidden md:block z-10 pointer-events-none group-hover:pointer-events-auto">
             @if($product->variants->isNotEmpty())
-                <a href="/products/{{ $product->slug }}" class="w-full py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-wider uppercase rounded-btn transition-colors duration-200 flex items-center justify-center space-x-1.5">
-                    <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
+                <a href="/products/{{ $product->slug }}" class="w-full py-1.5 px-2 bg-brand hover:bg-brandDark text-white font-semibold text-xs rounded-btn transition-colors duration-200 flex items-center justify-center space-x-1 whitespace-nowrap shadow-sm">
+                    <span class="material-symbols-outlined !text-[14px]">shopping_bag</span>
                     <span>+ Keranjang</span>
                 </a>
             @else
-                <button onclick="addToCart('{{ $product->id }}', '{{ addslashes($product->name) }}', '{{ $product->final_price }}')" class="w-full py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs tracking-wider uppercase rounded-btn transition-colors duration-200 flex items-center justify-center space-x-1.5">
-                    <span class="material-symbols-outlined !text-[16px]">shopping_bag</span>
+                <button onclick="addToCart('{{ $product->id }}', '{{ addslashes($product->name) }}', '{{ $product->final_price }}')" class="w-full py-1.5 px-2 bg-brand hover:bg-brandDark text-white font-semibold text-xs rounded-btn transition-colors duration-200 flex items-center justify-center space-x-1 whitespace-nowrap shadow-sm cursor-pointer">
+                    <span class="material-symbols-outlined !text-[14px]">shopping_bag</span>
                     <span>+ Keranjang</span>
                 </button>
             @endif

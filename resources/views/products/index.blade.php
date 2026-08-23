@@ -72,28 +72,22 @@
             <!-- 2. PRODUCT GRID SECTION -->
             <div class="flex-grow">
                 <!-- Sorting & Mobile Filter Toggle Header -->
-                <div class="flex justify-between items-center mb-8 border-b border-warmLightGrey pb-4">
-                    <span class="text-xs text-warmGrey">
-                        Menampilkan {{ $products->firstItem() ?? 0 }} - {{ $products->lastItem() ?? 0 }} dari {{ $products->total() }} produk
-                    </span>
-                    
-                    <div class="flex items-center space-x-3">
-                        <!-- Mobile Filter Trigger -->
-                        <button @click="mobileFilterOpen = true" :aria-expanded="mobileFilterOpen" aria-controls="mobile-filter-drawer" class="lg:hidden flex items-center space-x-1.5 px-3 py-2 border border-warmLightGrey rounded-btn text-xs text-warmBlack hover:border-brand">
-                            <span class="material-symbols-outlined !text-[16px]">filter_list</span>
-                            <span>Filter</span>
-                        </button>
+                <div class="flex justify-between lg:justify-end items-center mb-8 border-b border-warmLightGrey pb-4">
+                    <!-- Mobile Filter Trigger -->
+                    <button @click="mobileFilterOpen = true" :aria-expanded="mobileFilterOpen" aria-controls="mobile-filter-drawer" class="lg:hidden flex items-center space-x-1.5 px-3 py-2 border border-warmLightGrey rounded-btn text-xs text-warmBlack hover:border-brand">
+                        <span class="material-symbols-outlined !text-[16px]">filter_list</span>
+                        <span>Filter</span>
+                    </button>
 
-                        <!-- Sorting Dropdown -->
-                        <div class="flex items-center space-x-2">
-                            <label for="sort-select" class="hidden md:inline-block text-xs text-warmGrey font-medium">Urutkan:</label>
-                            <select id="sort-select" onchange="window.location.href = this.value" aria-label="Urutkan produk" class="border border-warmLightGrey rounded-btn text-xs text-warmBlack focus:border-brand focus:ring-0 py-1.5 pl-3 pr-8 bg-white cursor-pointer">
-                                <option value="{{ request()->fullUrlWithQuery(['sort_by' => 'latest', 'page' => null]) }}" {{ request('sort_by') === 'latest' || !request('sort_by') ? 'selected' : '' }}>Terbaru</option>
-                                <option value="{{ request()->fullUrlWithQuery(['sort_by' => 'price_low', 'page' => null]) }}" {{ request('sort_by') === 'price_low' ? 'selected' : '' }}>Harga: Rendah ke Tinggi</option>
-                                <option value="{{ request()->fullUrlWithQuery(['sort_by' => 'price_high', 'page' => null]) }}" {{ request('sort_by') === 'price_high' ? 'selected' : '' }}>Harga: Tinggi ke Rendah</option>
-                                <option value="{{ request()->fullUrlWithQuery(['sort_by' => 'popular', 'page' => null]) }}" {{ request('sort_by') === 'popular' ? 'selected' : '' }}>Terpopuler</option>
-                            </select>
-                        </div>
+                    <!-- Sorting Dropdown -->
+                    <div class="flex items-center space-x-2">
+                        <label for="sort-select" class="hidden md:inline-block text-xs text-warmGrey font-medium">Urutkan:</label>
+                        <select id="sort-select" onchange="window.location.href = this.value" aria-label="Urutkan produk" class="border border-warmLightGrey rounded-btn text-xs text-warmBlack focus:border-brand focus:ring-0 py-1.5 pl-3 pr-8 bg-white cursor-pointer w-[185px] text-ellipsis overflow-hidden whitespace-nowrap">
+                            <option value="{{ request()->fullUrlWithQuery(['sort_by' => 'latest', 'page' => null]) }}" {{ request('sort_by') === 'latest' || !request('sort_by') ? 'selected' : '' }}>Terbaru</option>
+                            <option value="{{ request()->fullUrlWithQuery(['sort_by' => 'price_low', 'page' => null]) }}" {{ request('sort_by') === 'price_low' ? 'selected' : '' }}>Harga: Rendah ke Tinggi</option>
+                            <option value="{{ request()->fullUrlWithQuery(['sort_by' => 'price_high', 'page' => null]) }}" {{ request('sort_by') === 'price_high' ? 'selected' : '' }}>Harga: Tinggi ke Rendah</option>
+                            <option value="{{ request()->fullUrlWithQuery(['sort_by' => 'popular', 'page' => null]) }}" {{ request('sort_by') === 'popular' ? 'selected' : '' }}>Terpopuler</option>
+                        </select>
                     </div>
                 </div>
 
@@ -109,7 +103,7 @@
                         <a href="/products" class="px-5 py-2.5 bg-brand hover:bg-brandDark text-white text-xs font-semibold uppercase tracking-wider rounded-btn transition-colors">Lihat Semua Produk</a>
                     </div>
                 @else
-                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5">
+                    <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5">
                         @foreach($products as $product)
                             @php
                                 $imgUrl = $product->primary_image ?? 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=600&auto=format&fit=crop';

@@ -27,7 +27,10 @@ class ProductSeeder extends Seeder
                     ['variant_name' => '18 cm', 'variant_type' => 'Ukuran', 'additional_price' => 10000, 'stock' => 25, 'sku' => 'GLG-EM-RG-18', 'is_active' => true],
                 ],
                 'images' => [
-                    ['image_url' => 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?q=80&w=600&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?q=80&w=800&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1599643477877-530eb83abc8e?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 2],
+                    ['image_url' => 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 3],
+                    ['image_url' => 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 4],
                 ]
             ],
             [
@@ -47,7 +50,10 @@ class ProductSeeder extends Seeder
                     ['variant_name' => 'Merah Muda', 'variant_type' => 'Warna', 'additional_price' => 15000, 'stock' => 10, 'sku' => 'KLG-MUT-MM', 'is_active' => true],
                 ],
                 'images' => [
-                    ['image_url' => 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=600&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 2],
+                    ['image_url' => 'https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 3],
+                    ['image_url' => 'https://images.unsplash.com/photo-1602751584552-8ba73aad10e1?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 4],
                 ]
             ],
             [
@@ -68,7 +74,10 @@ class ProductSeeder extends Seeder
                     ['variant_name' => 'Size 8', 'variant_type' => 'Ukuran', 'additional_price' => 5000, 'stock' => 10, 'sku' => 'CCN-SLV-S8', 'is_active' => true],
                 ],
                 'images' => [
-                    ['image_url' => 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=600&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=800&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 2],
+                    ['image_url' => 'https://images.unsplash.com/photo-1598560917505-59a3ad559071?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 3],
+                    ['image_url' => 'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 4],
                 ]
             ],
             [
@@ -84,7 +93,9 @@ class ProductSeeder extends Seeder
                     ['variant_name' => 'Silver', 'variant_type' => 'Warna', 'additional_price' => 0, 'stock' => 20, 'sku' => 'BRS-KB-SL', 'is_active' => true],
                 ],
                 'images' => [
-                    ['image_url' => 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=600&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=800&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1589128777073-263566ae5e4d?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 2],
+                    ['image_url' => 'https://images.unsplash.com/photo-1535632787350-4e68ef0ac584?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 3],
                 ]
             ],
             [
@@ -101,7 +112,9 @@ class ProductSeeder extends Seeder
                     ['variant_name' => 'Pink', 'variant_type' => 'Warna', 'additional_price' => 0, 'stock' => 20, 'sku' => 'ANT-RB-PK', 'is_active' => true],
                 ],
                 'images' => [
-                    ['image_url' => 'https://images.unsplash.com/photo-1630019852942-f89202989a59?q=80&w=600&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1630019852942-f89202989a59?q=80&w=800&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1635767798638-3e25273a8236?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 2],
+                    ['image_url' => 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 3],
                 ]
             ],
             [
@@ -121,7 +134,9 @@ class ProductSeeder extends Seeder
                     ['variant_name' => 'Set B (5 Pcs)', 'variant_type' => 'Pilihan', 'additional_price' => 10000, 'stock' => 40, 'sku' => 'JPT-MUT-SB', 'is_active' => true],
                 ],
                 'images' => [
-                    ['image_url' => 'https://images.unsplash.com/photo-1576243345690-4e4b79b63288?q=80&w=600&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1576243345690-4e4b79b63288?q=80&w=800&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 2],
+                    ['image_url' => 'https://images.unsplash.com/photo-1596704017254-9b121068fb31?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 3],
                 ]
             ],
             [
@@ -138,7 +153,9 @@ class ProductSeeder extends Seeder
                     ['variant_name' => 'Mint', 'variant_type' => 'Warna', 'additional_price' => 0, 'stock' => 30, 'sku' => 'GLG-MN-MT', 'is_active' => true],
                 ],
                 'images' => [
-                    ['image_url' => 'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?q=80&w=600&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?q=80&w=800&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 2],
+                    ['image_url' => 'https://images.unsplash.com/photo-1599643477877-530eb83abc8e?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 3],
                 ]
             ],
             [
@@ -154,7 +171,9 @@ class ProductSeeder extends Seeder
                     ['variant_name' => 'Triple Layer', 'variant_type' => 'Gaya', 'additional_price' => 15000, 'stock' => 15, 'sku' => 'KLG-LYR-TL', 'is_active' => true],
                 ],
                 'images' => [
-                    ['image_url' => 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=80&w=600&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=80&w=800&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 2],
+                    ['image_url' => 'https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 3],
                 ]
             ],
             [
@@ -174,7 +193,9 @@ class ProductSeeder extends Seeder
                     ['variant_name' => 'Wanita (Size 6)', 'variant_type' => 'Ukuran', 'additional_price' => 0, 'stock' => 25, 'sku' => 'CCN-TTN-W6', 'is_active' => true],
                 ],
                 'images' => [
-                    ['image_url' => 'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?q=80&w=600&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?q=80&w=800&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 2],
+                    ['image_url' => 'https://images.unsplash.com/photo-1598560917505-59a3ad559071?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 3],
                 ]
             ],
             [
@@ -191,7 +212,9 @@ class ProductSeeder extends Seeder
                     ['variant_name' => 'Biru Navy', 'variant_type' => 'Warna', 'additional_price' => 0, 'stock' => 40, 'sku' => 'BRS-RJ-BR', 'is_active' => true],
                 ],
                 'images' => [
-                    ['image_url' => 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?q=80&w=600&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?q=80&w=800&auto=format&fit=crop', 'is_primary' => true, 'sort_order' => 1],
+                    ['image_url' => 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 2],
+                    ['image_url' => 'https://images.unsplash.com/photo-1589128777073-263566ae5e4d?q=80&w=800&auto=format&fit=crop', 'is_primary' => false, 'sort_order' => 3],
                 ]
             ],
         ];

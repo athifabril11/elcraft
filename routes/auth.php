@@ -20,7 +20,17 @@ Route::middleware('guest')->group(function () {
     Route::post('register', [RegisteredUserController::class, 'store']);
 
     Route::get('login', function () {
-        return redirect()->route('home')->with('show_login_modal', true)->with('auth_modal_tab', 'login');
+        $redirect = redirect()->route('home')
+            ->with('show_login_modal', true)
+            ->with('auth_modal_tab', 'login');
+
+        // Forward any status flash (e.g. from NewPasswordController after a successful reset)
+        // so it's available in the storefront modal on the resulting home page.
+        if (session('status')) {
+            $redirect->with('status', session('status'));
+        }
+
+        return $redirect;
     })->name('login');
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);

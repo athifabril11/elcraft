@@ -24,19 +24,20 @@
             align-items: center;
             justify-content: center;
             background-color: #F5F0EE;
-            padding: 24px;
+            padding: 24px 16px;
             box-sizing: border-box;
+            margin: 0;
         }
 
-        /* Card */
+        /* Single unified card */
         .auth-card {
             width: 100%;
             max-width: 380px;
             background: #fff;
-            border-radius: 16px;
+            border-radius: 20px;
             border: 1px solid rgba(232, 180, 172, 0.4);
-            padding: 32px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+            padding: 28px 26px 26px;
+            box-shadow: 0 4px 20px rgba(193, 123, 111, 0.06);
             box-sizing: border-box;
         }
     </style>

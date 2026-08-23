@@ -229,7 +229,9 @@
                             this.authErrors = { email: [data.message || 'Terjadi kesalahan. Coba lagi.'] };
                             return;
                         }
-                        window.location.reload();
+                        // Setelah registrasi berhasil, arahkan ke halaman verifikasi email.
+                        // Server menyertakan URL tujuan di data.redirect.
+                        window.location.href = data.redirect || window.location.href;
                     })
                     .catch(() => {
                         this.authErrors = { email: ['Terjadi kesalahan jaringan. Coba lagi.'] };
@@ -706,22 +708,50 @@
                         <p class="text-xs font-medium text-[#A98077] mt-0.5">Masuk ke akun Anda</p>
                     </div>
 
+                    {{-- ─── Post-reset (or other) status message ─────────────────────── --}}
+                    @if (session('status'))
+                        <div class="mb-4 px-4 py-3 rounded-xl border text-xs font-medium text-center"
+                             style="background:#F0FDF4;border-color:#BBF7D0;color:#15803D;">
+                            {{ session('status') }}
+                        </div>
+                    @endif
+
                     <form action="{{ route('login') }}" method="POST" @submit.prevent="submitLogin($event)" id="modal-login-form">
                         @csrf
 
                         <!-- Email -->
                         <div class="mb-3.5" style="margin-bottom: 16px;">
                             <label for="modal-login-email" class="block text-xs font-medium text-[#5F5E5A] mb-1.5" style="margin-bottom: 6px;">Email</label>
-                            <input
-                                id="modal-login-email"
-                                type="email"
-                                name="email"
-                                required
-                                autocomplete="username"
-                                class="w-full px-3.5 py-2.5 text-sm text-[#9E5A4E] border border-[#E8B4AC] rounded-xl bg-white placeholder-[#E8B4AC] focus:outline-none focus:ring-2 focus:ring-[#C17B6F]/30 focus:border-[#C17B6F] transition-colors duration-200"
-                                style="width: 100%; box-sizing: border-box;"
-                                placeholder="nama@email.com"
-                            >
+                            <div class="relative" style="position: relative;">
+                                <span style="position: absolute; top: 50%; left: 12px; transform: translateY(-50%); display: flex; align-items: center; pointer-events: none;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8A09A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <rect x="2" y="4" width="20" height="16" rx="2"/>
+                                        <polyline points="2,4 12,13 22,4"/>
+                                    </svg>
+                                </span>
+                                <input
+                                    id="modal-login-email"
+                                    type="email"
+                                    name="email"
+                                    required
+                                    autocomplete="username"
+                                    placeholder="nama@email.com"
+                                    style="
+                                        width: 100%;
+                                        padding: 9px 12px 9px 34px;
+                                        font-size: 13px;
+                                        color: #9E5A4E;
+                                        border: 1px solid #E8B4AC;
+                                        border-radius: 10px;
+                                        background: #fff;
+                                        outline: none;
+                                        transition: border-color .2s, box-shadow .2s;
+                                        box-sizing: border-box;
+                                    "
+                                    onfocus="this.style.borderColor='#C17B6F';this.style.boxShadow='0 0 0 3px rgba(193,123,111,0.15)';"
+                                    onblur="this.style.borderColor='#E8B4AC';this.style.boxShadow='none';"
+                                >
+                            </div>
                             <template x-if="authErrors.email">
                                 <p class="mt-1.5 text-xs text-red-500" style="margin-top: 6px;" x-text="authErrors.email[0]"></p>
                             </template>
@@ -737,9 +767,21 @@
                                     name="password"
                                     required
                                     autocomplete="current-password"
-                                    class="w-full px-3.5 py-2.5 pr-11 text-sm text-[#9E5A4E] border border-[#E8B4AC] rounded-xl bg-white placeholder-[#E8B4AC] focus:outline-none focus:ring-2 focus:ring-[#C17B6F]/30 focus:border-[#C17B6F] transition-colors duration-200"
-                                    style="width: 100%; padding: 10px 44px 10px 14px; box-sizing: border-box;"
                                     placeholder="••••••••"
+                                    style="
+                                        width: 100%;
+                                        padding: 9px 38px 9px 12px;
+                                        font-size: 13px;
+                                        color: #9E5A4E;
+                                        border: 1px solid #E8B4AC;
+                                        border-radius: 10px;
+                                        background: #fff;
+                                        outline: none;
+                                        transition: border-color .2s, box-shadow .2s;
+                                        box-sizing: border-box;
+                                    "
+                                    onfocus="this.style.borderColor='#C17B6F';this.style.boxShadow='0 0 0 3px rgba(193,123,111,0.15)';"
+                                    onblur="this.style.borderColor='#E8B4AC';this.style.boxShadow='none';"
                                 >
                                 <button
                                     type="button"
@@ -831,16 +873,36 @@
                         <!-- Name -->
                         <div class="mb-3" style="margin-bottom: 12px;">
                             <label for="modal-register-name" class="block text-xs font-medium text-[#5F5E5A] mb-1" style="margin-bottom: 4px;">Nama Lengkap</label>
-                            <input
-                                id="modal-register-name"
-                                type="text"
-                                name="name"
-                                required
-                                autocomplete="name"
-                                class="w-full px-3.5 py-2 text-sm text-[#9E5A4E] border border-[#E8B4AC] rounded-xl bg-white placeholder-[#E8B4AC] focus:outline-none focus:ring-2 focus:ring-[#C17B6F]/30 focus:border-[#C17B6F] transition-colors duration-200"
-                                style="width: 100%; box-sizing: border-box;"
-                                placeholder="Nama Anda"
-                            >
+                            <div class="relative" style="position: relative;">
+                                <span style="position: absolute; top: 50%; left: 12px; transform: translateY(-50%); display: flex; align-items: center; pointer-events: none;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8A09A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                        <circle cx="12" cy="7" r="4"/>
+                                    </svg>
+                                </span>
+                                <input
+                                    id="modal-register-name"
+                                    type="text"
+                                    name="name"
+                                    required
+                                    autocomplete="name"
+                                    placeholder="Nama Anda"
+                                    style="
+                                        width: 100%;
+                                        padding: 9px 12px 9px 34px;
+                                        font-size: 13px;
+                                        color: #9E5A4E;
+                                        border: 1px solid #E8B4AC;
+                                        border-radius: 10px;
+                                        background: #fff;
+                                        outline: none;
+                                        transition: border-color .2s, box-shadow .2s;
+                                        box-sizing: border-box;
+                                    "
+                                    onfocus="this.style.borderColor='#C17B6F';this.style.boxShadow='0 0 0 3px rgba(193,123,111,0.15)';"
+                                    onblur="this.style.borderColor='#E8B4AC';this.style.boxShadow='none';"
+                                >
+                            </div>
                             <template x-if="authErrors.name">
                                 <p class="mt-1 text-xs text-red-500" style="margin-top: 4px;" x-text="authErrors.name[0]"></p>
                             </template>
@@ -849,16 +911,36 @@
                         <!-- Email -->
                         <div class="mb-3" style="margin-bottom: 12px;">
                             <label for="modal-register-email" class="block text-xs font-medium text-[#5F5E5A] mb-1" style="margin-bottom: 4px;">Email</label>
-                            <input
-                                id="modal-register-email"
-                                type="email"
-                                name="email"
-                                required
-                                autocomplete="username"
-                                class="w-full px-3.5 py-2 text-sm text-[#9E5A4E] border border-[#E8B4AC] rounded-xl bg-white placeholder-[#E8B4AC] focus:outline-none focus:ring-2 focus:ring-[#C17B6F]/30 focus:border-[#C17B6F] transition-colors duration-200"
-                                style="width: 100%; box-sizing: border-box;"
-                                placeholder="nama@email.com"
-                            >
+                            <div class="relative" style="position: relative;">
+                                <span style="position: absolute; top: 50%; left: 12px; transform: translateY(-50%); display: flex; align-items: center; pointer-events: none;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8A09A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <rect x="2" y="4" width="20" height="16" rx="2"/>
+                                        <polyline points="2,4 12,13 22,4"/>
+                                    </svg>
+                                </span>
+                                <input
+                                    id="modal-register-email"
+                                    type="email"
+                                    name="email"
+                                    required
+                                    autocomplete="username"
+                                    placeholder="nama@email.com"
+                                    style="
+                                        width: 100%;
+                                        padding: 9px 12px 9px 34px;
+                                        font-size: 13px;
+                                        color: #9E5A4E;
+                                        border: 1px solid #E8B4AC;
+                                        border-radius: 10px;
+                                        background: #fff;
+                                        outline: none;
+                                        transition: border-color .2s, box-shadow .2s;
+                                        box-sizing: border-box;
+                                    "
+                                    onfocus="this.style.borderColor='#C17B6F';this.style.boxShadow='0 0 0 3px rgba(193,123,111,0.15)';"
+                                    onblur="this.style.borderColor='#E8B4AC';this.style.boxShadow='none';"
+                                >
+                            </div>
                             <template x-if="authErrors.email">
                                 <p class="mt-1 text-xs text-red-500" style="margin-top: 4px;" x-text="authErrors.email[0]"></p>
                             </template>
@@ -874,9 +956,21 @@
                                     name="password"
                                     required
                                     autocomplete="new-password"
-                                    class="w-full px-3.5 py-2 pr-11 text-sm text-[#9E5A4E] border border-[#E8B4AC] rounded-xl bg-white placeholder-[#E8B4AC] focus:outline-none focus:ring-2 focus:ring-[#C17B6F]/30 focus:border-[#C17B6F] transition-colors duration-200"
-                                    style="width: 100%; padding: 8px 44px 8px 14px; box-sizing: border-box;"
                                     placeholder="••••••••"
+                                    style="
+                                        width: 100%;
+                                        padding: 9px 38px 9px 12px;
+                                        font-size: 13px;
+                                        color: #9E5A4E;
+                                        border: 1px solid #E8B4AC;
+                                        border-radius: 10px;
+                                        background: #fff;
+                                        outline: none;
+                                        transition: border-color .2s, box-shadow .2s;
+                                        box-sizing: border-box;
+                                    "
+                                    onfocus="this.style.borderColor='#C17B6F';this.style.boxShadow='0 0 0 3px rgba(193,123,111,0.15)';"
+                                    onblur="this.style.borderColor='#E8B4AC';this.style.boxShadow='none';"
                                 >
                                 <button
                                     type="button"
@@ -910,9 +1004,21 @@
                                     name="password_confirmation"
                                     required
                                     autocomplete="new-password"
-                                    class="w-full px-3.5 py-2 pr-11 text-sm text-[#9E5A4E] border border-[#E8B4AC] rounded-xl bg-white placeholder-[#E8B4AC] focus:outline-none focus:ring-2 focus:ring-[#C17B6F]/30 focus:border-[#C17B6F] transition-colors duration-200"
-                                    style="width: 100%; padding: 8px 44px 8px 14px; box-sizing: border-box;"
                                     placeholder="••••••••"
+                                    style="
+                                        width: 100%;
+                                        padding: 9px 38px 9px 12px;
+                                        font-size: 13px;
+                                        color: #9E5A4E;
+                                        border: 1px solid #E8B4AC;
+                                        border-radius: 10px;
+                                        background: #fff;
+                                        outline: none;
+                                        transition: border-color .2s, box-shadow .2s;
+                                        box-sizing: border-box;
+                                    "
+                                    onfocus="this.style.borderColor='#C17B6F';this.style.boxShadow='0 0 0 3px rgba(193,123,111,0.15)';"
+                                    onblur="this.style.borderColor='#E8B4AC';this.style.boxShadow='none';"
                                 >
                                 <button
                                     type="button"

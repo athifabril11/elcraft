@@ -48,9 +48,12 @@ class RegisteredUserController extends Controller
         Auth::login($user);
 
         if ($request->wantsJson()) {
-            return response()->json(['success' => true]);
+            return response()->json([
+                'success'  => true,
+                'redirect' => route('verification.notice'),
+            ]);
         }
 
-        return redirect(route('home', absolute: false));
+        return redirect()->route('verification.notice');
     }
 }

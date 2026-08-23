@@ -32,38 +32,70 @@
             <div class="lg:w-[52%] flex flex-col-reverse md:flex-row gap-4">
 
                 {{-- Thumbnail Strip --}}
-                <div class="flex md:flex-col gap-3 overflow-x-auto md:overflow-y-auto md:max-h-[520px] hide-scrollbar">
-                    @forelse($product->images as $i => $img)
-                        <button @click="selectedImage = '{{ $img->image_url }}'"
-                            aria-label="Tampilkan foto produk {{ $i + 1 }}"
-                            class="thumb-btn flex-shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-img overflow-hidden border-2 transition-all duration-200 bg-warmCream"
-                            :class="selectedImage === '{{ $img->image_url }}' ? 'border-brand' : 'border-warmLightGrey hover:border-brand/50'">
-                            <img src="{{ $img->image_url }}" alt="Thumbnail {{ $i + 1 }}" class="w-full h-full object-cover">
-                        </button>
-                    @empty
-                        <div class="flex-shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-img overflow-hidden border-2 border-brand bg-warmCream flex items-center justify-center">
-                            <span class="material-symbols-outlined text-warmGrey">image</span>
-                        </div>
-                    @endforelse
-                </div>
+                @if($product->images->count() > 1)
+                    <div class="flex md:flex-col gap-3 overflow-x-auto md:overflow-y-auto md:max-h-[520px] hide-scrollbar py-1">
+                        @foreach($product->images as $i => $img)
+                            <button @click="scrollToIndex({{ $i }})"
+                                type="button"
+                                aria-label="Tampilkan foto produk {{ $i + 1 }}"
+                                class="thumb-btn flex-shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-img overflow-hidden border-2 transition-all duration-200 bg-warmCream cursor-pointer"
+                                :class="activeImageIndex === {{ $i }} ? 'border-brand shadow-xs' : 'border-warmLightGrey hover:border-brand/50 opacity-70 hover:opacity-100'">
+                                <img src="{{ $img->image_url }}" alt="Thumbnail {{ $i + 1 }}" class="w-full h-full object-cover">
+                            </button>
+                        @endforeach
+                    </div>
+                @endif
 
-                {{-- Main Image --}}
-                <div class="flex-1 relative aspect-square rounded-img overflow-hidden bg-warmCream border border-warmLightGrey/50 group">
-                    <img :src="selectedImage"
-                        alt="{{ $product->name }}"
-                        class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                {{-- Main Image Swipeable Container --}}
+                <div class="flex-1 relative aspect-square rounded-img overflow-hidden bg-warmCream border border-warmLightGrey/50 group select-none">
+                    
+                    {{-- Native Touch/Swipe Scroll Snap Track with strict snap-always --}}
+                    <div x-ref="mainSlider"
+                         @scroll.debounce.40ms="updateActiveIndexFromScroll($event)"
+                         @scrollend="updateActiveIndexFromScroll($event)"
+                         @pointerdown="handlePointerDown($event)"
+                         @pointermove="handlePointerMove($event)"
+                         @pointerup="handlePointerUp($event)"
+                         @pointercancel="handlePointerUp($event)"
+                         style="scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; touch-action: pan-y pinch-zoom;"
+                         class="flex w-full h-full overflow-x-auto snap-x snap-mandatory hide-scrollbar cursor-pointer">
+                        @forelse($product->images as $i => $img)
+                            <div style="scroll-snap-align: start; scroll-snap-stop: always;"
+                                 class="w-full min-w-full h-full flex-shrink-0 snap-start flex items-center justify-center relative select-none">
+                                <img src="{{ $img->image_url }}"
+                                    alt="{{ $product->name }} - Foto {{ $i + 1 }}"
+                                    draggable="false"
+                                    class="w-full h-full object-cover pointer-events-none select-none">
+                            </div>
+                        @empty
+                            <div style="scroll-snap-align: start; scroll-snap-stop: always;"
+                                 class="w-full min-w-full h-full flex-shrink-0 snap-start flex items-center justify-center relative select-none">
+                                <img src="https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop"
+                                    alt="{{ $product->name }}"
+                                    draggable="false"
+                                    class="w-full h-full object-cover pointer-events-none select-none">
+                            </div>
+                        @endforelse
+                    </div>
+
+                    {{-- Shopee-style Badge Counter (Pojok Kanan Bawah) --}}
+                    @if($product->images->count() > 1)
+                        <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-xs text-white text-[11px] font-medium px-2.5 py-0.5 rounded-full pointer-events-none z-10">
+                            <span x-text="activeImageIndex + 1"></span>/{{ $product->images->count() }}
+                        </div>
+                    @endif
 
                     {{-- Discount Badge --}}
                     @if($product->isDiscountActive())
-                        <span class="absolute top-4 left-4 bg-brand text-white text-xs font-semibold tracking-wider px-3 py-1 rounded-[4px]">
+                        <span class="absolute top-4 left-4 bg-brand text-white text-xs font-semibold tracking-wider px-3 py-1 rounded-[4px] pointer-events-none z-10">
                             -{{ $product->discount_percent }}% OFF
                         </span>
                     @endif
 
                     {{-- Wishlist --}}
-                    <button onclick="toggleWishlistItem(this, '{{ $product->id }}', '{{ addslashes($product->name) }}')"
+                    <button onclick="event.stopPropagation(); toggleWishlistItem(this, '{{ $product->id }}', '{{ addslashes($product->name) }}')"
                         data-product-id="{{ $product->id }}"
-                        class="wishlist-btn absolute top-4 right-4 w-10 h-10 rounded-full bg-white shadow-sm border border-warmLightGrey/50 flex items-center justify-center text-warmGrey hover:text-brand hover:scale-110 transition-all duration-200"
+                        class="wishlist-btn absolute top-4 right-4 w-10 h-10 rounded-full bg-white shadow-sm border border-warmLightGrey/50 flex items-center justify-center text-warmGrey hover:text-brand hover:scale-110 transition-all duration-200 z-10 cursor-pointer"
                         aria-label="Add to Wishlist">
                         <span class="material-symbols-outlined !text-[22px]">favorite</span>
                     </button>
@@ -160,28 +192,49 @@
                 @endif
 
                 {{-- Quantity + CTA --}}
-                <div class="flex items-center justify-center md:justify-start gap-3 pt-2">
+                {{--
+                    Layout logic:
+                    - mobile: stacked (hidden md buttons, sticky bottom bar handles CTA)
+                    - md–lg tablet (768–1023px): single row — qty + buttons side by side, full content width
+                    - lg (1024px side-by-side layout): qty on first line, buttons fill second line via flex-wrap
+                    - xl+ desktop (1280px+): single row — qty + buttons, restored original
+                --}}
+                <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-2">
                     {{-- Qty Selector --}}
-                    <div class="w-32 h-11 flex items-center justify-between border border-warmLightGrey rounded-btn overflow-hidden bg-white shrink-0">
-                        <button @click="changeQty(-1)" type="button" aria-label="Kurangi jumlah" class="w-10 h-11 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-r border-warmLightGrey shrink-0">
+                    <div class="w-32 h-10 flex items-center justify-between border border-warmLightGrey rounded-btn overflow-hidden bg-white shrink-0">
+                        <button @click="changeQty(-1)" type="button" aria-label="Kurangi jumlah" class="w-10 h-10 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-r border-warmLightGrey shrink-0">
                             <span class="material-symbols-outlined !text-[18px]">remove</span>
                         </button>
                         <input type="number" x-model.number="qty" readonly min="1" :max="maxStock" aria-label="Jumlah beli"
-                            class="w-12 h-11 text-center text-sm font-semibold text-warmBlack border-none outline-none focus:ring-0 bg-white p-0">
-                        <button @click="changeQty(1)" type="button" aria-label="Tambah jumlah" class="w-10 h-11 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-l border-warmLightGrey shrink-0">
+                            class="w-12 h-10 text-center text-sm font-semibold text-warmBlack border-none outline-none focus:ring-0 bg-white p-0">
+                        <button @click="changeQty(1)" type="button" aria-label="Tambah jumlah" class="w-10 h-10 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-l border-warmLightGrey shrink-0">
                             <span class="material-symbols-outlined !text-[18px]">add</span>
                         </button>
                     </div>
 
-                    {{-- Add to Cart (Desktop only, hidden on mobile since mobile uses sticky bottom bar) --}}
-                    <button @click="handleAddToCart()"
-                        class="hidden md:flex flex-1 py-3 bg-brand hover:bg-brandDark text-white font-semibold text-sm uppercase tracking-widest rounded-btn transition-colors duration-200 items-center justify-center space-x-2"
-                        :class="maxStock === 0 || isAdding ? 'opacity-50 cursor-not-allowed' : ''"
-                        :disabled="maxStock === 0 || isAdding">
-                        <span x-show="isAdding" x-cloak class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                        <span x-show="!isAdding" class="material-symbols-outlined !text-[20px]">shopping_bag</span>
-                        <span x-text="maxStock === 0 ? 'Habis Terjual' : (isAdding ? 'Menambahkan...' : '+ Keranjang')">+ Keranjang</span>
-                    </button>
+                    {{-- Action Buttons (shown md+; mobile uses sticky bottom bar) --}}
+                    {{-- At lg (side-by-side layout, narrow right col): buttons fill the remaining flex row.
+                         Because the row wraps, if qty + buttons don't fit, buttons go to next row with full width. --}}
+                    <div class="hidden md:flex flex-1 min-w-0 items-center gap-2 lg:gap-2.5">
+                        {{-- Add to Cart --}}
+                        <button @click="handleAddToCart()"
+                            class="flex-1 min-w-0 py-2.5 lg:py-2.5 xl:py-3 border-2 border-brand text-brand hover:bg-brand/5 font-semibold text-[11px] lg:text-xs uppercase tracking-wide rounded-btn transition-colors duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                            :class="maxStock === 0 || isAdding ? 'opacity-50 cursor-not-allowed' : ''"
+                            :disabled="maxStock === 0 || isAdding">
+                            <span x-show="isAdding" x-cloak class="w-3.5 h-3.5 border-2 border-brand border-t-transparent rounded-full animate-spin shrink-0"></span>
+                            <span x-show="!isAdding" class="material-symbols-outlined !text-[16px] shrink-0">shopping_bag</span>
+                            <span class="truncate" x-text="maxStock === 0 ? 'Habis' : (isAdding ? 'Menambahkan...' : '+ Keranjang')">+ Keranjang</span>
+                        </button>
+
+                        {{-- Buy Now --}}
+                        <button @click="handleBuyNow()"
+                            class="flex-1 min-w-0 py-2.5 lg:py-2.5 xl:py-3 bg-brand hover:bg-brandDark text-white font-semibold text-[11px] lg:text-xs uppercase tracking-wide rounded-btn transition-colors duration-200 flex items-center justify-center gap-1.5 shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                            :class="maxStock === 0 || isAdding ? 'opacity-50 cursor-not-allowed' : ''"
+                            :disabled="maxStock === 0 || isAdding">
+                            <span class="material-symbols-outlined !text-[16px] shrink-0">bolt</span>
+                            <span class="truncate">Beli Sekarang</span>
+                        </button>
+                    </div>
                 </div>
 
                 {{-- Product Meta Info --}}
@@ -435,6 +488,69 @@
             <span>Beli</span>
         </button>
     </div>
+
+    {{-- ─── FULLSCREEN PHOTO VIEWER (Shopee Style Swipeable) ───────────────── --}}
+    <div x-cloak
+         x-show="fullscreenOpen"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @keydown.escape.window="closeFullscreen()"
+         class="fixed inset-0 z-[9999] bg-black flex flex-col justify-between select-none"
+         role="dialog"
+         aria-modal="true"
+         aria-label="Tampilan Foto Penuh">
+        
+        {{-- Top Bar: Minimalis Counter & Tombol Tutup --}}
+        <div class="flex items-center justify-between px-5 py-4 bg-gradient-to-b from-black/90 via-black/50 to-transparent z-20">
+            <div class="text-white text-xs font-semibold tracking-wider bg-white/10 backdrop-blur-md px-3 py-1 rounded-full">
+                <span x-text="activeImageIndex + 1"></span> / {{ $product->images->count() }}
+            </div>
+            <button @click="closeFullscreen()"
+                type="button"
+                class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+                aria-label="Tutup Foto Layar Penuh">
+                <span class="material-symbols-outlined !text-[24px]">close</span>
+            </button>
+        </div>
+
+        {{-- Center Image: Native Touch Swipeable Fullscreen Track --}}
+        <div x-ref="fullscreenSlider"
+             @scroll.debounce.40ms="updateFullscreenScroll($event)"
+             @scrollend="updateFullscreenScroll($event)"
+             style="scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; touch-action: pan-y pinch-zoom;"
+             class="flex-1 flex w-full h-full overflow-x-auto snap-x snap-mandatory hide-scrollbar items-center">
+            @forelse($product->images as $i => $img)
+                <div style="scroll-snap-align: start; scroll-snap-stop: always;"
+                     class="w-screen min-w-full h-full flex-shrink-0 snap-start flex items-center justify-center p-2 sm:p-4 cursor-pointer select-none"
+                     @click="closeFullscreen()">
+                    <img src="{{ $img->image_url }}"
+                        alt="{{ $product->name }} - Foto {{ $i + 1 }}"
+                        draggable="false"
+                        @click.stop
+                        class="max-w-full max-h-[85vh] object-contain select-none pointer-events-none">
+                </div>
+            @empty
+                <div style="scroll-snap-align: start; scroll-snap-stop: always;"
+                     class="w-screen min-w-full h-full flex-shrink-0 snap-start flex items-center justify-center p-2 sm:p-4 cursor-pointer select-none"
+                     @click="closeFullscreen()">
+                    <img src="https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop"
+                        alt="{{ $product->name }}"
+                        draggable="false"
+                        @click.stop
+                        class="max-w-full max-h-[85vh] object-contain select-none pointer-events-none">
+                </div>
+            @endforelse
+        </div>
+
+        {{-- Bottom Space --}}
+        <div class="py-3 text-center text-white/40 text-[11px] select-none pointer-events-none bg-gradient-to-t from-black/90 via-black/50 to-transparent">
+            Geser foto ke kiri / kanan untuk melihat foto lainnya
+        </div>
+    </div>
 </div>
 
 @push('scripts')
@@ -444,11 +560,122 @@
             activeTab: 'desc',
             qty: 1,
             maxStock: initialStock,
-            selectedImage: primaryImage,
+            activeImageIndex: 0,
+            fullscreenOpen: false,
             selectedVariants: {},
             basePrice: basePrice,
             additionalPrice: 0,
             isAdding: false,
+            
+            // Pointer & Drag Gesture State
+            isPointerDown: false,
+            isDragging: false,
+            pointerStartX: 0,
+            pointerStartY: 0,
+            pointerStartTime: 0,
+            startIndex: 0,
+
+            handlePointerDown(e) {
+                if (e.pointerType === 'mouse' && e.button !== 0) return;
+                this.isPointerDown = true;
+                this.isDragging = false;
+                this.pointerStartX = e.clientX;
+                this.pointerStartY = e.clientY;
+                this.pointerStartTime = Date.now();
+                this.startIndex = this.activeImageIndex;
+            },
+            handlePointerMove(e) {
+                if (!this.isPointerDown) return;
+                const diffX = e.clientX - this.pointerStartX;
+                const diffY = e.clientY - this.pointerStartY;
+                if (!this.isDragging && (Math.abs(diffX) > 8 || Math.abs(diffY) > 8)) {
+                    if (Math.abs(diffX) >= Math.abs(diffY)) {
+                        this.isDragging = true;
+                    }
+                }
+            },
+            handlePointerUp(e) {
+                if (!this.isPointerDown) return;
+                const wasDragging = this.isDragging;
+                const diffX = e.clientX - this.pointerStartX;
+                const diffY = e.clientY - this.pointerStartY;
+                const elapsed = Math.max(1, Date.now() - this.pointerStartTime);
+                const velocity = Math.abs(diffX) / elapsed;
+                
+                this.isPointerDown = false;
+                this.isDragging = false;
+
+                if (wasDragging) {
+                    const width = this.$refs.mainSlider ? this.$refs.mainSlider.clientWidth : 320;
+                    const threshold = width * 0.16; // 16% width threshold for snapping
+                    const maxIdx = {{ max(0, $product->images->count() - 1) }};
+                    let targetIdx = this.startIndex;
+
+                    if (diffX < -threshold || (diffX < -30 && velocity > 0.25)) {
+                        targetIdx = Math.min(maxIdx, this.startIndex + 1);
+                    } else if (diffX > threshold || (diffX > 30 && velocity > 0.25)) {
+                        targetIdx = Math.max(0, this.startIndex - 1);
+                    }
+                    this.scrollToIndex(targetIdx);
+                } else if (Math.abs(diffX) < 5 && Math.abs(diffY) < 5) {
+                    // Clean tap/click -> open fullscreen
+                    this.openFullscreen(this.activeImageIndex);
+                }
+            },
+
+            scrollToIndex(index) {
+                const maxIdx = {{ max(0, $product->images->count() - 1) }};
+                this.activeImageIndex = Math.max(0, Math.min(maxIdx, index));
+                if (this.$refs.mainSlider) {
+                    const width = this.$refs.mainSlider.clientWidth;
+                    this.$refs.mainSlider.scrollTo({
+                        left: this.activeImageIndex * width,
+                        behavior: 'smooth'
+                    });
+                }
+            },
+            updateActiveIndexFromScroll(e) {
+                if (this.isPointerDown) return; // Don't interrupt active drag
+                const slider = e.target;
+                const scrollLeft = slider.scrollLeft;
+                const width = slider.clientWidth;
+                if (width > 0) {
+                    const index = Math.round(scrollLeft / width);
+                    const maxIdx = {{ max(0, $product->images->count() - 1) }};
+                    this.activeImageIndex = Math.max(0, Math.min(maxIdx, index));
+                }
+            },
+            openFullscreen(index = 0) {
+                this.activeImageIndex = index;
+                this.fullscreenOpen = true;
+                document.body.style.overflow = 'hidden';
+                this.$nextTick(() => {
+                    if (this.$refs.fullscreenSlider) {
+                        const width = this.$refs.fullscreenSlider.clientWidth;
+                        this.$refs.fullscreenSlider.scrollTo({
+                            left: index * width,
+                            behavior: 'auto'
+                        });
+                    }
+                });
+            },
+            closeFullscreen() {
+                this.fullscreenOpen = false;
+                document.body.style.overflow = '';
+                this.$nextTick(() => {
+                    this.scrollToIndex(this.activeImageIndex);
+                });
+            },
+            updateFullscreenScroll(e) {
+                const slider = e.target;
+                const scrollLeft = slider.scrollLeft;
+                const width = slider.clientWidth;
+                if (width > 0) {
+                    const index = Math.round(scrollLeft / width);
+                    const maxIdx = {{ max(0, $product->images->count() - 1) }};
+                    this.activeImageIndex = Math.max(0, Math.min(maxIdx, index));
+                }
+            },
             
             changeQty(delta) {
                 this.qty = Math.max(1, Math.min(this.maxStock, this.qty + delta));

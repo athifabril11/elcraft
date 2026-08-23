@@ -26,10 +26,13 @@ Route::get('/products/{slug}', [ProductController::class, 'show'])->name('produc
 use App\Http\Controllers\CartController;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HALAMAN YANG DAPAT DILIHAT TAMU (dengan modal login otomatis jika tamu)
+// HALAMAN YANG MEMERLUKAN AUTH (dengan modal login otomatis jika tamu)
 // Middleware 'guest.modal': jika tamu, redirect balik + flash show_login_modal
+// Middleware 'verified': jika sudah login tapi belum verifikasi email,
+//   redirect ke verification.notice. guest.modal berjalan lebih dulu dan
+//   short-circuit untuk tamu murni sehingga verified tidak dievaluasi bagi tamu.
 // ─────────────────────────────────────────────────────────────────────────────
-Route::middleware('guest.modal')->group(function () {
+Route::middleware(['guest.modal', 'verified'])->group(function () {
     // Keranjang Belanja
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
 
@@ -46,13 +49,11 @@ Route::middleware('guest.modal')->group(function () {
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{orderNumber}', [OrderController::class, 'show'])->name('orders.show');
 
-    // Checkout (memerlukan email terverifikasi)
-    Route::middleware('verified')->group(function () {
-        Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
-        Route::get('/checkout/finish', [CheckoutController::class, 'finish'])->name('checkout.finish');
-        Route::get('/checkout/unfinish', [CheckoutController::class, 'unfinish'])->name('checkout.unfinish');
-        Route::get('/checkout/error', [CheckoutController::class, 'error'])->name('checkout.error');
-    });
+    // Checkout (juga memerlukan email terverifikasi — verified sudah diwarisi dari grup induk)
+    Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
+    Route::get('/checkout/finish', [CheckoutController::class, 'finish'])->name('checkout.finish');
+    Route::get('/checkout/unfinish', [CheckoutController::class, 'unfinish'])->name('checkout.unfinish');
+    Route::get('/checkout/error', [CheckoutController::class, 'error'])->name('checkout.error');
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
