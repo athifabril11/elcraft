@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>el Craft Admin Mockup — Kelola Produk</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: '#C17B6F',
+                        brandDark: '#9E5A4E',
+                        brandAccent: '#E8B4AC',
+                        brandBg: '#F5F0EE',
+                        brandSec: '#5F5E5A',
+                        brandMuted: '#A98077',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Material Symbols -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-brandBg text-stone-800 antialiased min-h-screen" x-data="{ showAddModal: false, showDeleteModal: false, activeTab: 'info' }">
+
+    <div class="flex min-h-screen">
+
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white border-r border-stone-200 flex flex-col shrink-0">
+            <!-- Brand -->
+            <div class="p-5 border-b border-stone-100 flex items-center justify-between">
+                <a href="index.html" class="block">
+                    <div class="text-xl font-bold text-brand tracking-tight">el Craft</div>
+                    <div class="text-[10px] text-brandSec font-semibold uppercase tracking-wider">Admin Panel Preview</div>
+                </a>
+                <span class="px-2 py-0.5 text-[10px] font-bold bg-amber-50 text-amber-700 rounded-full border border-amber-200">MOCKUP</span>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="flex-1 p-4 space-y-6 overflow-y-auto">
+                <!-- Overview -->
+                <div>
+                    <div class="px-3 text-[11px] font-bold uppercase tracking-wider text-stone-400 mb-2">Overview</div>
+                    <div class="space-y-1">
+                        <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
+                            <span class="material-symbols-outlined text-[20px]">grid_view</span>
+                            Dashboard
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Katalog -->
+                <div>
+                    <div class="px-3 text-[11px] font-bold uppercase tracking-wider text-stone-400 mb-2">Katalog Produk</div>
+                    <div class="space-y-1">
+                        <a href="products.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold bg-brand/10 text-brand">
+                            <span class="material-symbols-outlined text-[20px]">inventory_2</span>
+                            Kelola Produk
+                        </a>
+                        <a href="categories.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
+                            <span class="material-symbols-outlined text-[20px]">category</span>
+                            Kelola Kategori
+                        </a>
+                        <a href="banners.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
+                            <span class="material-symbols-outlined text-[20px]">view_carousel</span>
+                            Kelola Banner
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Penjualan -->
+                <div>
+                    <div class="px-3 text-[11px] font-bold uppercase tracking-wider text-stone-400 mb-2">Penjualan & Pesanan</div>
+                    <div class="space-y-1">
+                        <a href="orders.html" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-[20px]">shopping_bag</span>
+                                Pesanan
+                            </div>
+                            <span class="px-1.5 py-0.5 text-[10px] font-bold bg-brand text-white rounded-full">14</span>
+                        </a>
+                        <a href="vouchers.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
+                            <span class="material-symbols-outlined text-[20px]">confirmation_number</span>
+                            Voucher Diskon
+                        </a>
+                        <a href="returns.html" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-[20px]">assignment_return</span>
+                                Retur & Refund
+                            </div>
+                            <span class="px-1.5 py-0.5 text-[10px] font-bold bg-amber-500 text-white rounded-full">3</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Interaksi -->
+                <div>
+                    <div class="px-3 text-[11px] font-bold uppercase tracking-wider text-stone-400 mb-2">Interaksi</div>
+                    <div class="space-y-1">
+                        <a href="reviews.html" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-[20px]">reviews</span>
+                                Moderasi Ulasan
+                            </div>
+                            <span class="px-1.5 py-0.5 text-[10px] font-bold bg-rose-500 text-white rounded-full">5</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Pengaturan Toko -->
+                <div>
+                    <div class="px-3 text-[11px] font-bold uppercase tracking-wider text-stone-400 mb-2">Pengaturan Toko</div>
+                    <div class="space-y-1">
+                        <a href="couriers.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
+                            <span class="material-symbols-outlined text-[20px]">local_shipping</span>
+                            Kurir & Pengiriman
+                        </a>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="p-4 border-t border-stone-100 flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-brand/20 flex items-center justify-center text-brand font-bold text-sm">AD</div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs font-bold text-stone-800 truncate">Administrator</div>
+                    <div class="text-[11px] text-stone-400 truncate">admin@elcraft.id</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <!-- Header -->
+            <header class="bg-white border-b border-stone-200 px-8 py-4 flex items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-bold text-stone-800">Kelola Produk</h1>
+                    <p class="text-xs text-brandSec mt-0.5">Daftar produk kerajinan, harga, varian, dan inventaris stok</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button @click="showAddModal = true" class="px-4 py-2 bg-brand hover:bg-brandDark text-white text-xs font-semibold rounded-lg shadow-sm transition flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">add</span>
+                        Tambah Produk Baru
+                    </button>
+                </div>
+            </header>
+
+            <!-- Main Body -->
+            <main class="flex-1 p-8 overflow-y-auto space-y-6">
+
+                <!-- Filter & Search Bar -->
+                <div class="bg-white p-4 rounded-xl border border-stone-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex items-center gap-3 flex-1 min-w-[280px]">
+                        <div class="relative flex-1">
+                            <span class="material-symbols-outlined absolute left-3 top-2.5 text-stone-400 text-[18px]">search</span>
+                            <input type="text" placeholder="Cari nama produk, SKU, atau kategori..." class="w-full pl-9 pr-4 py-2 text-xs border border-stone-200 rounded-lg focus:outline-none focus:border-brand">
+                        </div>
+                        <select class="px-3 py-2 text-xs border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none focus:border-brand">
+                            <option value="">Semua Kategori</option>
+                            <option value="gelang">Gelang</option>
+                            <option value="kalung">Kalung</option>
+                            <option value="cincin">Cincin</option>
+                            <option value="bros">Bros</option>
+                            <option value="anting">Anting</option>
+                            <option value="jepit">Jepit Rambut</option>
+                        </select>
+                        <select class="px-3 py-2 text-xs border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none focus:border-brand">
+                            <option value="">Status Stok</option>
+                            <option value="ready">Tersedia (>5)</option>
+                            <option value="low">Menipis (≤5)</option>
+                            <option value="out">Habis (0)</option>
+                        </select>
+                    </div>
+                    <div class="text-xs text-stone-400 font-medium">
+                        Menampilkan <strong>10</strong> dari <strong>10</strong> produk
+                    </div>
+                </div>
+
+                <!-- Product Table -->
+                <div class="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-stone-50 text-stone-500 uppercase tracking-wider font-semibold border-b border-stone-100">
+                                <tr>
+                                    <th class="px-6 py-3.5">Produk</th>
+                                    <th class="px-6 py-3.5">Kategori</th>
+                                    <th class="px-6 py-3.5">Harga Dasar</th>
+                                    <th class="px-6 py-3.5">Varian</th>
+                                    <th class="px-6 py-3.5">Total Stok</th>
+                                    <th class="px-6 py-3.5">Berat</th>
+                                    <th class="px-6 py-3.5">Status</th>
+                                    <th class="px-6 py-3.5 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-stone-100">
+                                <!-- Row 1 -->
+                                <tr class="hover:bg-stone-50/70 transition">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-12 h-12 rounded-lg bg-stone-100 border border-stone-200 overflow-hidden flex items-center justify-center shrink-0">
+                                                <span class="material-symbols-outlined text-stone-400 text-[24px]">image</span>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-stone-800 text-sm">Gelang Emas Minimalis Rose Gold</div>
+                                                <div class="text-[11px] text-stone-400 font-mono">SKU: GLG-EM-RG • 2 varian</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4"><span class="px-2.5 py-1 bg-stone-100 text-stone-700 rounded-full font-medium text-[11px]">Gelang</span></td>
+                                    <td class="px-6 py-4 font-bold text-stone-800">Rp 125.000</td>
+                                    <td class="px-6 py-4 text-stone-600">16 cm, 18 cm</td>
+                                    <td class="px-6 py-4 font-semibold text-emerald-600">50 pcs</td>
+                                    <td class="px-6 py-4 text-stone-500 font-mono">15 g</td>
+                                    <td class="px-6 py-4">
+                                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <button @click="showAddModal = true" class="p-1.5 text-stone-400 hover:text-brand transition rounded hover:bg-stone-100" title="Edit Produk">
+                                                <span class="material-symbols-outlined text-[18px]">edit</span>
+                                            </button>
+                                            <button @click="showDeleteModal = true" class="p-1.5 text-stone-400 hover:text-rose-600 transition rounded hover:bg-stone-100" title="Hapus">
+                                                <span class="material-symbols-outlined text-[18px]">delete</span>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <!-- Row 2 -->
+                                <tr class="hover:bg-stone-50/70 transition">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-12 h-12 rounded-lg bg-stone-100 border border-stone-200 overflow-hidden flex items-center justify-center shrink-0">
+                                                <span class="material-symbols-outlined text-stone-400 text-[24px]">image</span>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-stone-800 text-sm">Kalung Mutiara Air Tawar Premium</div>
+                                                <div class="text-[11px] text-stone-400 font-mono">SKU: KLG-MUT • 2 varian</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4"><span class="px-2.5 py-1 bg-stone-100 text-stone-700 rounded-full font-medium text-[11px]">Kalung</span></td>
+                                    <td class="px-6 py-4 font-bold text-stone-800">Rp 210.000</td>
+                                    <td class="px-6 py-4 text-stone-600">Putih Mutiara, Merah Muda</td>
+                                    <td class="px-6 py-4 font-semibold text-amber-600">20 pcs (Menipis)</td>
+                                    <td class="px-6 py-4 text-stone-500 font-mono">30 g</td>
+                                    <td class="px-6 py-4">
+                                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <button @click="showAddModal = true" class="p-1.5 text-stone-400 hover:text-brand transition rounded hover:bg-stone-100">
+                                                <span class="material-symbols-outlined text-[18px]">edit</span>
+                                            </button>
+                                            <button @click="showDeleteModal = true" class="p-1.5 text-stone-400 hover:text-rose-600 transition rounded hover:bg-stone-100">
+                                                <span class="material-symbols-outlined text-[18px]">delete</span>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <!-- Row 3 -->
+                                <tr class="hover:bg-stone-50/70 transition">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-12 h-12 rounded-lg bg-stone-100 border border-stone-200 overflow-hidden flex items-center justify-center shrink-0">
+                                                <span class="material-symbols-outlined text-stone-400 text-[24px]">image</span>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-stone-800 text-sm">Jepit Rambut Mutiara Korea Set</div>
+                                                <div class="text-[11px] text-stone-400 font-mono">SKU: JPT-MUT • 2 varian</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4"><span class="px-2.5 py-1 bg-stone-100 text-stone-700 rounded-full font-medium text-[11px]">Jepit Rambut</span></td>
+                                    <td class="px-6 py-4 font-bold text-stone-800">Rp 35.000</td>
+                                    <td class="px-6 py-4 text-stone-600">Set A (3 Pcs), Set B (5 Pcs)</td>
+                                    <td class="px-6 py-4 font-semibold text-emerald-600">80 pcs</td>
+                                    <td class="px-6 py-4 text-stone-500 font-mono">25 g</td>
+                                    <td class="px-6 py-4">
+                                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Aktif</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <button @click="showAddModal = true" class="p-1.5 text-stone-400 hover:text-brand transition rounded hover:bg-stone-100">
+                                                <span class="material-symbols-outlined text-[18px]">edit</span>
+                                            </button>
+                                            <button @click="showDeleteModal = true" class="p-1.5 text-stone-400 hover:text-rose-600 transition rounded hover:bg-stone-100">
+                                                <span class="material-symbols-outlined text-[18px]">delete</span>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL: Tambah / Edit Produk -->
+    <div x-show="showAddModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden" @click.away="showAddModal = false">
+            <!-- Modal Header -->
+            <div class="p-6 border-b border-stone-100 flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-bold text-stone-800">Formulir Produk Kerajinan</h3>
+                    <p class="text-xs text-brandSec">Lengkapi informasi produk, harga, varian, dan foto utama</p>
+                </div>
+                <button @click="showAddModal = false" class="p-2 text-stone-400 hover:text-stone-700 rounded-lg">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+
+            <!-- Modal Tabs -->
+            <div class="flex border-b border-stone-200 px-6 bg-stone-50">
+                <button @click="activeTab = 'info'" :class="activeTab === 'info' ? 'border-brand text-brand font-bold' : 'border-transparent text-stone-500 font-medium'" class="px-4 py-3 text-xs border-b-2 transition">Informasi Utama</button>
+                <button @click="activeTab = 'variants'" :class="activeTab === 'variants' ? 'border-brand text-brand font-bold' : 'border-transparent text-stone-500 font-medium'" class="px-4 py-3 text-xs border-b-2 transition">Varian & Stok</button>
+                <button @click="activeTab = 'images'" :class="activeTab === 'images' ? 'border-brand text-brand font-bold' : 'border-transparent text-stone-500 font-medium'" class="px-4 py-3 text-xs border-b-2 transition">Galeri Foto</button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto flex-1 space-y-4 text-xs">
+                <!-- Tab 1: Info -->
+                <div x-show="activeTab === 'info'" class="space-y-4">
+                    <div>
+                        <label class="block font-bold text-stone-700 uppercase tracking-wider text-[11px] mb-1">Nama Produk *</label>
+                        <input type="text" value="Gelang Emas Minimalis Rose Gold" class="w-full px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:border-brand">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block font-bold text-stone-700 uppercase tracking-wider text-[11px] mb-1">Kategori *</label>
+                            <select class="w-full px-3 py-2 border border-stone-200 rounded-lg bg-white focus:outline-none focus:border-brand">
+                                <option value="gelang" selected>Gelang</option>
+                                <option value="kalung">Kalung</option>
+                                <option value="cincin">Cincin</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-stone-700 uppercase tracking-wider text-[11px] mb-1">Harga Dasar (Rp) *</label>
+                            <input type="number" value="125000" class="w-full px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:border-brand">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block font-bold text-stone-700 uppercase tracking-wider text-[11px] mb-1">Berat Produk (Gram) *</label>
+                            <input type="number" value="15" class="w-full px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:border-brand">
+                            <span class="text-[10px] text-stone-400 mt-1 block">Digunakan untuk kalkulasi ongkos kirim RajaOngkir</span>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-stone-700 uppercase tracking-wider text-[11px] mb-1">Status Publikasi</label>
+                            <label class="flex items-center gap-2 mt-2 cursor-pointer">
+                                <input type="checkbox" checked class="w-4 h-4 text-brand rounded focus:ring-brand accent-brand">
+                                <span class="text-stone-700 font-medium">Tampilkan produk di etalase toko</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-stone-700 uppercase tracking-wider text-[11px] mb-1">Deskripsi Lengkap</label>
+                        <textarea rows="4" class="w-full px-3 py-2 border border-stone-200 rounded-lg focus:outline-none focus:border-brand">Gelang tangan wanita dengan desain minimalis elegan berbalut warna Rose Gold premium. Dibuat dengan tangan (handmade) berkualitas tinggi, anti-karat, dan nyaman digunakan sehari-hari.</textarea>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Varian & Stok -->
+                <div x-show="activeTab === 'variants'" class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-stone-700 text-xs">Daftar Varian Produk</span>
+                        <button type="button" class="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs rounded font-semibold flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">add</span> Tambah Varian
+                        </button>
+                    </div>
+                    <!-- Variant item 1 -->
+                    <div class="p-3 border border-stone-200 rounded-lg bg-stone-50/50 space-y-2">
+                        <div class="grid grid-cols-4 gap-2">
+                            <div>
+                                <label class="text-[10px] text-stone-500 font-semibold">Nama Varian</label>
+                                <input type="text" value="16 cm" class="w-full px-2 py-1.5 border border-stone-200 rounded bg-white text-xs">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-stone-500 font-semibold">Tipe</label>
+                                <input type="text" value="Ukuran" class="w-full px-2 py-1.5 border border-stone-200 rounded bg-white text-xs">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-stone-500 font-semibold">+ Harga (Rp)</label>
+                                <input type="number" value="0" class="w-full px-2 py-1.5 border border-stone-200 rounded bg-white text-xs">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-stone-500 font-semibold">Stok (pcs)</label>
+                                <input type="number" value="25" class="w-full px-2 py-1.5 border border-stone-200 rounded bg-white text-xs">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Variant item 2 -->
+                    <div class="p-3 border border-stone-200 rounded-lg bg-stone-50/50 space-y-2">
+                        <div class="grid grid-cols-4 gap-2">
+                            <div>
+                                <label class="text-[10px] text-stone-500 font-semibold">Nama Varian</label>
+                                <input type="text" value="18 cm" class="w-full px-2 py-1.5 border border-stone-200 rounded bg-white text-xs">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-stone-500 font-semibold">Tipe</label>
+                                <input type="text" value="Ukuran" class="w-full px-2 py-1.5 border border-stone-200 rounded bg-white text-xs">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-stone-500 font-semibold">+ Harga (Rp)</label>
+                                <input type="number" value="10000" class="w-full px-2 py-1.5 border border-stone-200 rounded bg-white text-xs">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-stone-500 font-semibold">Stok (pcs)</label>
+                                <input type="number" value="25" class="w-full px-2 py-1.5 border border-stone-200 rounded bg-white text-xs">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Galeri Foto -->
+                <div x-show="activeTab === 'images'" class="space-y-4">
+                    <div class="border-2 border-dashed border-stone-300 rounded-xl p-6 text-center hover:border-brand transition cursor-pointer">
+                        <span class="material-symbols-outlined text-stone-400 text-[36px]">cloud_upload</span>
+                        <div class="text-xs font-semibold text-stone-700 mt-2">Klik untuk upload atau drag & drop foto produk</div>
+                        <div class="text-[10px] text-stone-400">PNG, JPG, WEBP hingga 2MB (Rasio 1:1 disarankan)</div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="relative h-24 border border-stone-200 rounded-lg bg-stone-100 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-stone-400">image</span>
+                            <span class="absolute top-1 left-1 px-1.5 py-0.5 bg-brand text-white text-[9px] font-bold rounded">Utama</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 border-t border-stone-100 bg-stone-50 flex items-center justify-end gap-3">
+                <button @click="showAddModal = false" class="px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-200 rounded-lg transition">Batal</button>
+                <button @click="showAddModal = false" class="px-5 py-2 text-xs font-semibold bg-brand hover:bg-brandDark text-white rounded-lg transition shadow-sm">Simpan Produk</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Hapus Produk Confirmation -->
+    <div x-show="showDeleteModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl border border-stone-200" @click.away="showDeleteModal = false">
+            <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4">
+                <span class="material-symbols-outlined text-[24px]">delete_forever</span>
+            </div>
+            <h3 class="text-sm font-bold text-center text-stone-800">Hapus Produk Ini?</h3>
+            <p class="text-xs text-center text-stone-500 mt-1">Produk yang dihapus tidak akan dapat dipesan lagi oleh pelanggan.</p>
+            <div class="flex items-center justify-center gap-3 mt-6">
+                <button @click="showDeleteModal = false" class="flex-1 py-2 text-xs font-semibold text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-lg transition">Batal</button>
+                <button @click="showDeleteModal = false" class="flex-1 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>el Craft Admin Mockup — Manajemen Retur & Refund</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: '#C17B6F',
+                        brandDark: '#9E5A4E',
+                        brandAccent: '#E8B4AC',
+                        brandBg: '#F5F0EE',
+                        brandSec: '#5F5E5A',
+                        brandMuted: '#A98077',
+                    }
+                }
+            }
+        }
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>body { font-family: 'Inter', sans-serif; } [x-cloak] { display: none !important; }</style>
+</head>
+<body class="bg-brandBg text-stone-800 antialiased min-h-screen" x-data="{ currentTab: 'all', showDetailModal: false }">
+
+    <div class="flex min-h-screen">
+
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white border-r border-stone-200 flex flex-col shrink-0">
+            <div class="p-5 border-b border-stone-100 flex items-center justify-between">
+                <a href="index.html" class="block">
+                    <div class="text-xl font-bold text-brand tracking-tight">el Craft</div>
+                    <div class="text-[10px] text-brandSec font-semibold uppercase tracking-wider">Admin Panel Preview</div>
+                </a>
+                <span class="px-2 py-0.5 text-[10px] font-bold bg-amber-50 text-amber-700 rounded-full border border-amber-200">MOCKUP</span>
+            </div>
+
+            <nav class="flex-1 p-4 space-y-6 overflow-y-auto">
+                <div>
+                    <div class="px-3 text-[11px] font-bold uppercase tracking-wider text-stone-400 mb-2">Overview</div>
+                    <div class="space-y-1">
+                        <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
+                            <span class="material-symbols-outlined text-[20px]">grid_view</span>
+                            Dashboard
+                        </a>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="px-3 text-[11px] font-bold uppercase tracking-wider text-stone-400 mb-2">Katalog Produk</div>
+                    <div class="space-y-1">
+                        <a href="products.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
+                            <span class="material-symbols-outlined text-[20px]">inventory_2</span>
+                            Kelola Produk
+                        </a>
+                        <a href="categories.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
+                            <span class="material-symbols-outlined text-[20px]">category</span>
+                            Kelola Kategori
+                        </a>
+                        <a href="banners.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
+                            <span class="material-symbols-outlined text-[20px]">view_carousel</span>
+                            Kelola Banner
+                        </a>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="px-3 text-[11px] font-bold uppercase tracking-wider text-stone-400 mb-2">Penjualan & Pesanan</div>
+                    <div class="space-y-1">
+                        <a href="orders.html" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-[20px]">shopping_bag</span>
+                                Pesanan
+                            </div>
+                            <span class="px-1.5 py-0.5 text-[10px] font-bold bg-brand text-white rounded-full">14</span>
+                        </a>
+                        <a href="vouchers.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
+                            <span class="material-symbols-outlined text-[20px]">confirmation_number</span>
+                            Voucher Diskon
+                        </a>
+                        <a href="returns.html" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold bg-brand/10 text-brand">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-[20px]">assignment_return</span>
+                                Retur & Refund
+                            </div>
+                            <span class="px-1.5 py-0.5 text-[10px] font-bold bg-amber-500 text-white rounded-full">3</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="px-3 text-[11px] font-bold uppercase tracking-wider text-stone-400 mb-2">Interaksi</div>
+                    <div class="space-y-1">
+                        <a href="reviews.html" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-[20px]">reviews</span>
+                                Moderasi Ulasan
+                            </div>
+                            <span class="px-1.5 py-0.5 text-[10px] font-bold bg-rose-500 text-white rounded-full">5</span>
+                        </a>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="p-4 border-t border-stone-100 flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-brand/20 flex items-center justify-center text-brand font-bold text-sm">AD</div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs font-bold text-stone-800 truncate">Administrator</div>
+                    <div class="text-[11px] text-stone-400 truncate">admin@elcraft.id</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <header class="bg-white border-b border-stone-200 px-8 py-4 flex items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-bold text-stone-800">Manajemen Retur & Refund</h1>
+                    <p class="text-xs text-brandSec mt-0.5">Klaim pengembalian barang, garansi cacat produk, dan persetujuan pengembalian dana</p>
+                </div>
+            </header>
+
+            <main class="flex-1 p-8 overflow-y-auto space-y-6">
+
+                <!-- Pipeline Status Tabs -->
+                <div class="flex border-b border-stone-200 gap-1 overflow-x-auto">
+                    <button @click="currentTab = 'all'" :class="currentTab === 'all' ? 'border-brand text-brand font-bold bg-white' : 'border-transparent text-stone-500 hover:text-stone-700'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-lg transition flex items-center gap-2 shrink-0">
+                        <span>Semua Klaim</span>
+                        <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-stone-100 text-stone-600">14</span>
+                    </button>
+                    <button @click="currentTab = 'applied'" :class="currentTab === 'applied' ? 'border-brand text-brand font-bold bg-white' : 'border-transparent text-stone-500 hover:text-stone-700'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-lg transition flex items-center gap-2 shrink-0">
+                        <span>Baru Diajukan</span>
+                        <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-amber-100 text-amber-800 font-bold">3</span>
+                    </button>
+                    <button @click="currentTab = 'approved'" :class="currentTab === 'approved' ? 'border-brand text-brand font-bold bg-white' : 'border-transparent text-stone-500 hover:text-stone-700'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-lg transition flex items-center gap-2 shrink-0">
+                        <span>Menunggu Kiriman Pembeli</span>
+                        <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-blue-100 text-blue-800">2</span>
+                    </button>
+                    <button @click="currentTab = 'received'" :class="currentTab === 'received' ? 'border-brand text-brand font-bold bg-white' : 'border-transparent text-stone-500 hover:text-stone-700'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-lg transition flex items-center gap-2 shrink-0">
+                        <span>Barang Diterima di Gudang</span>
+                        <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-indigo-100 text-indigo-800">1</span>
+                    </button>
+                    <button @click="currentTab = 'completed'" :class="currentTab === 'completed' ? 'border-brand text-brand font-bold bg-white' : 'border-transparent text-stone-500 hover:text-stone-700'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-lg transition flex items-center gap-2 shrink-0">
+                        <span>Selesai / Dana Dikembalikan</span>
+                        <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-emerald-100 text-emerald-800">8</span>
+                    </button>
+                </div>
+
+                <!-- Return Requests Table -->
+                <div class="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-stone-50 text-stone-500 uppercase tracking-wider font-semibold border-b border-stone-100">
+                                <tr>
+                                    <th class="px-6 py-3.5">ID Retur</th>
+                                    <th class="px-6 py-3.5">Pesanan Terkait</th>
+                                    <th class="px-6 py-3.5">Pelanggan</th>
+                                    <th class="px-6 py-3.5">Produk & Alasan</th>
+                                    <th class="px-6 py-3.5">Solusi Diminta</th>
+                                    <th class="px-6 py-3.5">Status Retur</th>
+                                    <th class="px-6 py-3.5 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-stone-100">
+                                <!-- Return 1 -->
+                                <tr class="hover:bg-stone-50/70 transition">
+                                    <td class="px-6 py-4">
+                                        <div class="font-bold text-brand font-mono">#RET-20260825-001</div>
+                                        <div class="text-[10px] text-stone-400">25 Agu 2026</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-semibold text-stone-800">#ORD-20260822-0089</div>
+                                        <div class="text-[11px] text-stone-400">JNE REG • Lunas</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-semibold text-stone-800">Dewi Kartika</div>
+                                        <div class="text-[11px] text-stone-400">Bandung, Jawa Barat</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-medium text-stone-800">Gelang Emas Minimalis (16 cm)</div>
+                                        <span class="px-2 py-0.5 bg-rose-50 text-rose-700 rounded text-[10px] font-semibold border border-rose-200">Kaitan Pengait Rusak</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="px-2 py-0.5 bg-amber-50 text-amber-800 font-bold rounded text-[10px]">Tukar Barang Baru</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-200">Perlu Peninjauan</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button @click="showDetailModal = true" class="px-3 py-1.5 bg-brand hover:bg-brandDark text-white text-xs font-semibold rounded-lg transition">
+                                            Periksa Bukti
+                                        </button>
+                                    </td>
+                                </tr>
+                                <!-- Return 2 -->
+                                <tr class="hover:bg-stone-50/70 transition">
+                                    <td class="px-6 py-4">
+                                        <div class="font-bold text-brand font-mono">#RET-20260824-002</div>
+                                        <div class="text-[10px] text-stone-400">24 Agu 2026</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-semibold text-stone-800">#ORD-20260819-0044</div>
+                                        <div class="text-[11px] text-stone-400">Lion Parcel • Lunas</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-semibold text-stone-800">Rizky Pratama</div>
+                                        <div class="text-[11px] text-stone-400">Jakarta Barat</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-medium text-stone-800">Cincin Solitaire Silver (Size 6)</div>
+                                        <span class="px-2 py-0.5 bg-stone-100 text-stone-700 rounded text-[10px] font-semibold">Salah Pilih Ukuran</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 font-bold rounded text-[10px]">Refund Dana (Rp 125.000)</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-100 text-blue-900 border border-blue-200">Disetujui (Menunggu Paket)</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button @click="showDetailModal = true" class="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold rounded-lg transition">
+                                            Detail Klaim
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL: Detail Klaim Retur & Bukti Foto -->
+    <div x-show="showDetailModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden" @click.away="showDetailModal = false">
+            <div class="p-6 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
+                <div>
+                    <div class="text-xs text-stone-400 font-bold uppercase tracking-wider">Pemeriksaan Klaim Retur</div>
+                    <div class="text-lg font-bold text-stone-800">#RET-20260825-001</div>
+                </div>
+                <button @click="showDetailModal = false" class="text-stone-400 hover:text-stone-600">
+                    <span class="material-symbols-outlined text-[22px]">close</span>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto flex-1 space-y-5 text-xs">
+                <!-- Info Grid -->
+                <div class="grid grid-cols-2 gap-4 p-4 bg-stone-50 rounded-xl border border-stone-100">
+                    <div>
+                        <span class="text-[10px] text-stone-400 uppercase font-bold">Pelanggan</span>
+                        <div class="font-bold text-stone-800 mt-0.5">Dewi Kartika (081398765432)</div>
+                        <div class="text-stone-500">Bandung, Jawa Barat</div>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-stone-400 uppercase font-bold">Pesanan Asli</span>
+                        <div class="font-bold text-brand mt-0.5">#ORD-20260822-0089</div>
+                        <div class="text-stone-500">Nilai: Rp 135.000 (Lunas BCA VA)</div>
+                    </div>
+                </div>
+
+                <!-- Complaint Details -->
+                <div>
+                    <label class="block font-bold text-stone-700 text-xs mb-1">Penjelasan Kendala dari Pelanggan:</label>
+                    <div class="p-3.5 bg-rose-50/50 border border-rose-200 rounded-lg text-stone-700 leading-relaxed">
+                        "Paket sampai tadi siang, pas dibuka pengait gelangnya sudah patah/lepas tidak bisa dikaitkan ke tangan. Saya lampirkan video unboxing dan foto detail kerusakannya. Mohon bantuannya untuk tukar barang baru ya min."
+                    </div>
+                </div>
+
+                <!-- Evidence Gallery -->
+                <div>
+                    <label class="block font-bold text-stone-700 text-xs mb-2">Foto / Video Bukti Unboxing (2 File):</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="h-36 rounded-lg bg-stone-100 border border-stone-200 flex flex-col items-center justify-center text-stone-400 relative overflow-hidden group cursor-pointer">
+                            <span class="material-symbols-outlined text-[36px]">image</span>
+                            <span class="text-[11px] font-semibold mt-1">Foto_Kerusakan_1.jpg</span>
+                            <span class="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition font-bold text-xs">Klik Lihat Full</span>
+                        </div>
+                        <div class="h-36 rounded-lg bg-stone-100 border border-stone-200 flex flex-col items-center justify-center text-stone-400 relative overflow-hidden group cursor-pointer">
+                            <span class="material-symbols-outlined text-[36px]">video_file</span>
+                            <span class="text-[11px] font-semibold mt-1">Video_Unboxing.mp4</span>
+                            <span class="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition font-bold text-xs">Putar Video</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Decision Action Box -->
+                <div class="p-4 border border-brand/30 bg-brand/5 rounded-xl space-y-2">
+                    <div class="font-bold text-brand text-xs">Tindakan Admin:</div>
+                    <p class="text-stone-600 text-[11px]">Jika klaim disetujui, pembeli akan menerima instruksi pengiriman barang kembali ke alamat gudang el Craft Jember.</p>
+                </div>
+            </div>
+
+            <!-- Modal Footer with decision buttons -->
+            <div class="p-4 border-t border-stone-100 bg-stone-50 flex items-center justify-between">
+                <button @click="showDetailModal = false" class="px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold rounded-lg transition">
+                    Tolak Klaim Retur
+                </button>
+                <div class="flex items-center gap-2">
+                    <button @click="showDetailModal = false" class="px-4 py-2 bg-stone-200 text-stone-700 font-semibold rounded-lg">
+                        Tutup
+                    </button>
+                    <button @click="showDetailModal = false" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition shadow-sm">
+                        Setujui Retur & Kirim Alamat Gudang
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

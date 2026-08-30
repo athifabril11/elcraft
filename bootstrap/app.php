@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // redirect ke halaman sebelumnya + modal login otomatis.
         $middleware->alias([
             'guest.modal' => \App\Http\Middleware\RedirectGuestsWithModal::class,
+            'admin'       => \App\Http\Middleware\EnsureUserIsAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
