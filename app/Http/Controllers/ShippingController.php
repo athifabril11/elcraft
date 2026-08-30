@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Courier;
 use App\Services\ShippingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -86,15 +87,17 @@ class ShippingController extends Controller
     public function calculateCost(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'city_id' => 'required|integer|min:1',
-            'weight'  => 'required|integer|min:1',
-            'courier' => 'required|string|in:jne,pos,tiki,jnt',
+            'city_id'     => 'required|integer|min:1',
+            'weight'      => 'required|integer|min:1',
+            'courier'     => 'required|string|in:' . implode(',', Courier::getActiveCodes()),
+            'province_id' => 'nullable|integer|min:1',
         ]);
 
         $results = $this->shipping->calculateCost(
-            destinationCityId: (int) $validated['city_id'],
-            weightGrams:       (int) $validated['weight'],
-            courier:           $validated['courier'],
+            destinationCityId:     (int) $validated['city_id'],
+            weightGrams:           (int) $validated['weight'],
+            courier:               $validated['courier'],
+            destinationProvinceId: isset($validated['province_id']) ? (int) $validated['province_id'] : null,
         );
 
         if (empty($results)) {
@@ -109,6 +112,13 @@ class ShippingController extends Controller
         // Shape: { "name", "code", "service", "description", "cost", "etd" }
         $services = [];
         foreach ($results as $item) {
+            $serviceCode    = strtoupper(trim((string) ($item['service'] ?? '')));
+            
+            // Exclude specialized motorcycle/heavy freight sub-services (e.g. JTR<130, JTR>130, JTR>200)
+            if (preg_match('/^JTR[<>]/i', $serviceCode)) {
+                continue;
+            }
+
             $courierLabel   = strtoupper($item['code'] ?? '');
             $rawDescription = trim($item['description'] ?? $item['service'] ?? '');
 
@@ -125,11 +135,14 @@ class ShippingController extends Controller
             // Komerce already appends the English word "day" / "days" to etd
             // (e.g. "2 day", "2-3 days"). Strip it so the view can append
             // the Indonesian " hari" without producing "2 day hari".
-            $rawEtd = $item['etd'] ?? '-';
-            if ($rawEtd !== '' && $rawEtd !== '-') {
+            // If etd is empty, '0', or '-', normalize to '-'.
+            $rawEtd = trim((string) ($item['etd'] ?? ''));
+            if ($rawEtd === '' || $rawEtd === '-' || $rawEtd === '0' || $rawEtd === '0 day' || $rawEtd === '0 days') {
+                $rawEtd = '-';
+            } else {
                 $cleanedEtd = trim(preg_replace('/\bdays?\b/i', '', $rawEtd));
                 $cleanedEtd = trim($cleanedEtd, ' -');
-                $rawEtd     = $cleanedEtd !== '' ? $cleanedEtd : '-';
+                $rawEtd     = ($cleanedEtd !== '' && $cleanedEtd !== '0') ? $cleanedEtd : '-';
             }
 
             $services[] = [

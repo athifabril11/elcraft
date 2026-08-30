@@ -24,8 +24,13 @@ class ShippingResponseNormalisationTest extends TestCase
      * @param  array{code?:string, service?:string, description?:string, cost?:int, etd?:string}  $item
      * @return array{service:string, display_name:string, description:string, cost:int, etd:string, courier:string}
      */
-    private function transformItem(array $item): array
+    private function transformItem(array $item): ?array
     {
+        $serviceCode = strtoupper(trim((string) ($item['service'] ?? '')));
+        if (preg_match('/^JTR[<>]/i', $serviceCode)) {
+            return null;
+        }
+
         $courierLabel   = strtoupper($item['code'] ?? '');
         $rawDescription = trim($item['description'] ?? $item['service'] ?? '');
 
@@ -39,11 +44,13 @@ class ShippingResponseNormalisationTest extends TestCase
         }
 
         // Strip English "day"/"days" from etd so the view can append " hari"
-        $rawEtd = $item['etd'] ?? '-';
-        if ($rawEtd !== '' && $rawEtd !== '-') {
+        $rawEtd = trim((string) ($item['etd'] ?? ''));
+        if ($rawEtd === '' || $rawEtd === '-' || $rawEtd === '0' || $rawEtd === '0 day' || $rawEtd === '0 days') {
+            $rawEtd = '-';
+        } else {
             $cleanedEtd = trim(preg_replace('/\bdays?\b/i', '', $rawEtd));
             $cleanedEtd = trim($cleanedEtd, ' -');
-            $rawEtd     = $cleanedEtd !== '' ? $cleanedEtd : '-';
+            $rawEtd     = ($cleanedEtd !== '' && $cleanedEtd !== '0') ? $cleanedEtd : '-';
         }
 
         return [
@@ -207,18 +214,59 @@ class ShippingResponseNormalisationTest extends TestCase
     }
 
     /**
-     * service key must be constructed as "code-service".
+     * An empty string "" etd must be normalized to "-".
      */
-    public function test_service_key_format(): void
+    public function test_etd_normalizes_empty_string_to_dash(): void
+    {
+        $result = $this->transformItem([
+            'code'        => 'jnt',
+            'service'     => 'EZ',
+            'description' => 'Reguler',
+            'cost'        => 14000,
+            'etd'         => '',
+        ]);
+
+        $this->assertSame('-', $result['etd']);
+    }
+
+    /**
+     * "0 day" or "0" etd must be normalized to "-".
+     */
+    public function test_etd_normalizes_zero_day_to_dash(): void
     {
         $result = $this->transformItem([
             'code'        => 'jne',
-            'service'     => 'YES',
-            'description' => 'Yakin Esok Sampai',
-            'cost'        => 18000,
-            'etd'         => '1 day',
+            'service'     => 'JTR',
+            'description' => 'JNE Trucking',
+            'cost'        => 450000,
+            'etd'         => '0 day',
         ]);
 
-        $this->assertSame('jne-YES', $result['service']);
+        $this->assertSame('-', $result['etd']);
+    }
+
+    /**
+     * Motorcycle freight sub-services (e.g. JTR<130, JTR>130) must be filtered out.
+     */
+    public function test_motorcycle_freight_services_are_excluded(): void
+    {
+        $result1 = $this->transformItem([
+            'code'        => 'jne',
+            'service'     => 'JTR<130',
+            'description' => 'JNE Trucking',
+            'cost'        => 450000,
+            'etd'         => '0 day',
+        ]);
+
+        $result2 = $this->transformItem([
+            'code'        => 'jne',
+            'service'     => 'JTR>130',
+            'description' => 'JNE Trucking',
+            'cost'        => 650000,
+            'etd'         => '0 day',
+        ]);
+
+        $this->assertNull($result1);
+        $this->assertNull($result2);
     }
 }

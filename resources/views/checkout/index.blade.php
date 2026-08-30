@@ -203,7 +203,7 @@
 
                     {{-- Pilihan Kurir --}}
                     <div class="flex gap-3 mb-4 flex-wrap">
-                        @foreach(['jne' => 'JNE', 'jnt' => 'J&T Express', 'pos' => 'POS Indonesia', 'tiki' => 'TIKI'] as $code => $label)
+                        @foreach($couriers ?? \App\Models\Courier::getActiveList() as $code => $label)
                         <button type="button"
                             @click="selectCourier('{{ $code }}')"
                             :class="selectedCourier === '{{ $code }}' ? 'border-brand bg-brand/5 text-brand font-semibold' : 'border-warmLightGrey text-warmGrey hover:border-brand/50'"
@@ -241,7 +241,7 @@
                                         class="text-brand focus:ring-brand border-warmGrey/40 flex-shrink-0">
                                     <div class="min-w-0">
                                         <p class="text-xs font-semibold text-warmBlack" x-text="opt.display_name"></p>
-                                        <p class="text-[10px] text-warmGrey" x-text="opt.etd === '-' ? 'Estimasi: -' : 'Estimasi: ' + opt.etd + ' hari'"></p>
+                                        <p class="text-[10px] text-warmGrey" x-text="(!opt.etd || opt.etd === '-' || opt.etd === '0') ? 'Estimasi: -' : 'Estimasi: ' + opt.etd + ' hari'"></p>
                                     </div>
                                 </div>
                                 <span class="text-xs font-bold text-brand flex-shrink-0" x-text="formatRupiah(opt.cost)"></span>
@@ -449,7 +449,7 @@
             selectedProvinceId: null,
             selectedCityId: null,
             selectedCityName: '',
-            selectedCourier: 'jne',
+            selectedCourier: '{{ array_key_first($couriers ?? \App\Models\Courier::getActiveList()) ?? 'jne' }}',
             shippingOptions: [],
             selectedShipping: null,
             shippingError: '',
@@ -475,6 +475,9 @@
                     await this.loadCities(this.selectedProvinceId);
                     @if($addresses->firstWhere('is_default', true)?->city_id)
                         this.selectedCityId = {{ $addresses->firstWhere('is_default', true)->city_id }};
+                        // Set city name from the cities list that was just loaded
+                        const defaultCity = this.cities.find(c => c.id == this.selectedCityId);
+                        this.selectedCityName = defaultCity ? defaultCity.name : '{{ addslashes($addresses->firstWhere("is_default", true)?->city ?? "") }}';
                         await this.fetchShippingCost();
                     @endif
                 @endif
@@ -489,6 +492,7 @@
                 document.getElementById('recipient-phone').value   = data.phone  || '';
                 document.getElementById('recipient-address').value = data.address || '';
                 this.postalCode = data.postal || '';
+                if (data.city) this.selectedCityName = data.city;
             },
 
             async loadProvinces() {
@@ -574,9 +578,10 @@
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                         },
                         body: JSON.stringify({
-                            city_id: this.selectedCityId,
-                            weight:  weight,
-                            courier: this.selectedCourier,
+                            city_id:     this.selectedCityId,
+                            weight:      weight,
+                            courier:     this.selectedCourier,
+                            province_id: this.selectedProvinceId ?? null,
                         }),
                     });
                     const json = await res.json();

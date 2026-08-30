@@ -8,6 +8,7 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\Address;
+use App\Models\Courier;
 use App\Models\Payment;
 use App\Models\Voucher;
 use Illuminate\Http\Request;
@@ -76,8 +77,9 @@ class CheckoutController extends Controller
         $shipping  = 0; // Ongkos Kirim awal
         $total     = $subtotal + $shipping;
         $addresses = $request->user()->addresses()->orderByDesc('is_default')->get();
+        $couriers  = Courier::getActiveList();
 
-        return view('checkout.index', compact('cartItems', 'subtotal', 'shipping', 'total', 'addresses', 'totalWeight'));
+        return view('checkout.index', compact('cartItems', 'subtotal', 'shipping', 'total', 'addresses', 'totalWeight', 'couriers'));
     }
 
     /**
@@ -101,7 +103,7 @@ class CheckoutController extends Controller
             'city_id'         => 'required|integer|min:1',
             'province_id'     => 'nullable|integer|min:1',
             'postal_code'     => 'nullable|string|max:10',
-            'courier'         => 'required|string|in:jne,pos,tiki,jnt',
+            'courier'         => 'required|string|in:' . implode(',', Courier::getActiveCodes()),
             'courier_service' => 'required|string|max:50',
             'payment_method'  => 'required|string|in:credit_card,bca_va,bni_va,bri_va,other_va,gopay,shopeepay,qris,indomaret,alfamart',
             'notes'           => 'nullable|string',
@@ -144,6 +146,7 @@ class CheckoutController extends Controller
             weightGrams:    $totalWeight,
             courier:        $request->courier,
             courierService: $request->courier_service,
+            provinceId:     $request->province_id ? (int) $request->province_id : null,
         );
         // resolveVerifiedShippingCost() melempar ValidationException jika ongkir tidak dapat diverifikasi,
         // sehingga eksekusi tidak akan sampai ke baris berikutnya jika terjadi kegagalan.
@@ -348,8 +351,9 @@ class CheckoutController extends Controller
         int $weightGrams,
         string $courier,
         string $courierService,
+        ?int $provinceId = null,
     ): int {
-        $services = $this->shipping->calculateCost($cityId, $weightGrams, $courier);
+        $services = $this->shipping->calculateCost($cityId, $weightGrams, $courier, $provinceId);
 
         if (empty($services)) {
             Log::error('Checkout: RajaOngkir tidak mengembalikan data ongkir', [

@@ -62,12 +62,6 @@ class MidtransService
                 'phone'      => $customer['phone'] ?? '',
             ],
 
-            // ── Metode Pembayaran yang Diaktifkan ───────────────────
-            // Sesuaikan dengan metode yang dipilih pelanggan di checkout
-            'enabled_payments' => [
-                $order['payment_method'] ?? 'credit_card',
-            ],
-
             // ── Konfigurasi Kredit Kard (Opsional) ─────────────────
             'credit_card' => [
                 'secure' => true, // Wajib aktifkan 3DS untuk PCI-DSS

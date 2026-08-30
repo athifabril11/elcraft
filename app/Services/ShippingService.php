@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\Courier;
+use App\Models\ShippingDiscountRule;
+use App\Models\ShopSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -31,7 +34,14 @@ class ShippingService
     {
         $this->apiKey  = config('rajaongkir.api_key') ?? '';
         $this->baseUrl = config('rajaongkir.base_url') ?? 'https://rajaongkir.komerce.id/api/v1';
-        $this->origin  = config('rajaongkir.origin') ?? '152';
+
+        // Origin city ID resolution priority:
+        // 1. shop_settings table (admin-configurable)
+        // 2. config('rajaongkir.origin')
+        // 3. Hardcoded fallback '152'
+        $this->origin = ShopSetting::get('shipping_origin_city_id')
+            ?? config('rajaongkir.origin')
+            ?? '152';
     }
 
     /**
@@ -115,23 +125,41 @@ class ShippingService
     /**
      * Calculate domestic shipping cost from origin to destination city.
      * Uses Komerce's /calculate/domestic-cost endpoint (POST as form-data).
+     *
+     * After retrieving raw API data, applies any active ShippingDiscountRules
+     * for the destination (city rules take priority over province rules).
+     *
      * Returns flat array of services: [ ['service', 'description', 'cost', 'etd', 'courier'], ... ]
-     * Cache cost for 1 hour.
+     * Cache cost for 1 hour (cache key includes province_id to reflect discount differences).
+     *
+     * @param  int       $destinationCityId      City ID (RajaOngkir)
+     * @param  int       $weightGrams            Package weight in grams
+     * @param  string    $courier                Courier code — must be a key in config('rajaongkir.couriers')
+     * @param  int|null  $destinationProvinceId  Province ID (optional; required for province-level discount matching)
+     * @return array
      */
-    public function calculateCost(int $destinationCityId, int $weightGrams, string $courier): array
-    {
+    public function calculateCost(
+        int $destinationCityId,
+        int $weightGrams,
+        string $courier,
+        ?int $destinationProvinceId = null,
+    ): array {
         // Minimum weight of 1g to prevent API error
         $weightGrams = max(1, $weightGrams);
         $courier = strtolower($courier);
 
-        // Komerce supports: jne, pos, tiki, jnt
-        if (!in_array($courier, ['jne', 'pos', 'tiki', 'jnt'])) {
+        // Allowed couriers come from Courier::getActiveCodes() (database-backed).
+        // This guard handles any unexpected value that bypasses controller validation.
+        if (!in_array($courier, Courier::getActiveCodes(), true)) {
             $courier = 'jne';
         }
 
-        $cacheKey = "rajaongkir:cost:v2:{$this->origin}:{$destinationCityId}:{$weightGrams}:{$courier}";
+        // Include province_id in cache key so different discount configurations
+        // for the same city vs province don't serve stale results.
+        $provinceSegment = $destinationProvinceId ?? 'null';
+        $cacheKey = "rajaongkir:cost:v3:{$this->origin}:{$destinationCityId}:{$provinceSegment}:{$weightGrams}:{$courier}";
 
-        return Cache::remember($cacheKey, now()->addHour(), function () use ($destinationCityId, $weightGrams, $courier) {
+        return Cache::remember($cacheKey, now()->addHour(), function () use ($destinationCityId, $weightGrams, $courier, $destinationProvinceId) {
             try {
                 // Komerce API requires form-data (not JSON)
                 $response = Http::withHeaders([
@@ -157,7 +185,10 @@ class ShippingService
 
                 $data = $response->json();
                 // Komerce returns flat array of services under 'data'
-                return $data['data'] ?? [];
+                $services = $data['data'] ?? [];
+
+                // Apply admin-configured shipping discount rules
+                return $this->applyDiscountRules($services, $destinationCityId, $destinationProvinceId);
             } catch (Exception $e) {
                 Log::error('RajaOngkir calculateCost exception', [
                     'destination' => $destinationCityId,
@@ -169,4 +200,50 @@ class ShippingService
             }
         });
     }
+
+    /**
+     * Apply active shipping discount rules to a set of shipping service results.
+     *
+     * Priority: city-level rule beats province-level rule.
+     * - 'free'  → sets cost to 0 for all services
+     * - 'fixed' → subtracts discount_amount from each service cost (floor 0)
+     *
+     * @param  array     $services        Raw service array from Komerce API
+     * @param  int       $cityId          Destination city ID
+     * @param  int|null  $provinceId      Destination province ID (null = province rules skipped)
+     * @return array                      Services with discounted costs applied
+     */
+    protected function applyDiscountRules(array $services, int $cityId, ?int $provinceId): array
+    {
+        if (empty($services)) {
+            return $services;
+        }
+
+        // Attempt city-level rule first (highest priority)
+        $rule = ShippingDiscountRule::active()->forCity($cityId)->first();
+
+        // Fall back to province-level rule only if no city rule matched and province is known
+        if ($rule === null && $provinceId !== null) {
+            $rule = ShippingDiscountRule::active()->forProvince($provinceId)->first();
+        }
+
+        if ($rule === null) {
+            return $services;
+        }
+
+        return array_map(function (array $service) use ($rule): array {
+            $originalCost = (int) ($service['cost'] ?? 0);
+
+            $discountedCost = match ($rule->discount_type) {
+                'free'  => 0,
+                'fixed' => max(0, $originalCost - (int) ($rule->discount_amount ?? 0)),
+                default => $originalCost,
+            };
+
+            $service['cost'] = $discountedCost;
+
+            return $service;
+        }, $services);
+    }
 }
+
