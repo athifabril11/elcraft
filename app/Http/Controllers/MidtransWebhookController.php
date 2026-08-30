@@ -83,59 +83,79 @@ class MidtransWebhookController extends Controller
     private function markAsPaid(string $orderId, array $notification): void
     {
         Log::info("Pesanan {$orderId} telah lunas", ['payment_type' => $notification['payment_type']]);
-        
-        $order = Order::where('order_number', $orderId)->first();
-        if ($order && $order->status !== 'paid') {
-            DB::transaction(function () use ($order, $notification) {
-                // Update order status
-                $order->update(['status' => 'paid']);
 
-                // Update payment details
-                if ($order->payment) {
-                    $order->payment->update([
-                        'status' => 'success',
-                        'payment_method' => $notification['payment_type'] ?? null,
-                        'payment_type' => $notification['payment_type'] ?? null,
-                        'paid_at' => now(),
-                        'response_data' => json_encode($notification),
-                    ]);
-                }
+        DB::transaction(function () use ($orderId, $notification) {
+            // ── Idempotency lock ────────────────────────────────────────────
+            // lockForUpdate() acquires a row-level exclusive lock (SELECT ... FOR UPDATE).
+            // If two webhook deliveries arrive simultaneously, the second one blocks here
+            // until the first transaction commits. After the lock is acquired, we re-check
+            // status — the second delivery will now see status='paid' and return early,
+            // preventing any duplicate stock decrements, payment updates, or shipment rows.
+            $order = Order::where('order_number', $orderId)->lockForUpdate()->first();
 
-                // Create shipment record
-                if (!$order->shipment) {
-                    $order->shipment()->create([
-                        'courier' => $order->courier ?? 'Manual',
-                        'service' => $order->courier_service ?? 'Reguler',
-                        'shipping_cost' => $order->shipping_cost,
-                    ]);
-                }
+            if (!$order) {
+                Log::warning("Midtrans webhook: order {$orderId} not found for markAsPaid");
+                return;
+            }
 
-                // Decrement product variant/product stock
-                foreach ($order->items as $item) {
-                    if ($item->variant_id) {
-                        $variant = ProductVariant::find($item->variant_id);
-                        if ($variant) {
-                            $variant->decrement('stock', $item->quantity);
-                        }
-                    } else {
-                        $product = Product::find($item->product_id);
-                        if ($product) {
-                            $product->decrement('stock', $item->quantity);
-                        }
+            if ($order->status === 'paid') {
+                Log::info("Midtrans webhook: order {$orderId} already marked paid, skipping duplicate notification (idempotency guard)");
+                return;
+            }
+
+            // Update order status
+            $order->update(['status' => 'paid']);
+
+            // Update payment details
+            if ($order->payment) {
+                $order->payment->update([
+                    'status'         => 'success',
+                    'payment_method' => $notification['payment_type'] ?? null,
+                    'payment_type'   => $notification['payment_type'] ?? null,
+                    'paid_at'        => now(),
+                    'response_data'  => json_encode($notification),
+                ]);
+            }
+
+            // Create shipment record
+            if (!$order->shipment) {
+                $order->shipment()->create([
+                    'courier'       => $order->courier ?? 'Manual',
+                    'service'       => $order->courier_service ?? 'Reguler',
+                    'shipping_cost' => $order->shipping_cost,
+                ]);
+            }
+
+            // Decrement product variant/product stock
+            foreach ($order->items as $item) {
+                if ($item->variant_id) {
+                    $variant = ProductVariant::find($item->variant_id);
+                    if ($variant) {
+                        $variant->decrement('stock', $item->quantity);
+                    }
+                } else {
+                    $product = Product::find($item->product_id);
+                    if ($product) {
+                        $product->decrement('stock', $item->quantity);
                     }
                 }
+            }
 
-                // Catat penggunaan voucher jika ada
-                if ($order->voucher_id) {
-                    VoucherUsage::firstOrCreate([
+            // Catat penggunaan voucher jika ada
+            if ($order->voucher_id) {
+                VoucherUsage::firstOrCreate(
+                    [
                         'voucher_id' => $order->voucher_id,
                         'user_id'    => $order->user_id,
                         'order_id'   => $order->id,
-                    ]);
-                    $order->voucher()->increment('used_count');
-                }
-            });
-        }
+                    ],
+                    [
+                        'discount_applied' => $order->voucher_discount,
+                    ]
+                );
+                $order->voucher()->increment('used_count');
+            }
+        });
     }
 
     private function markAsPending(string $orderId): void
