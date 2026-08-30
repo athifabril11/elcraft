@@ -1,13 +1,13 @@
 @extends('layouts.storefront')
 
-@section('title', 'Riwayat Pesanan | el Craft')
+@section('title', 'Pesanan | el Craft')
 @section('meta_description', 'Lihat riwayat pembelian aksesoris wanita premium Anda di el Craft.')
 
 @section('content')
 <div class="bg-white min-h-screen pb-24 md:pb-0">
 
     {{-- ─── HEADER ────────────────────────────────── --}}
-    <x-page-header title="Riwayat Pesanan" />
+    <x-page-header title="Pesanan" />
 
     <section class="max-w-[1280px] mx-auto px-5 md:px-8 lg:px-16 py-10">
 
@@ -30,9 +30,9 @@
                         $statusMap = [
                             'pending'    => ['label' => 'Menunggu Pembayaran', 'color' => 'text-yellow-700 bg-yellow-50 border-yellow-200'],
                             'paid'       => ['label' => 'Pembayaran Berhasil', 'color' => 'text-green-700 bg-green-50 border-green-200'],
-                            'processing' => ['label' => 'Sedang Diproses',     'color' => 'text-purple-700 bg-purple-50 border-purple-200'],
-                            'shipped'    => ['label' => 'Sedang Dikirim',      'color' => 'text-indigo-700 bg-indigo-50 border-indigo-200'],
-                            'delivered'  => ['label' => 'Pesanan Diterima',    'color' => 'text-green-700 bg-green-50 border-green-200'],
+                            'diproses'   => ['label' => 'Sedang Diproses',     'color' => 'text-purple-700 bg-purple-50 border-purple-200'],
+                            'dikirim'    => ['label' => 'Sedang Dikirim',      'color' => 'text-indigo-700 bg-indigo-50 border-indigo-200'],
+                            'selesai'    => ['label' => 'Pesanan Diterima',    'color' => 'text-green-700 bg-green-50 border-green-200'],
                             'dibatalkan' => ['label' => 'Dibatalkan',          'color' => 'text-red-700 bg-red-50 border-red-200'],
                         ];
                         $status = $statusMap[$order->status] ?? ['label' => ucfirst($order->status), 'color' => 'text-warmGrey bg-warmCream border-warmLightGrey'];

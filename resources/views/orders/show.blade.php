@@ -38,10 +38,10 @@
         $statusMap = [
             'pending'    => ['label' => 'Menunggu Pembayaran', 'color' => 'text-yellow-700 bg-yellow-50 border-yellow-200', 'icon' => 'schedule'],
             'paid'       => ['label' => 'Pembayaran Berhasil', 'color' => 'text-green-700 bg-green-50 border-green-200',   'icon' => 'check_circle'],
-            'processing' => ['label' => 'Sedang Diproses',     'color' => 'text-purple-700 bg-purple-50 border-purple-200', 'icon' => 'inventory'],
-            'shipped'    => ['label' => 'Sedang Dikirim',      'color' => 'text-indigo-700 bg-indigo-50 border-indigo-200', 'icon' => 'local_shipping'],
-            'delivered'  => ['label' => 'Pesanan Diterima',    'color' => 'text-green-700 bg-green-50 border-green-200', 'icon' => 'check_circle'],
-            'dibatalkan' => ['label' => 'Dibatalkan',          'color' => 'text-red-700 bg-red-50 border-red-200',    'icon' => 'cancel'],
+            'diproses'   => ['label' => 'Sedang Diproses',     'color' => 'text-purple-700 bg-purple-50 border-purple-200', 'icon' => 'inventory'],
+            'dikirim'    => ['label' => 'Sedang Dikirim',      'color' => 'text-indigo-700 bg-indigo-50 border-indigo-200', 'icon' => 'local_shipping'],
+            'selesai'    => ['label' => 'Pesanan Diterima',    'color' => 'text-green-700 bg-green-50 border-green-200',   'icon' => 'check_circle'],
+            'dibatalkan' => ['label' => 'Dibatalkan',          'color' => 'text-red-700 bg-red-50 border-red-200',         'icon' => 'cancel'],
         ];
         $status = $statusMap[$order->status] ?? ['label' => ucfirst($order->status), 'color' => 'text-warmGrey bg-warmCream border-warmLightGrey', 'icon' => 'info'];
     @endphp
@@ -70,12 +70,33 @@
             {{-- ── LEFT: Order Items & Tracking ─────────────────── --}}
             <div class="lg:col-span-2 space-y-6">
 
-                {{-- Status Banner --}}
-                <div class="flex items-center gap-3 p-4 rounded-card border {{ $status['color'] }}">
-                    <span class="material-symbols-outlined !text-[22px]">{{ $status['icon'] }}</span>
-                    <div>
-                        <p class="font-semibold text-sm">{{ $status['label'] }}</p>
-                        <p class="text-[11px] opacity-80">Diperbarui: {{ $order->updated_at->format('d M Y, H:i') }} WIB</p>
+                {{-- Order Info & Status Card --}}
+                <div class="bg-white rounded-card border border-warmLightGrey p-5 space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-warmLightGrey/60">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-warmCream flex items-center justify-center text-brand shrink-0">
+                                <span class="material-symbols-outlined !text-[20px]">receipt_long</span>
+                            </div>
+                            <div>
+                                <span class="text-[11px] font-semibold text-warmGrey uppercase tracking-wider">Nomor Pesanan</span>
+                                <p class="text-sm md:text-base font-bold text-warmBlack font-mono tracking-wide text-brandDark">{{ $order->order_number }}</p>
+                            </div>
+                        </div>
+                        <div class="text-left sm:text-right">
+                            <span class="text-[11px] font-semibold text-warmGrey uppercase tracking-wider">Waktu Pemesanan</span>
+                            <p class="text-xs font-medium text-warmBlack mt-0.5">{{ $order->created_at->format('d M Y, H:i') }} WIB</p>
+                        </div>
+                    </div>
+
+                    {{-- Status Banner --}}
+                    <div class="flex items-center gap-3 p-3.5 rounded-card border {{ $status['color'] }}">
+                        <span class="material-symbols-outlined !text-[20px]">{{ $status['icon'] }}</span>
+                        <div class="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                            <div>
+                                <p class="font-semibold text-xs md:text-sm">{{ $status['label'] }}</p>
+                                <p class="text-[11px] opacity-80">Terakhir diperbarui: {{ $order->updated_at->format('d M Y, H:i') }} WIB</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -274,7 +295,7 @@
                 <div class="space-y-3">
                     <a href="{{ route('orders.index') }}"
                         class="block w-full text-center py-3 border border-brand text-brand hover:bg-warmCream font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200">
-                        Kembali ke Riwayat
+                        Kembali ke Pesanan
                     </a>
                     @if($order->status === 'selesai')
                         <a href="/products"
