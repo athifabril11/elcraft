@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * OrderController — Riwayat & Detail Pesanan Pelanggan.
@@ -110,5 +111,43 @@ class OrderController extends Controller
             'expired'    => false,
             'snap_token' => $payment->snap_token,
         ], 200);
+    }
+
+    /**
+     * Konfirmasi penerimaan pesanan oleh pelanggan (dikirim → selesai).
+     *
+     * Hanya pesanan berstatus 'dikirim' yang dapat dikonfirmasi.
+     * Menggunakan transaction + lockForUpdate untuk mencegah race condition.
+     *
+     * @param  string  $orderNumber
+     */
+    public function confirmReceived(string $orderNumber)
+    {
+        // Ownership check via user relation scoping — mencegah IDOR
+        $order = Auth::user()
+            ->orders()
+            ->where('order_number', $orderNumber)
+            ->firstOrFail();
+
+        $confirmed = DB::transaction(function () use ($order) {
+            $locked = Order::lockForUpdate()->findOrFail($order->id);
+
+            if ($locked->status !== 'dikirim') {
+                return false;
+            }
+
+            $locked->update(['status' => 'selesai']);
+            return true;
+        });
+
+        if (!$confirmed) {
+            return redirect()
+                ->route('orders.show', $orderNumber)
+                ->with('error', 'Pesanan ini tidak dapat dikonfirmasi saat ini.');
+        }
+
+        return redirect()
+            ->route('orders.show', $orderNumber)
+            ->with('success', 'Terima kasih! Pesanan Anda telah dikonfirmasi diterima.');
     }
 }

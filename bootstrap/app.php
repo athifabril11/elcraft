@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schedule;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -24,6 +25,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'guest.modal' => \App\Http\Middleware\RedirectGuestsWithModal::class,
             'admin'       => \App\Http\Middleware\EnsureUserIsAdmin::class,
         ]);
+    })
+    ->withSchedule(function (Schedule $schedule): void {
+        // Auto-complete orders stuck at 'dikirim' beyond the configured threshold.
+        // Runs once per day. Threshold is configurable via the admin
+        // Pengaturan → Auto-Selesai page (shop_setting key: order_auto_complete_days).
+        $schedule->command('orders:auto-complete')->daily();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Kembalikan JSON untuk semua request yang menginginkan JSON (AJAX, API, test postJson)

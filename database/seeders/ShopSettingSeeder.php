@@ -16,6 +16,7 @@ class ShopSettingSeeder extends Seeder
         $defaults = [
             'shipping_origin_city_id'   => '256',
             'shipping_origin_city_name' => 'Jember',
+            'order_auto_complete_days'  => '7',
         ];
 
         foreach ($defaults as $key => $value) {

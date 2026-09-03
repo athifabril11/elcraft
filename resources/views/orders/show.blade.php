@@ -293,6 +293,18 @@
 
                 {{-- Actions --}}
                 <div class="space-y-3">
+                    @if($order->status === 'dikirim')
+                        {{-- Konfirmasi Pesanan Diterima --}}
+                        <form method="POST" action="{{ route('orders.confirm-received', $order->order_number) }}"
+                            onsubmit="return confirm('Konfirmasi bahwa pesanan sudah Anda terima?')">
+                            @csrf
+                            @method('PATCH')
+                            <button type="submit"
+                                class="block w-full text-center py-3 bg-brand hover:bg-brandDark text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200">
+                                Konfirmasi Pesanan Diterima
+                            </button>
+                        </form>
+                    @endif
                     <a href="{{ route('orders.index') }}"
                         class="block w-full text-center py-3 border border-brand text-brand hover:bg-warmCream font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200">
                         Kembali ke Pesanan

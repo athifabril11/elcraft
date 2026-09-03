@@ -15,6 +15,8 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\Admin\ShippingOriginController;
 use App\Http\Controllers\Admin\ShippingDiscountController;
 use App\Http\Controllers\Admin\CourierController;
+use App\Http\Controllers\Admin\OrderAutoCompleteController;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use Illuminate\Support\Facades\Route;
 
 // Arahkan halaman utama (/) ke HomeController
@@ -60,6 +62,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::post('/orders/{orderNumber}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+    Route::patch('/orders/{orderNumber}/confirm-received', [OrderController::class, 'confirmReceived'])->name('orders.confirm-received');
     Route::get('/orders/{orderNumber}/resume-payment', [OrderController::class, 'resumePayment'])->name('orders.resume-payment');
 
     Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
@@ -80,6 +83,10 @@ Route::middleware('auth')->group(function () {
             return view('admin.dashboard');
         })->name('dashboard');
 
+        // Orders (minimal: list + status advance)
+            Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
+            Route::patch('/orders/{order}/advance-status', [AdminOrderController::class, 'advanceStatus'])->name('orders.advance-status');
+
         Route::prefix('settings')->name('settings.')->group(function () {
             Route::get('/shipping',  [ShippingOriginController::class, 'index'])->name('shipping.index');
             Route::post('/shipping', [ShippingOriginController::class, 'update'])->name('shipping.update');
@@ -94,6 +101,10 @@ Route::middleware('auth')->group(function () {
             // Pengaturan Kurir
             Route::get('/couriers', [CourierController::class, 'index'])->name('couriers.index');
             Route::patch('/couriers/{courier}', [CourierController::class, 'toggle'])->name('couriers.toggle');
+
+            // Auto-Selesai Pesanan
+            Route::get('/order-auto-complete',  [OrderAutoCompleteController::class, 'index'])->name('order-auto-complete.index');
+            Route::post('/order-auto-complete', [OrderAutoCompleteController::class, 'update'])->name('order-auto-complete.update');
         });
     });
 });

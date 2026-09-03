@@ -153,6 +153,12 @@
                     Dashboard
                 </a>
 
+                <a href="{{ route('admin.orders.index') }}"
+                   class="admin-sidebar-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
+                    <span class="material-symbols-outlined">shopping_bag</span>
+                    Pesanan
+                </a>
+
                 <div style="font-size:0.65rem; font-weight:700; color:#b5b0ad; text-transform:uppercase; letter-spacing:0.1em; padding:0 0.5rem; margin:12px 0 4px;">Pengaturan Toko</div>
                 <a href="{{ route('admin.settings.shipping.index') }}"
                    class="admin-sidebar-link {{ request()->routeIs('admin.settings.shipping.*') ? 'active' : '' }}">
@@ -168,6 +174,11 @@
                    class="admin-sidebar-link {{ request()->routeIs('admin.settings.couriers.*') ? 'active' : '' }}">
                     <span class="material-symbols-outlined">local_shipping</span>
                     Kurir
+                </a>
+                <a href="{{ route('admin.settings.order-auto-complete.index') }}"
+                   class="admin-sidebar-link {{ request()->routeIs('admin.settings.order-auto-complete.*') ? 'active' : '' }}">
+                    <span class="material-symbols-outlined">schedule_send</span>
+                    Auto-Selesai
                 </a>
             </nav>
 
