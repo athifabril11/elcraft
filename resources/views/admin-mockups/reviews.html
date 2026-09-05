@@ -3,314 +3,336 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>el Craft Admin Mockup — Moderasi Ulasan</title>
+    <title>el Craft — Moderasi Ulasan</title>
+
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        brand: '#C17B6F',
-                        brandDark: '#9E5A4E',
-                        brandAccent: '#E8B4AC',
-                        brandBg: '#F5F0EE',
-                        brandSec: '#5F5E5A',
-                        brandMuted: '#A98077',
+                        brand: {
+                            50: '#FDF8F7',
+                            100: '#FAF0EE',
+                            200: '#F4DDD8',
+                            300: '#E8B4AC',
+                            400: '#D58E82',
+                            500: '#C17B6F',
+                            600: '#A8584B',
+                            700: '#8E4034',
+                            800: '#753229',
+                            900: '#612A23',
+                        },
+                        atelier: {
+                            cream: '#FAF7F5',
+                            card: '#FFFFFF',
+                            border: '#EFE7E4',
+                            borderSubtle: '#F6EFEB',
+                            textDark: '#221F1E',
+                            textMuted: '#786F6B',
+                            textLight: '#A39994',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
                     }
                 }
             }
         }
     </script>
+
+    <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-    <style>body { font-family: 'Inter', sans-serif; } [x-cloak] { display: none !important; }</style>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; letter-spacing: -0.01em; }
+        [x-cloak] { display: none !important; }
+    </style>
 </head>
-<body class="bg-brandBg text-stone-800 antialiased min-h-screen" x-data="{ currentTab: 'pending', showRejectModal: false, showReplyModal: false }">
 
-    <div class="flex min-h-screen">
+<body class="bg-[#F8F5F2] text-atelier-textDark antialiased h-screen overflow-hidden selection:bg-brand-100 selection:text-brand-800"
+      x-data="{
+          currentTab: 'pending',
+          toastMsg: '',
+          showToast(msg) {
+              this.toastMsg = msg;
+              setTimeout(() => this.toastMsg = '', 3500);
+          }
+      }">
 
-        <!-- Sidebar -->
-        <aside class="w-64 bg-white border-r border-stone-200 flex flex-col shrink-0">
-            <div class="p-5 border-b border-stone-100 flex items-center justify-between">
-                <a href="index.html" class="block">
-                    <div class="text-xl font-bold text-brand tracking-tight">el Craft</div>
-                    <div class="text-[10px] text-brandSec font-semibold uppercase tracking-wider">Admin Panel Preview</div>
+    <!-- Toast Notification -->
+    <div x-show="toastMsg" x-cloak
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="opacity-0 translate-y-2"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-200 transform"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 translate-y-2"
+         class="fixed bottom-6 right-6 z-50 bg-stone-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-stone-800 text-xs font-medium">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span x-text="toastMsg"></span>
+    </div>
+
+    <div class="flex h-screen overflow-hidden">
+
+        <!-- ========================================================= -->
+        <!-- CLEAN SIDEBAR WITH ROSE GOLD ACCENT & OUTLINE -->
+        <!-- ========================================================= -->
+        <aside class="w-64 bg-white border-r border-atelier-border flex flex-col shrink-0 h-screen relative z-20 shadow-[1px_0_12px_rgba(0,0,0,0.02)]">
+            
+            <div class="p-6 border-b border-atelier-border/80 flex items-center justify-between shrink-0">
+                <a href="index.html" class="flex items-center gap-3 group">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-100 via-white to-brand-50 border border-brand-200 flex items-center justify-center shadow-xs group-hover:border-brand-400 transition-colors">
+                        <svg class="w-5 h-5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <polygon points="6 3 18 3 22 9 12 22 2 9 6 3"></polygon>
+                            <line x1="12" y1="22" x2="12" y2="9"></line>
+                            <line x1="2" y1="9" x2="22" y2="9"></line>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="font-extrabold text-xl text-atelier-textDark tracking-tight leading-none group-hover:text-brand-600 transition-colors font-sans">el Craft</div>
+                        <div class="text-[9px] font-bold text-brand-600 uppercase tracking-[0.18em] mt-1.5 font-sans">Admin Atelier & Aksesoris</div>
+                    </div>
                 </a>
-                <span class="px-2 py-0.5 text-[10px] font-bold bg-amber-50 text-amber-700 rounded-full border border-amber-200">MOCKUP</span>
             </div>
 
-            <nav class="flex-1 p-4 space-y-6 overflow-y-auto">
+            <!-- Navigation Links -->
+            <nav class="flex-1 px-4 py-5 space-y-6 overflow-y-auto">
                 <div>
-                    <div class="px-3 text-[11px] font-bold uppercase tracking-wider text-stone-400 mb-2">Overview</div>
+                    <div class="px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-atelier-textLight mb-2.5">Utama</div>
                     <div class="space-y-1">
-                        <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
-                            <span class="material-symbols-outlined text-[20px]">grid_view</span>
-                            Dashboard
+                        <a href="dashboard.html"
+                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 hover:border hover:border-brand-200/50 border border-transparent transition-all group">
+                            <svg class="w-4 h-4 text-atelier-textLight group-hover:text-brand-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+                                <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+                                <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+                                <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+                            </svg>
+                            <span>Dashboard</span>
+                        </a>
+
+                        <a href="orders.html"
+                           class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 hover:border hover:border-brand-200/50 border border-transparent transition-all group">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 text-atelier-textLight group-hover:text-brand-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                                    <path d="M16 10a4 4 0 0 1-8 0"></path>
+                                </svg>
+                                <span>Pesanan</span>
+                            </div>
+                            <span class="px-2 py-0.5 text-[10px] font-bold bg-brand-100 text-brand-700 rounded-full border border-brand-200">14</span>
+                        </a>
+
+                        <a href="products.html"
+                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 hover:border hover:border-brand-200/50 border border-transparent transition-all group">
+                            <svg class="w-4 h-4 text-atelier-textLight group-hover:text-brand-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                            </svg>
+                            <span>Produk</span>
+                        </a>
+
+                        <a href="categories.html"
+                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 hover:border hover:border-brand-200/50 border border-transparent transition-all group">
+                            <svg class="w-4 h-4 text-atelier-textLight group-hover:text-brand-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                                <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                                <path d="M14 4h7"></path>
+                                <path d="M14 9h7"></path>
+                                <path d="M14 15h7"></path>
+                                <path d="M14 20h7"></path>
+                            </svg>
+                            <span>Kategori</span>
                         </a>
                     </div>
                 </div>
 
                 <div>
-                    <div class="px-3 text-[11px] font-bold uppercase tracking-wider text-stone-400 mb-2">Katalog Produk</div>
+                    <div class="px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-atelier-textLight mb-2.5">Pemasaran</div>
                     <div class="space-y-1">
-                        <a href="products.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
-                            <span class="material-symbols-outlined text-[20px]">inventory_2</span>
-                            Kelola Produk
+                        <a href="vouchers.html"
+                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 hover:border hover:border-brand-200/50 border border-transparent transition-all group">
+                            <svg class="w-4 h-4 text-atelier-textLight group-hover:text-brand-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M2.5 12a2.5 2.5 0 0 1 0-5h19a2.5 2.5 0 0 1 0 5 2.5 2.5 0 0 1 0 5h-19a2.5 2.5 0 0 1 0-5z"></path>
+                                <path d="M9 7v10" stroke-dasharray="2 2"></path>
+                            </svg>
+                            <span>Voucher Diskon</span>
                         </a>
-                        <a href="categories.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
-                            <span class="material-symbols-outlined text-[20px]">category</span>
-                            Kelola Kategori
+
+                        <!-- Active: Ulasan -->
+                        <a href="reviews.html"
+                           class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-brand-700 bg-brand-50/70 border border-brand-200/90 shadow-[0_1px_3px_rgba(193,123,111,0.08)] relative group">
+                            <span class="absolute left-0 top-2 bottom-2 w-1 bg-brand-500 rounded-r-full"></span>
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                                </svg>
+                                <span>Ulasan</span>
+                            </div>
+                            <span class="px-2 py-0.5 text-[10px] font-bold bg-rose-50 text-rose-700 rounded-full border border-rose-200">5</span>
                         </a>
-                        <a href="banners.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
-                            <span class="material-symbols-outlined text-[20px]">view_carousel</span>
-                            Kelola Banner
+
+                        <a href="banners.html"
+                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 hover:border hover:border-brand-200/50 border border-transparent transition-all group">
+                            <svg class="w-4 h-4 text-atelier-textLight group-hover:text-brand-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                                <circle cx="8" cy="10" r="2"></circle>
+                                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 20"></path>
+                            </svg>
+                            <span>Banner Promo</span>
                         </a>
                     </div>
                 </div>
 
                 <div>
-                    <div class="px-3 text-[11px] font-bold uppercase tracking-wider text-stone-400 mb-2">Penjualan & Pesanan</div>
+                    <div class="px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-atelier-textLight mb-2.5">Layanan</div>
                     <div class="space-y-1">
-                        <a href="orders.html" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
+                        <a href="returns.html"
+                           class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 hover:border hover:border-brand-200/50 border border-transparent transition-all group">
                             <div class="flex items-center gap-3">
-                                <span class="material-symbols-outlined text-[20px]">shopping_bag</span>
-                                Pesanan
+                                <svg class="w-4 h-4 text-atelier-textLight group-hover:text-brand-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                    <path d="M21 3v5h-5"></path>
+                                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                                    <path d="M8 16H3v5"></path>
+                                </svg>
+                                <span>Retur & Refund</span>
                             </div>
-                            <span class="px-1.5 py-0.5 text-[10px] font-bold bg-brand text-white rounded-full">14</span>
-                        </a>
-                        <a href="vouchers.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
-                            <span class="material-symbols-outlined text-[20px]">confirmation_number</span>
-                            Voucher Diskon
-                        </a>
-                        <a href="returns.html" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
-                            <div class="flex items-center gap-3">
-                                <span class="material-symbols-outlined text-[20px]">assignment_return</span>
-                                Retur & Refund
-                            </div>
-                            <span class="px-1.5 py-0.5 text-[10px] font-bold bg-amber-500 text-white rounded-full">3</span>
+                            <span class="px-2 py-0.5 text-[10px] font-bold bg-amber-50 text-amber-700 rounded-full border border-amber-200">3</span>
                         </a>
                     </div>
                 </div>
 
                 <div>
-                    <div class="px-3 text-[11px] font-bold uppercase tracking-wider text-stone-400 mb-2">Interaksi</div>
+                    <div class="px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-atelier-textLight mb-2.5">Pengaturan</div>
                     <div class="space-y-1">
-                        <a href="reviews.html" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold bg-brand/10 text-brand">
-                            <div class="flex items-center gap-3">
-                                <span class="material-symbols-outlined text-[20px]">reviews</span>
-                                Moderasi Ulasan
-                            </div>
-                            <span class="px-1.5 py-0.5 text-[10px] font-bold bg-rose-500 text-white rounded-full">5</span>
-                        </a>
+                        <a href="shipping.html" class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/30 transition group"><svg class="w-4 h-4 text-atelier-textLight group-hover:text-brand-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg><span>Ongkir &amp; Kurir</span></a>
+                        <a href="auto-complete.html" class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/30 transition group"><svg class="w-4 h-4 text-atelier-textLight group-hover:text-brand-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg><span>Auto-Selesai Pesanan</span></a>
                     </div>
                 </div>
             </nav>
 
-            <div class="p-4 border-t border-stone-100 flex items-center gap-3">
-                <div class="w-9 h-9 rounded-full bg-brand/20 flex items-center justify-center text-brand font-bold text-sm">AD</div>
-                <div class="flex-1 min-w-0">
-                    <div class="text-xs font-bold text-stone-800 truncate">Administrator</div>
-                    <div class="text-[11px] text-stone-400 truncate">admin@elcraft.id</div>
+            <div class="p-4 border-t border-atelier-border bg-gradient-to-b from-white to-brand-50/30 space-y-3 shrink-0">
+                <div class="grid grid-cols-2 gap-2">
+                    <a href="products.html" class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-[11px] font-bold text-brand-700 bg-white border border-brand-200 hover:bg-brand-50 transition shadow-xs">
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        <span>Produk</span>
+                    </a>
+                    <a href="orders.html" class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-[11px] font-bold text-brand-700 bg-white border border-brand-200 hover:bg-brand-50 transition shadow-xs">
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        <span>Pesanan</span>
+                    </a>
+                </div>
+
+                <div class="p-2.5 rounded-xl border border-brand-100 bg-white/90 flex items-center justify-between">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                            AO
+                        </div>
+                        <div class="min-w-0">
+                            <div class="text-xs font-bold text-atelier-textDark truncate">Atelier Owner</div>
+                            <div class="text-[10px] text-brand-600 font-medium truncate">Toko el Craft</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </aside>
 
-        <!-- Main Content -->
-        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-            <header class="bg-white border-b border-stone-200 px-8 py-4 flex items-center justify-between">
-                <div>
-                    <h1 class="text-xl font-bold text-stone-800">Moderasi Ulasan Pelanggan</h1>
-                    <p class="text-xs text-brandSec mt-0.5">Tinjau, setujui, tolak, atau balas ulasan bintang & foto produk dari pembeli terverifikasi</p>
+        <!-- ========================================================= -->
+        <!-- MAIN CONTENT -->
+        <!-- ========================================================= -->
+        <div class="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+
+            <header class="bg-white border-b border-atelier-border px-8 py-3.5 flex items-center justify-between gap-4 sticky top-0 z-10 shrink-0">
+                <div class="flex-1 max-w-xl relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-atelier-textLight">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </span>
+                    <input type="text" placeholder="Cari ulasan pembeli..." class="w-full pl-10 pr-4 py-2 text-xs bg-stone-50/80 hover:bg-stone-50 focus:bg-white border border-stone-200 focus:border-brand-400 rounded-xl outline-none transition-all placeholder:text-stone-400">
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <a href="index.html" class="px-3 py-2 text-xs font-semibold bg-white hover:bg-brand-50 border border-atelier-border hover:border-brand-300 rounded-xl text-stone-700 transition">
+                        Semua Mockup
+                    </a>
                 </div>
             </header>
 
-            <main class="flex-1 p-8 overflow-y-auto space-y-6">
+            <main class="flex-1 p-8 space-y-6">
 
-                <!-- Filter Tabs -->
-                <div class="flex border-b border-stone-200 gap-2">
-                    <button @click="currentTab = 'pending'" :class="currentTab === 'pending' ? 'border-brand text-brand font-bold bg-white' : 'border-transparent text-stone-500 hover:text-stone-700'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-lg transition flex items-center gap-2">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-brand-500 ring-4 ring-brand-100"></span>
+                            <h1 class="text-2xl font-extrabold text-atelier-textDark tracking-tight font-sans">Moderasi Ulasan Pelanggan</h1>
+                        </div>
+                        <p class="text-xs text-atelier-textMuted mt-1">
+                            Tinjau ulasan bintang 5 &amp; testimoni foto karya perhiasan dari pembeli terverifikasi
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex border-b border-atelier-border gap-2">
+                    <button @click="currentTab = 'pending'" :class="currentTab === 'pending' ? 'border-brand-500 text-brand-700 font-bold bg-white' : 'border-transparent text-atelier-textMuted hover:text-stone-800'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-xl transition flex items-center gap-2">
                         <span>Menunggu Moderasi</span>
-                        <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-rose-100 text-rose-800 font-bold">5</span>
+                        <span class="px-2 py-0.5 text-[10px] rounded-full bg-rose-100 text-rose-800 font-bold font-sans">5</span>
                     </button>
-                    <button @click="currentTab = 'approved'" :class="currentTab === 'approved' ? 'border-brand text-brand font-bold bg-white' : 'border-transparent text-stone-500 hover:text-stone-700'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-lg transition flex items-center gap-2">
-                        <span>Disetujui & Tampil</span>
-                        <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-stone-100 text-stone-600">42</span>
-                    </button>
-                    <button @click="currentTab = 'rejected'" :class="currentTab === 'rejected' ? 'border-brand text-brand font-bold bg-white' : 'border-transparent text-stone-500 hover:text-stone-700'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-lg transition flex items-center gap-2">
-                        <span>Ditolak / Spam</span>
-                        <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-stone-100 text-stone-600">2</span>
+                    <button @click="currentTab = 'approved'" :class="currentTab === 'approved' ? 'border-brand-500 text-brand-700 font-bold bg-white' : 'border-transparent text-atelier-textMuted hover:text-stone-800'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-xl transition flex items-center gap-2">
+                        <span>Disetujui &amp; Tampil di Toko</span>
+                        <span class="px-2 py-0.5 text-[10px] rounded-full bg-stone-100 text-stone-600 font-bold font-sans">42</span>
                     </button>
                 </div>
 
-                <!-- Review Cards Feed -->
+                <!-- Review Cards -->
                 <div class="space-y-4">
-                    <!-- Review Card 1 -->
-                    <div class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-4">
-                        <div class="flex items-start justify-between">
+                    
+                    <div class="bg-white p-5 rounded-2xl border border-atelier-border shadow-2xs space-y-3">
+                        <div class="flex items-center justify-between">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-rose-100 text-brand font-bold text-sm flex items-center justify-center">
-                                    NS
-                                </div>
+                                <div class="w-9 h-9 rounded-full bg-brand-100 text-brand-800 font-bold text-xs flex items-center justify-center">DK</div>
                                 <div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="font-bold text-sm text-stone-800">Nadia Safitri</span>
-                                        <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 font-bold text-[10px] rounded-full flex items-center gap-1 border border-emerald-200">
-                                            <span class="material-symbols-outlined text-[12px]">verified</span>
-                                            Pembeli Terverifikasi
-                                        </span>
-                                    </div>
-                                    <div class="text-[11px] text-stone-400">Order: #ORD-20260820-0012 • 25 Agu 2026, 10:15 WIB</div>
+                                    <div class="font-bold text-stone-800 text-xs">Dewi Kartika</div>
+                                    <div class="text-[10px] text-atelier-textLight">Pesanan #ORD-20260822-0089 • 24 Agu 2026</div>
                                 </div>
                             </div>
-                            <!-- Stars -->
-                            <div class="flex items-center text-amber-400">
-                                <span class="material-symbols-outlined text-[18px]">star</span>
-                                <span class="material-symbols-outlined text-[18px]">star</span>
-                                <span class="material-symbols-outlined text-[18px]">star</span>
-                                <span class="material-symbols-outlined text-[18px]">star</span>
-                                <span class="material-symbols-outlined text-[18px]">star</span>
+                            <div class="flex items-center text-amber-400 gap-0.5 text-sm">
+                                ★★★★★ <span class="text-xs font-bold text-stone-800 ml-1 font-sans">5.0</span>
                             </div>
                         </div>
 
-                        <!-- Product Link -->
-                        <div class="p-2.5 bg-stone-50 rounded-lg flex items-center gap-3 border border-stone-100 text-xs">
-                            <div class="w-8 h-8 rounded bg-stone-200 flex items-center justify-center text-stone-400">
-                                <span class="material-symbols-outlined text-[16px]">image</span>
-                            </div>
-                            <div>
-                                <span class="text-stone-500">Ulasan untuk:</span>
-                                <strong class="text-stone-800 ml-1">Gelang Emas Minimalis Rose Gold (18 cm)</strong>
-                            </div>
-                        </div>
-
-                        <!-- Review Comment -->
                         <p class="text-xs text-stone-700 leading-relaxed">
-                            "Bagus banget gelangnya, warnanya beneran soft rose gold mewah dan ga gampang pudar. Pengemasan sangat rapi dengan pouch bludru, pengiriman JNE cepat sampai Surabaya 1 hari. Sangat recommended!"
+                            "Gelangnya cantik sekali, kilaunya mewah dan tidak bikin gatal di kulit sensitif. Packaging kotak beludrunya estetik banget cocok buat kado. Terima kasih el Craft!"
                         </p>
 
-                        <!-- Attached Photos -->
-                        <div class="flex gap-2">
-                            <div class="w-16 h-16 rounded-lg bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 cursor-pointer hover:opacity-80">
-                                <span class="material-symbols-outlined text-[20px]">image</span>
-                            </div>
-                            <div class="w-16 h-16 rounded-lg bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 cursor-pointer hover:opacity-80">
-                                <span class="material-symbols-outlined text-[20px]">image</span>
-                            </div>
-                        </div>
-
-                        <!-- Actions Bar -->
-                        <div class="pt-3 border-t border-stone-100 flex items-center justify-between">
-                            <button @click="showReplyModal = true" class="text-xs text-brand font-semibold hover:underline flex items-center gap-1">
-                                <span class="material-symbols-outlined text-[16px]">reply</span>
-                                Balas Ulasan sebagai Toko
-                            </button>
+                        <div class="flex items-center justify-between pt-3 border-t border-atelier-borderSubtle text-xs">
+                            <div class="text-[11px] text-brand-700 font-medium">Gelang Emas Minimalis Rose Gold (16 cm)</div>
                             <div class="flex items-center gap-2">
-                                <button @click="showRejectModal = true" class="px-3 py-1.5 bg-stone-100 hover:bg-rose-50 hover:text-rose-600 text-stone-600 text-xs font-semibold rounded-lg transition">
-                                    Tolak Ulasan
+                                <button @click="showToast('Ulasan disetujui & ditampilkan ke halaman produk')" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition shadow-2xs">
+                                    Setujui &amp; Tampilkan
                                 </button>
-                                <button class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition shadow-sm flex items-center gap-1.5">
-                                    <span class="material-symbols-outlined text-[16px]">check</span>
-                                    Setujui & Tampilkan
+                                <button @click="showToast('Form balas ulasan toko dibuka')" class="px-3 py-1.5 bg-stone-100 hover:bg-brand-50 text-stone-700 font-semibold rounded-lg transition">
+                                    Balas Ulasan
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Review Card 2 -->
-                    <div class="bg-white p-6 rounded-xl border border-stone-200 shadow-sm space-y-4">
-                        <div class="flex items-start justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-bold text-sm flex items-center justify-center">
-                                    RH
-                                </div>
-                                <div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="font-bold text-sm text-stone-800">Rina Handayani</span>
-                                        <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 font-bold text-[10px] rounded-full flex items-center gap-1 border border-emerald-200">
-                                            <span class="material-symbols-outlined text-[12px]">verified</span>
-                                            Pembeli Terverifikasi
-                                        </span>
-                                    </div>
-                                    <div class="text-[11px] text-stone-400">Order: #ORD-20260821-0033 • 25 Agu 2026, 09:20 WIB</div>
-                                </div>
-                            </div>
-                            <div class="flex items-center text-amber-400">
-                                <span class="material-symbols-outlined text-[18px]">star</span>
-                                <span class="material-symbols-outlined text-[18px]">star</span>
-                                <span class="material-symbols-outlined text-[18px]">star</span>
-                                <span class="material-symbols-outlined text-[18px]">star</span>
-                                <span class="material-symbols-outlined text-[18px] text-stone-200">star</span>
-                            </div>
-                        </div>
-
-                        <div class="p-2.5 bg-stone-50 rounded-lg flex items-center gap-3 border border-stone-100 text-xs">
-                            <div class="w-8 h-8 rounded bg-stone-200 flex items-center justify-center text-stone-400">
-                                <span class="material-symbols-outlined text-[16px]">image</span>
-                            </div>
-                            <div>
-                                <span class="text-stone-500">Ulasan untuk:</span>
-                                <strong class="text-stone-800 ml-1">Jepit Rambut Mutiara Korea Set (Set A)</strong>
-                            </div>
-                        </div>
-
-                        <p class="text-xs text-stone-700 leading-relaxed">
-                            "Mutiara rapi dan jepitannya kuat ga bikin rambut rontok. Cuman agak kecil dari perkiraan di foto, tapi secara kualitas oke banget untuk harga segini."
-                        </p>
-
-                        <div class="pt-3 border-t border-stone-100 flex items-center justify-between">
-                            <button @click="showReplyModal = true" class="text-xs text-brand font-semibold hover:underline flex items-center gap-1">
-                                <span class="material-symbols-outlined text-[16px]">reply</span>
-                                Balas Ulasan sebagai Toko
-                            </button>
-                            <div class="flex items-center gap-2">
-                                <button @click="showRejectModal = true" class="px-3 py-1.5 bg-stone-100 hover:bg-rose-50 hover:text-rose-600 text-stone-600 text-xs font-semibold rounded-lg transition">
-                                    Tolak Ulasan
-                                </button>
-                                <button class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition shadow-sm flex items-center gap-1.5">
-                                    <span class="material-symbols-outlined text-[16px]">check</span>
-                                    Setujui & Tampilkan
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
             </main>
         </div>
     </div>
 
-    <!-- MODAL: Balas Ulasan -->
-    <div x-show="showReplyModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-        <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-4 text-xs" @click.away="showReplyModal = false">
-            <h3 class="text-sm font-bold text-stone-800">Balas Ulasan Pelanggan</h3>
-            <p class="text-stone-500">Balasan toko akan tampil tepat di bawah komentar ulasan pembeli di halaman detail produk.</p>
-            <textarea rows="4" placeholder="Terima kasih Kak Nadia atas ulasan dan kepercayaannya belanja di el Craft! Semoga awet ya..." class="w-full p-3 border border-stone-200 rounded-lg focus:outline-none focus:border-brand"></textarea>
-            <div class="flex justify-end gap-2 pt-2">
-                <button @click="showReplyModal = false" class="px-4 py-2 bg-stone-100 text-stone-600 rounded-lg font-semibold hover:bg-stone-200">Batal</button>
-                <button @click="showReplyModal = false" class="px-4 py-2 bg-brand text-white rounded-lg font-bold hover:bg-brandDark">Kirim Balasan</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: Tolak Ulasan -->
-    <div x-show="showRejectModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-        <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-4 text-xs" @click.away="showRejectModal = false">
-            <h3 class="text-sm font-bold text-stone-800">Tolak Ulasan Pembeli</h3>
-            <p class="text-stone-500">Pilih alasan penolakan untuk arsip moderasi admin.</p>
-            <select class="w-full p-2 border border-stone-200 rounded-lg bg-white focus:outline-none focus:border-brand">
-                <option value="spam">Mengandung kata-kata kasar / SARA / Spam</option>
-                <option value="fake">Foto tidak sesuai dengan produk yang dibeli</option>
-                <option value="other">Alasan lainnya</option>
-            </select>
-            <div class="flex justify-end gap-2 pt-2">
-                <button @click="showRejectModal = false" class="px-4 py-2 bg-stone-100 text-stone-600 rounded-lg font-semibold hover:bg-stone-200">Batal</button>
-                <button @click="showRejectModal = false" class="px-4 py-2 bg-rose-600 text-white rounded-lg font-bold hover:bg-rose-700">Tolak Ulasan</button>
-            </div>
-        </div>
-    </div>
-
 </body>
 </html>
+

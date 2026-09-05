@@ -3,379 +3,550 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>el Craft Admin Mockup — Kelola Pesanan</title>
+    <title>el Craft — Kelola Pesanan</title>
+
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        brand: '#C17B6F',
-                        brandDark: '#9E5A4E',
-                        brandAccent: '#E8B4AC',
-                        brandBg: '#F5F0EE',
-                        brandSec: '#5F5E5A',
-                        brandMuted: '#A98077',
+                        brand: {
+                            50: '#FDF8F7',
+                            100: '#FAF0EE',
+                            200: '#F4DDD8',
+                            300: '#E8B4AC',
+                            400: '#D58E82',
+                            500: '#C17B6F',
+                            600: '#A8584B',
+                            700: '#8E4034',
+                            800: '#753229',
+                            900: '#612A23',
+                        },
+                        atelier: {
+                            cream: '#FAF7F5',
+                            card: '#FFFFFF',
+                            border: '#EFE7E4',
+                            borderSubtle: '#F6EFEB',
+                            textDark: '#221F1E',
+                            textMuted: '#786F6B',
+                            textLight: '#A39994',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
                     }
                 }
             }
         }
     </script>
+
+    <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-    <style>body { font-family: 'Inter', sans-serif; } [x-cloak] { display: none !important; }</style>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; letter-spacing: -0.01em; }
+        [x-cloak] { display: none !important; }
+    </style>
 </head>
-<body class="bg-brandBg text-stone-800 antialiased min-h-screen" x-data="{ showDetailDrawer: false, currentStatus: 'all', selectedOrder: 'ORD-20260825-0042' }">
 
-    <div class="flex min-h-screen">
+<body class="bg-[#F8F5F2] text-atelier-textDark antialiased h-screen overflow-hidden selection:bg-brand-100 selection:text-brand-800"
+      x-data="{
+          showDetailDrawer: false,
+          currentStatus: 'all',
+          selectedOrder: 'ORD-20260825-0042',
+          toastMsg: '',
+          showToast(msg) {
+              this.toastMsg = msg;
+              setTimeout(() => this.toastMsg = '', 3500);
+          }
+      }">
 
-        <!-- Sidebar -->
-        <aside class="w-64 bg-white border-r border-stone-200 flex flex-col shrink-0">
-            <div class="p-5 border-b border-stone-100 flex items-center justify-between">
-                <a href="index.html" class="block">
-                    <div class="text-xl font-bold text-brand tracking-tight">el Craft</div>
-                    <div class="text-[10px] text-brandSec font-semibold uppercase tracking-wider">Admin Panel Preview</div>
+    <!-- Toast Notification -->
+    <div x-show="toastMsg" x-cloak
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="opacity-0 translate-y-2"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-200 transform"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 translate-y-2"
+         class="fixed bottom-6 right-6 z-50 bg-stone-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-stone-800 text-xs font-medium">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span x-text="toastMsg"></span>
+    </div>
+
+    <div class="flex h-screen overflow-hidden">
+
+        <!-- ========================================================= -->
+        <!-- CLEAN SIDEBAR WITH ROSE GOLD ACCENT & OUTLINE -->
+        <!-- ========================================================= -->
+        <aside class="w-64 bg-white border-r border-atelier-border flex flex-col shrink-0 h-screen relative z-20 shadow-[1px_0_12px_rgba(0,0,0,0.02)]">
+            
+            <div class="p-6 border-b border-atelier-border/80 flex items-center justify-between shrink-0">
+                <a href="index.html" class="flex items-center gap-3 group">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-100 via-white to-brand-50 border border-brand-200 flex items-center justify-center shadow-xs group-hover:border-brand-400 transition-colors">
+                        <svg class="w-5 h-5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <polygon points="6 3 18 3 22 9 12 22 2 9 6 3"></polygon>
+                            <line x1="12" y1="22" x2="12" y2="9"></line>
+                            <line x1="2" y1="9" x2="22" y2="9"></line>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="font-extrabold text-xl text-atelier-textDark tracking-tight leading-none group-hover:text-brand-600 transition-colors font-sans">el Craft</div>
+                        <div class="text-[9px] font-bold text-brand-600 uppercase tracking-[0.18em] mt-1.5 font-sans">Admin Atelier & Aksesoris</div>
+                    </div>
                 </a>
-                <span class="px-2 py-0.5 text-[10px] font-bold bg-amber-50 text-amber-700 rounded-full border border-amber-200">MOCKUP</span>
             </div>
 
-            <nav class="flex-1 p-4 space-y-6 overflow-y-auto">
+            <!-- Navigation Links -->
+            <nav class="flex-1 px-4 py-5 space-y-6 overflow-y-auto">
                 <div>
-                    <div class="px-3 text-[11px] font-bold uppercase tracking-wider text-stone-400 mb-2">Overview</div>
+                    <div class="px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-atelier-textLight mb-2.5">Utama</div>
                     <div class="space-y-1">
-                        <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
-                            <span class="material-symbols-outlined text-[20px]">grid_view</span>
-                            Dashboard
+                        <a href="dashboard.html"
+                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 hover:border hover:border-brand-200/50 border border-transparent transition-all group">
+                            <svg class="w-4 h-4 text-atelier-textLight group-hover:text-brand-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+                                <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+                                <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+                                <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+                            </svg>
+                            <span>Dashboard</span>
+                        </a>
+
+                        <!-- Active: Pesanan -->
+                        <a href="orders.html"
+                           class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-brand-700 bg-brand-50/70 border border-brand-200/90 shadow-[0_1px_3px_rgba(193,123,111,0.08)] relative group">
+                            <span class="absolute left-0 top-2 bottom-2 w-1 bg-brand-500 rounded-r-full"></span>
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                                    <path d="M16 10a4 4 0 0 1-8 0"></path>
+                                </svg>
+                                <span>Pesanan</span>
+                            </div>
+                            <span class="px-2 py-0.5 text-[10px] font-bold bg-brand-100 text-brand-700 rounded-full border border-brand-200">14</span>
+                        </a>
+
+                        <a href="products.html"
+                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 hover:border hover:border-brand-200/50 border border-transparent transition-all group">
+                            <svg class="w-4 h-4 text-atelier-textLight group-hover:text-brand-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                            </svg>
+                            <span>Produk</span>
+                        </a>
+
+                        <a href="categories.html"
+                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 hover:border hover:border-brand-200/50 border border-transparent transition-all group">
+                            <svg class="w-4 h-4 text-atelier-textLight group-hover:text-brand-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                                <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                                <path d="M14 4h7"></path>
+                                <path d="M14 9h7"></path>
+                                <path d="M14 15h7"></path>
+                                <path d="M14 20h7"></path>
+                            </svg>
+                            <span>Kategori</span>
                         </a>
                     </div>
                 </div>
 
                 <div>
-                    <div class="px-3 text-[11px] font-bold uppercase tracking-wider text-stone-400 mb-2">Katalog Produk</div>
+                    <div class="px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-atelier-textLight mb-2.5">Pemasaran</div>
                     <div class="space-y-1">
-                        <a href="products.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
-                            <span class="material-symbols-outlined text-[20px]">inventory_2</span>
-                            Kelola Produk
+                        <a href="vouchers.html"
+                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 hover:border hover:border-brand-200/50 border border-transparent transition-all group">
+                            <svg class="w-4 h-4 text-atelier-textLight group-hover:text-brand-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M2.5 12a2.5 2.5 0 0 1 0-5h19a2.5 2.5 0 0 1 0 5 2.5 2.5 0 0 1 0 5h-19a2.5 2.5 0 0 1 0-5z"></path>
+                                <path d="M9 7v10" stroke-dasharray="2 2"></path>
+                            </svg>
+                            <span>Voucher Diskon</span>
                         </a>
-                        <a href="categories.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
-                            <span class="material-symbols-outlined text-[20px]">category</span>
-                            Kelola Kategori
+
+                        <a href="reviews.html"
+                           class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 hover:border hover:border-brand-200/50 border border-transparent transition-all group">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 text-atelier-textLight group-hover:text-brand-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                                </svg>
+                                <span>Ulasan</span>
+                            </div>
+                            <span class="px-2 py-0.5 text-[10px] font-bold bg-rose-50 text-rose-700 rounded-full border border-rose-200">5</span>
                         </a>
-                        <a href="banners.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
-                            <span class="material-symbols-outlined text-[20px]">view_carousel</span>
-                            Kelola Banner
+
+                        <a href="banners.html"
+                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 hover:border hover:border-brand-200/50 border border-transparent transition-all group">
+                            <svg class="w-4 h-4 text-atelier-textLight group-hover:text-brand-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                                <circle cx="8" cy="10" r="2"></circle>
+                                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 20"></path>
+                            </svg>
+                            <span>Banner Promo</span>
                         </a>
                     </div>
                 </div>
 
                 <div>
-                    <div class="px-3 text-[11px] font-bold uppercase tracking-wider text-stone-400 mb-2">Penjualan & Pesanan</div>
+                    <div class="px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-atelier-textLight mb-2.5">Layanan</div>
                     <div class="space-y-1">
-                        <a href="orders.html" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold bg-brand/10 text-brand">
+                        <a href="returns.html"
+                           class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 hover:border hover:border-brand-200/50 border border-transparent transition-all group">
                             <div class="flex items-center gap-3">
-                                <span class="material-symbols-outlined text-[20px]">shopping_bag</span>
-                                Pesanan
+                                <svg class="w-4 h-4 text-atelier-textLight group-hover:text-brand-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                    <path d="M21 3v5h-5"></path>
+                                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                                    <path d="M8 16H3v5"></path>
+                                </svg>
+                                <span>Retur & Refund</span>
                             </div>
-                            <span class="px-1.5 py-0.5 text-[10px] font-bold bg-brand text-white rounded-full">14</span>
-                        </a>
-                        <a href="vouchers.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
-                            <span class="material-symbols-outlined text-[20px]">confirmation_number</span>
-                            Voucher Diskon
-                        </a>
-                        <a href="returns.html" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
-                            <div class="flex items-center gap-3">
-                                <span class="material-symbols-outlined text-[20px]">assignment_return</span>
-                                Retur & Refund
-                            </div>
-                            <span class="px-1.5 py-0.5 text-[10px] font-bold bg-amber-500 text-white rounded-full">3</span>
+                            <span class="px-2 py-0.5 text-[10px] font-bold bg-amber-50 text-amber-700 rounded-full border border-amber-200">3</span>
                         </a>
                     </div>
                 </div>
 
                 <div>
-                    <div class="px-3 text-[11px] font-bold uppercase tracking-wider text-stone-400 mb-2">Interaksi</div>
+                    <div class="px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-atelier-textLight mb-2.5">Pengaturan</div>
                     <div class="space-y-1">
-                        <a href="reviews.html" class="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-brandSec hover:bg-stone-50 hover:text-brand transition">
-                            <div class="flex items-center gap-3">
-                                <span class="material-symbols-outlined text-[20px]">reviews</span>
-                                Moderasi Ulasan
-                            </div>
-                            <span class="px-1.5 py-0.5 text-[10px] font-bold bg-rose-500 text-white rounded-full">5</span>
-                        </a>
+                        <a href="shipping.html" class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/30 transition group"><svg class="w-4 h-4 text-atelier-textLight group-hover:text-brand-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg><span>Ongkir &amp; Kurir</span></a>
+                        <a href="auto-complete.html" class="flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/30 transition group"><svg class="w-4 h-4 text-atelier-textLight group-hover:text-brand-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg><span>Auto-Selesai Pesanan</span></a>
                     </div>
                 </div>
             </nav>
 
-            <div class="p-4 border-t border-stone-100 flex items-center gap-3">
-                <div class="w-9 h-9 rounded-full bg-brand/20 flex items-center justify-center text-brand font-bold text-sm">AD</div>
-                <div class="flex-1 min-w-0">
-                    <div class="text-xs font-bold text-stone-800 truncate">Administrator</div>
-                    <div class="text-[11px] text-stone-400 truncate">admin@elcraft.id</div>
+            <div class="p-4 border-t border-atelier-border bg-gradient-to-b from-white to-brand-50/30 space-y-3 shrink-0">
+                <div class="grid grid-cols-2 gap-2">
+                    <a href="products.html"
+                       class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-[11px] font-bold text-brand-700 bg-white border border-brand-200 hover:bg-brand-50 hover:border-brand-400 transition-all shadow-xs">
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        <span>Produk</span>
+                    </a>
+                    <a href="orders.html"
+                       class="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg text-[11px] font-bold text-brand-700 bg-white border border-brand-200 hover:bg-brand-50 hover:border-brand-400 transition-all shadow-xs">
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        <span>Pesanan</span>
+                    </a>
+                </div>
+
+                <div class="p-2.5 rounded-xl border border-brand-100 bg-white/90 flex items-center justify-between">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                            AO
+                        </div>
+                        <div class="min-w-0">
+                            <div class="text-xs font-bold text-atelier-textDark truncate">Atelier Owner</div>
+                            <div class="text-[10px] text-brand-600 font-medium truncate">Toko el Craft</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </aside>
 
-        <!-- Main Content -->
-        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-            <header class="bg-white border-b border-stone-200 px-8 py-4 flex items-center justify-between">
-                <div>
-                    <h1 class="text-xl font-bold text-stone-800">Kelola Pesanan Pelanggan</h1>
-                    <p class="text-xs text-brandSec mt-0.5">Pemrosesan pesanan, input nomor resi pengiriman, dan riwayat transaksi</p>
+        <!-- ========================================================= -->
+        <!-- MAIN CONTENT -->
+        <!-- ========================================================= -->
+        <div class="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+
+            <header class="bg-white border-b border-atelier-border px-8 py-3.5 flex items-center justify-between gap-4 sticky top-0 z-10 shrink-0">
+                <div class="flex-1 max-w-xl relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-atelier-textLight">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </span>
+                    <input type="text"
+                           placeholder="Cari no. pesanan, nama pembeli, no. resi..."
+                           class="w-full pl-10 pr-4 py-2 text-xs bg-stone-50/80 hover:bg-stone-50 focus:bg-white border border-stone-200 focus:border-brand-400 rounded-xl outline-none transition-all placeholder:text-stone-400">
                 </div>
+
                 <div class="flex items-center gap-3">
-                    <button class="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold rounded-lg transition flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[16px]">file_download</span>
-                        Ekspor Laporan (CSV)
+                    <button @click="showToast('Mengekspor laporan pesanan (CSV)...')"
+                            class="px-3.5 py-2 bg-white hover:bg-brand-50 border border-atelier-border hover:border-brand-300 text-stone-700 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+                        <svg class="w-3.5 h-3.5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span>Ekspor Laporan (CSV)</span>
                     </button>
+                    <a href="index.html" class="px-3 py-2 text-xs font-semibold bg-white hover:bg-brand-50 border border-atelier-border hover:border-brand-300 rounded-xl text-stone-700 transition">
+                        Semua Mockup
+                    </a>
                 </div>
             </header>
 
-            <main class="flex-1 p-8 overflow-y-auto space-y-6">
+            <main class="flex-1 p-8 space-y-6">
 
-                <!-- Status Filter Tabs -->
-                <div class="flex border-b border-stone-200 gap-1 overflow-x-auto">
-                    <button @click="currentStatus = 'all'" :class="currentStatus === 'all' ? 'border-brand text-brand font-bold bg-white' : 'border-transparent text-stone-500 hover:text-stone-700'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-lg transition flex items-center gap-2 shrink-0">
-                        <span>Semua Pesanan</span>
-                        <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-stone-100 text-stone-600">124</span>
-                    </button>
-                    <button @click="currentStatus = 'pending'" :class="currentStatus === 'pending' ? 'border-brand text-brand font-bold bg-white' : 'border-transparent text-stone-500 hover:text-stone-700'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-lg transition flex items-center gap-2 shrink-0">
-                        <span>Menunggu Bayar</span>
-                        <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-stone-100 text-stone-600">6</span>
-                    </button>
-                    <button @click="currentStatus = 'paid'" :class="currentStatus === 'paid' ? 'border-brand text-brand font-bold bg-white' : 'border-transparent text-stone-500 hover:text-stone-700'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-lg transition flex items-center gap-2 shrink-0">
-                        <span>Perlu Diproses</span>
-                        <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-amber-100 text-amber-800 font-bold">14</span>
-                    </button>
-                    <button @click="currentStatus = 'processing'" :class="currentStatus === 'processing' ? 'border-brand text-brand font-bold bg-white' : 'border-transparent text-stone-500 hover:text-stone-700'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-lg transition flex items-center gap-2 shrink-0">
-                        <span>Sedang Dikemas</span>
-                        <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-stone-100 text-stone-600">8</span>
-                    </button>
-                    <button @click="currentStatus = 'shipped'" :class="currentStatus === 'shipped' ? 'border-brand text-brand font-bold bg-white' : 'border-transparent text-stone-500 hover:text-stone-700'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-lg transition flex items-center gap-2 shrink-0">
-                        <span>Dalam Pengiriman</span>
-                        <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-stone-100 text-stone-600">22</span>
-                    </button>
-                    <button @click="currentStatus = 'completed'" :class="currentStatus === 'completed' ? 'border-brand text-brand font-bold bg-white' : 'border-transparent text-stone-500 hover:text-stone-700'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-lg transition flex items-center gap-2 shrink-0">
-                        <span>Selesai</span>
-                        <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-emerald-100 text-emerald-800">70</span>
-                    </button>
-                </div>
-
-                <!-- Search & Courier Filter -->
-                <div class="bg-white p-4 rounded-xl border border-stone-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
-                    <div class="flex items-center gap-3 flex-1 min-w-[280px]">
-                        <div class="relative flex-1">
-                            <span class="material-symbols-outlined absolute left-3 top-2.5 text-stone-400 text-[18px]">search</span>
-                            <input type="text" placeholder="Cari nomor pesanan, nama pelanggan, no telp..." class="w-full pl-9 pr-4 py-2 text-xs border border-stone-200 rounded-lg focus:outline-none focus:border-brand">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-brand-500 ring-4 ring-brand-100"></span>
+                            <h1 class="text-2xl font-extrabold text-atelier-textDark tracking-tight font-sans">Kelola Pesanan Pelanggan</h1>
                         </div>
-                        <select class="px-3 py-2 text-xs border border-stone-200 rounded-lg bg-white text-stone-700 focus:outline-none focus:border-brand">
-                            <option value="">Semua Kurir</option>
-                            <option value="jne">JNE Express</option>
-                            <option value="jnt">J&T Express</option>
-                            <option value="lion">Lion Parcel</option>
-                            <option value="pos">POS Indonesia</option>
-                            <option value="tiki">TIKI</option>
-                            <option value="sap">SAP Express</option>
-                        </select>
+                        <p class="text-xs text-atelier-textMuted mt-1">
+                            Alur pemrosesan pesanan, input nomor resi kurir, pencetakan shipping label, dan audit transaksi
+                        </p>
                     </div>
                 </div>
 
+                <!-- Status Filter Tabs -->
+                <div class="flex border-b border-atelier-border gap-1 overflow-x-auto">
+                    <button @click="currentStatus = 'all'" :class="currentStatus === 'all' ? 'border-brand-500 text-brand-700 font-bold bg-white' : 'border-transparent text-atelier-textMuted hover:text-stone-800'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-xl transition flex items-center gap-2 shrink-0">
+                        <span>Semua Pesanan</span>
+                        <span class="px-2 py-0.5 text-[10px] rounded-full bg-stone-100 text-stone-600 font-bold font-sans">124</span>
+                    </button>
+                    <button @click="currentStatus = 'pending'" :class="currentStatus === 'pending' ? 'border-brand-500 text-brand-700 font-bold bg-white' : 'border-transparent text-atelier-textMuted hover:text-stone-800'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-xl transition flex items-center gap-2 shrink-0">
+                        <span>Menunggu Bayar</span>
+                        <span class="px-2 py-0.5 text-[10px] rounded-full bg-stone-100 text-stone-600 font-bold font-sans">6</span>
+                    </button>
+                    <button @click="currentStatus = 'paid'" :class="currentStatus === 'paid' ? 'border-brand-500 text-brand-700 font-bold bg-white' : 'border-transparent text-atelier-textMuted hover:text-stone-800'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-xl transition flex items-center gap-2 shrink-0">
+                        <span>Perlu Diproses</span>
+                        <span class="px-2 py-0.5 text-[10px] rounded-full bg-amber-100 text-amber-800 font-bold font-sans">14</span>
+                    </button>
+                    <button @click="currentStatus = 'shipped'" :class="currentStatus === 'shipped' ? 'border-brand-500 text-brand-700 font-bold bg-white' : 'border-transparent text-atelier-textMuted hover:text-stone-800'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-xl transition flex items-center gap-2 shrink-0">
+                        <span>Dalam Pengiriman</span>
+                        <span class="px-2 py-0.5 text-[10px] rounded-full bg-blue-100 text-blue-800 font-bold font-sans">22</span>
+                    </button>
+                    <button @click="currentStatus = 'completed'" :class="currentStatus === 'completed' ? 'border-brand-500 text-brand-700 font-bold bg-white' : 'border-transparent text-atelier-textMuted hover:text-stone-800'" class="px-4 py-2.5 text-xs border-b-2 rounded-t-xl transition flex items-center gap-2 shrink-0">
+                        <span>Selesai</span>
+                        <span class="px-2 py-0.5 text-[10px] rounded-full bg-emerald-100 text-emerald-800 font-bold font-sans">82</span>
+                    </button>
+                </div>
+
                 <!-- Orders Table -->
-                <div class="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+                <div class="bg-white rounded-2xl border border-atelier-border shadow-2xs overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs">
-                            <thead class="bg-stone-50 text-stone-500 uppercase tracking-wider font-semibold border-b border-stone-100">
+                            <thead class="bg-stone-50/80 text-atelier-textLight uppercase tracking-wider font-semibold border-b border-atelier-borderSubtle">
                                 <tr>
-                                    <th class="px-6 py-3.5">Pesanan</th>
-                                    <th class="px-6 py-3.5">Tanggal</th>
+                                    <th class="px-6 py-3.5">No. Pesanan &amp; Tanggal</th>
                                     <th class="px-6 py-3.5">Pelanggan</th>
-                                    <th class="px-6 py-3.5">Kurir & Layanan</th>
+                                    <th class="px-6 py-3.5">Kurir &amp; Pengiriman</th>
                                     <th class="px-6 py-3.5">Total Bayar</th>
-                                    <th class="px-6 py-3.5">Status Pesanan</th>
+                                    <th class="px-6 py-3.5 text-center">Status Pesanan</th>
                                     <th class="px-6 py-3.5 text-right">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-stone-100">
-                                <!-- Order 1 -->
-                                <tr class="hover:bg-stone-50/70 transition">
-                                    <td class="px-6 py-4">
-                                        <div class="font-bold text-brand text-sm">#ORD-20260825-0042</div>
-                                        <div class="text-[11px] text-stone-400">Midtrans: <span class="text-emerald-600 font-semibold">Settlement (BCA VA)</span></div>
+                            <tbody class="divide-y divide-atelier-borderSubtle">
+                                
+                                <tr class="hover:bg-brand-50/20 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="font-bold text-brand-700 font-mono">#ORD-20260825-0042</div>
+                                        <div class="text-[10px] text-atelier-textLight mt-0.5">25 Agu 2026, 14:15 WIB</div>
                                     </td>
-                                    <td class="px-6 py-4 text-stone-600">25 Agu 2026<br><span class="text-[10px] text-stone-400">14:30 WIB</span></td>
-                                    <td class="px-6 py-4">
-                                        <div class="font-semibold text-stone-800">Nadia Safitri</div>
-                                        <div class="text-[11px] text-stone-400">081234567890 • Surabaya</div>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="font-bold text-atelier-textDark">Nadia Safitri</div>
+                                        <div class="text-[10px] text-atelier-textLight">Surabaya, Jawa Timur</div>
                                     </td>
-                                    <td class="px-6 py-4">
-                                        <div class="font-medium text-stone-700">JNE REG (2-3 hari)</div>
-                                        <div class="text-[11px] text-amber-600 font-semibold">Belum ada No. Resi</div>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="font-semibold text-stone-800">JNE (Layanan REG)</div>
+                                        <div class="text-[10px] text-amber-700 font-mono font-medium">Belum ada resi</div>
                                     </td>
-                                    <td class="px-6 py-4 font-bold text-stone-800 text-sm">Rp 235.000</td>
-                                    <td class="px-6 py-4">
-                                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">Perlu Diproses</span>
+                                    <td class="px-6 py-4 font-bold text-stone-800 whitespace-nowrap font-sans">Rp 219.000</td>
+                                    <td class="px-6 py-4 text-center whitespace-nowrap">
+                                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                            Perlu Diproses
+                                        </span>
                                     </td>
-                                    <td class="px-6 py-4 text-right">
-                                        <button @click="showDetailDrawer = true" class="px-3 py-1.5 bg-brand hover:bg-brandDark text-white text-xs font-semibold rounded-lg transition">
+                                    <td class="px-6 py-4 text-right whitespace-nowrap">
+                                        <button @click="showDetailDrawer = true" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-lg transition shadow-2xs">
                                             Proses Pesanan
                                         </button>
                                     </td>
                                 </tr>
-                                <!-- Order 2 -->
-                                <tr class="hover:bg-stone-50/70 transition">
-                                    <td class="px-6 py-4">
-                                        <div class="font-bold text-brand text-sm">#ORD-20260825-0041</div>
-                                        <div class="text-[11px] text-stone-400">Midtrans: <span class="text-emerald-600 font-semibold">Settlement (GoPay)</span></div>
+
+                                <tr class="hover:bg-brand-50/20 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="font-bold text-brand-700 font-mono">#ORD-20260825-0041</div>
+                                        <div class="text-[10px] text-atelier-textLight mt-0.5">25 Agu 2026, 11:30 WIB</div>
                                     </td>
-                                    <td class="px-6 py-4 text-stone-600">25 Agu 2026<br><span class="text-[10px] text-stone-400">11:15 WIB</span></td>
-                                    <td class="px-6 py-4">
-                                        <div class="font-semibold text-stone-800">Budi Santoso</div>
-                                        <div class="text-[11px] text-stone-400">085678901234 • Jember</div>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="font-bold text-atelier-textDark">Rian Hidayat</div>
+                                        <div class="text-[10px] text-atelier-textLight">Jakarta Selatan</div>
                                     </td>
-                                    <td class="px-6 py-4">
-                                        <div class="font-medium text-stone-700">JNE CTC (City Courier)</div>
-                                        <div class="text-[11px] text-stone-500 font-mono">Resi: JNE987654321ID</div>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="font-semibold text-stone-800">SiCepat REG</div>
+                                        <div class="text-[10px] text-brand-700 font-mono">003928192831</div>
                                     </td>
-                                    <td class="px-6 py-4 font-bold text-stone-800 text-sm">Rp 120.000</td>
-                                    <td class="px-6 py-4">
-                                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">Sedang Dikirim</span>
+                                    <td class="px-6 py-4 font-bold text-stone-800 whitespace-nowrap font-sans">Rp 340.000</td>
+                                    <td class="px-6 py-4 text-center whitespace-nowrap">
+                                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                                            Dalam Pengiriman
+                                        </span>
                                     </td>
-                                    <td class="px-6 py-4 text-right">
-                                        <button @click="showDetailDrawer = true" class="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold rounded-lg transition">
-                                            Lihat Detail
+                                    <td class="px-6 py-4 text-right whitespace-nowrap">
+                                        <button @click="showDetailDrawer = true" class="px-3.5 py-1.5 bg-white hover:bg-brand-50 border border-atelier-border text-brand-700 font-bold rounded-lg transition">
+                                            Detail Pesanan
                                         </button>
                                     </td>
                                 </tr>
+
                             </tbody>
                         </table>
                     </div>
                 </div>
+
             </main>
         </div>
     </div>
 
-    <!-- DETAIL PESANAN SLIDE-OVER DRAWER -->
-    <div x-show="showDetailDrawer" x-cloak class="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs flex justify-end">
-        <div class="w-full max-w-xl bg-white h-full shadow-2xl flex flex-col" @click.away="showDetailDrawer = false">
-            <!-- Drawer Header -->
-            <div class="p-6 border-b border-stone-200 flex items-center justify-between bg-stone-50/70">
-                <div>
-                    <div class="text-xs text-stone-400 font-bold uppercase tracking-wider">Detail Pesanan</div>
-                    <div class="text-lg font-bold text-stone-800">#ORD-20260825-0042</div>
+    <!-- ========================================================= -->
+    <!-- MODAL: DETAIL PESANAN & INPUT RESI (MODAL TENGAH) -->
+    <!-- ========================================================= -->
+    <div x-show="showDetailDrawer" x-cloak 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-atelier-border overflow-hidden"
+             @click.away="showDetailDrawer = false">
+            
+            <!-- Modal Header -->
+            <div class="px-6 py-5 border-b border-atelier-border flex items-center justify-between bg-stone-50/70">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 border border-brand-200 flex items-center justify-center shadow-xs">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <path d="M16 10a4 4 0 0 1-8 0"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-base font-bold text-atelier-textDark font-sans">Detail Pesanan Atelier</h3>
+                            <span class="px-2 py-0.5 text-[10px] font-bold bg-brand-100 text-brand-700 rounded-full font-mono">#ORD-20260825-0042</span>
+                        </div>
+                        <p class="text-xs text-atelier-textMuted mt-0.5">25 Agu 2026, 14:15 WIB • Pembayaran Berhasil via BCA Virtual Account</p>
+                    </div>
                 </div>
-                <button @click="showDetailDrawer = false" class="p-2 text-stone-400 hover:text-stone-700 rounded-lg">
-                    <span class="material-symbols-outlined text-[22px]">close</span>
+                <button @click="showDetailDrawer = false" class="text-atelier-textLight hover:text-stone-800 p-2 rounded-xl hover:bg-stone-200/60 transition">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
             </div>
 
-            <!-- Drawer Content -->
+            <!-- Modal Body (2 Kolom Bersih) -->
             <div class="p-6 overflow-y-auto flex-1 space-y-6 text-xs">
-                <!-- Status Update Action Box -->
-                <div class="p-4 bg-amber-50/70 border border-amber-200 rounded-xl space-y-3">
-                    <div class="flex items-center justify-between">
-                        <span class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
-                            <span class="material-symbols-outlined text-[18px]">local_shipping</span>
-                            Update Status & Input Nomor Resi
-                        </span>
-                        <span class="px-2 py-0.5 text-[10px] font-bold bg-amber-200 text-amber-900 rounded-full">Perlu Resi</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-[10px] font-bold text-stone-600 mb-1">Pilih Status Baru</label>
-                            <select class="w-full p-2 border border-stone-200 rounded-lg bg-white text-xs font-semibold focus:outline-none focus:border-brand">
-                                <option value="diproses">Sedang Dikemas (Diproses)</option>
-                                <option value="dikirim" selected>Dikirim ke Kurir</option>
-                                <option value="selesai">Pesanan Selesai</option>
-                                <option value="dibatalkan">Batalkan Pesanan</option>
-                            </select>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <!-- Kolom Kiri: Alamat & Item Pesanan -->
+                    <div class="space-y-4">
+                        <!-- Alamat Pengiriman -->
+                        <div class="border border-atelier-border rounded-2xl p-4 bg-stone-50/40 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-atelier-textLight">Alamat Pengiriman</span>
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Terverifikasi</span>
+                            </div>
+                            <div class="font-bold text-stone-800 text-sm">Nadia Safitri</div>
+                            <div class="text-[11px] text-brand-700 font-medium">0812-3456-7890 • nadia.safitri@gmail.com</div>
+                            <p class="text-atelier-textMuted leading-relaxed pt-1">
+                                Jl. Mayjen Sungkono No. 45, Kompleks Darmo Park I Blok B-12<br>
+                                Kec. Wonokromo, Kota Surabaya, Jawa Timur 60256
+                            </p>
+                            <div class="pt-2 border-t border-atelier-borderSubtle flex items-center justify-between text-stone-600">
+                                <span>Kurir: <strong class="text-stone-800">JNE (Layanan REG)</strong></span>
+                                <span>Ongkir: <strong class="text-stone-800">Rp 14.000</strong></span>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-stone-600 mb-1">Nomor Resi Pengiriman *</label>
-                            <input type="text" placeholder="cth: JNE1234567890" class="w-full p-2 border border-stone-200 rounded-lg text-xs font-mono focus:outline-none focus:border-brand">
-                        </div>
-                    </div>
-                    <button class="w-full py-2 bg-brand hover:bg-brandDark text-white font-bold rounded-lg transition">
-                        Simpan & Kirim Notifikasi ke Pelanggan
-                    </button>
-                </div>
 
-                <!-- Customer & Address -->
-                <div class="border border-stone-200 rounded-xl p-4 space-y-2">
-                    <div class="font-bold text-stone-800 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-[16px] text-brand">home_pin</span>
-                        Informasi Pengiriman
-                    </div>
-                    <div class="text-stone-700 font-semibold">Nadia Safitri (081234567890)</div>
-                    <p class="text-stone-500 leading-relaxed">
-                        Jl. Mayjen Sungkono No. 45, Kompleks Darmo Park I Blok B-12<br>
-                        Kec. Wonokromo, Kota Surabaya, Jawa Timur 60256
-                    </p>
-                    <div class="pt-2 border-t border-stone-100 flex items-center justify-between text-stone-600">
-                        <span>Kurir: <strong>JNE - Layanan Reguler (REG)</strong></span>
-                        <span>Ongkir: <strong>Rp 14.000</strong></span>
-                    </div>
-                </div>
-
-                <!-- Items Purchased -->
-                <div class="border border-stone-200 rounded-xl p-4 space-y-3">
-                    <div class="font-bold text-stone-800 uppercase tracking-wider text-[11px]">Item Pesanan (2)</div>
-                    <div class="divide-y divide-stone-100">
-                        <div class="py-2 flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded bg-stone-100 flex items-center justify-center text-stone-400">
-                                    <span class="material-symbols-outlined text-[20px]">image</span>
+                        <!-- Item Pesanan -->
+                        <div class="border border-atelier-border rounded-2xl p-4 space-y-3 bg-white">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-atelier-textLight">Item Pesanan (2 Produk)</span>
+                                <span class="text-[10px] text-atelier-textMuted">Kemasan Kotak Beludru</span>
+                            </div>
+                            <div class="divide-y divide-atelier-borderSubtle">
+                                <div class="py-2.5 flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-xl bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600 shrink-0">
+                                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"></circle></svg>
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-stone-800">Gelang Emas Minimalis Rose Gold</div>
+                                            <div class="text-[11px] text-stone-400">Varian: 18 cm • 1x @ Rp 135.000</div>
+                                        </div>
+                                    </div>
+                                    <div class="font-bold text-stone-800 font-sans">Rp 135.000</div>
                                 </div>
-                                <div>
-                                    <div class="font-bold text-stone-800">Gelang Emas Minimalis Rose Gold</div>
-                                    <div class="text-[11px] text-stone-400">Varian: 18 cm • 1x @ Rp 135.000</div>
+                                <div class="py-2.5 flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-xl bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600 shrink-0">
+                                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-stone-800">Jepit Rambut Mutiara Korea Set</div>
+                                            <div class="text-[11px] text-stone-400">Varian: Set A (3 Pcs) • 2x @ Rp 35.000</div>
+                                        </div>
+                                    </div>
+                                    <div class="font-bold text-stone-800 font-sans">Rp 70.000</div>
                                 </div>
                             </div>
-                            <div class="font-bold text-stone-800">Rp 135.000</div>
                         </div>
-                        <div class="py-2 flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded bg-stone-100 flex items-center justify-center text-stone-400">
-                                    <span class="material-symbols-outlined text-[20px]">image</span>
+                    </div>
+
+                    <!-- Kolom Kanan: Update Status & Resi + Rincian Bayar -->
+                    <div class="space-y-4">
+                        <!-- Form Update Status & Resi -->
+                        <div class="p-4 rounded-2xl border border-brand-200 bg-brand-50/40 space-y-3">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-brand-600"></span>
+                                <div class="font-bold text-brand-900 text-xs">Perbarui Status &amp; Resi Pengiriman</div>
+                            </div>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-stone-700 mb-1">Status Pesanan</label>
+                                    <select class="w-full p-2.5 border border-brand-200 rounded-xl bg-white font-semibold text-stone-800 focus:outline-none focus:border-brand-500">
+                                        <option value="diproses">Perlu Diproses / Sedang Packing</option>
+                                        <option value="dikirim" selected>Kirimkan Pesanan (Input Resi)</option>
+                                        <option value="selesai">Pesanan Selesai</option>
+                                        <option value="dibatalkan">Batalkan Pesanan</option>
+                                    </select>
                                 </div>
                                 <div>
-                                    <div class="font-bold text-stone-800">Jepit Rambut Mutiara Korea Set</div>
-                                    <div class="text-[11px] text-stone-400">Varian: Set A (3 Pcs) • 2x @ Rp 35.000</div>
+                                    <label class="block text-[10px] font-bold text-stone-700 mb-1">Nomor Resi Pengiriman (JNE) *</label>
+                                    <div class="relative">
+                                        <input type="text" value="JNE011293849182" class="w-full pl-3 pr-20 py-2 border border-brand-200 rounded-xl font-mono text-brand-800 bg-white font-bold focus:outline-none focus:border-brand-500">
+                                        <span class="absolute right-2.5 top-2 text-[10px] font-bold text-brand-600 uppercase">JNE REG</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="font-bold text-stone-800">Rp 70.000</div>
+                            <button @click="showDetailDrawer = false; showToast('Nomor resi JNE011293849182 tersimpan dan notifikasi email terkirim!')"
+                                    class="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl transition shadow-xs flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                                <span>Simpan &amp; Notifikasi Pelanggan</span>
+                            </button>
                         </div>
+
+                        <!-- Rincian Pembayaran -->
+                        <div class="border border-atelier-border rounded-2xl p-4 bg-white space-y-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-atelier-textLight">Rincian Pembayaran</span>
+                            <div class="space-y-1.5 text-stone-600 pt-1">
+                                <div class="flex justify-between"><span>Subtotal Produk</span><span class="font-medium text-stone-800 font-sans">Rp 205.000</span></div>
+                                <div class="flex justify-between"><span>Ongkos Kirim (JNE 1 Kg)</span><span class="font-medium text-stone-800 font-sans">Rp 14.000</span></div>
+                                <div class="flex justify-between"><span>Diskon Voucher</span><span class="text-emerald-600 font-medium font-sans">- Rp 0</span></div>
+                                <div class="flex justify-between font-bold text-stone-900 pt-2.5 border-t border-atelier-border text-sm">
+                                    <span>Total Tagihan</span>
+                                    <span class="text-brand-700 font-sans text-base">Rp 219.000</span>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
-                    <!-- Totals Calculation -->
-                    <div class="pt-3 border-t border-stone-200 space-y-1.5">
-                        <div class="flex justify-between text-stone-500">
-                            <span>Subtotal Produk</span>
-                            <span>Rp 205.000</span>
-                        </div>
-                        <div class="flex justify-between text-stone-500">
-                            <span>Ongkos Kirim (100g)</span>
-                            <span>Rp 14.000</span>
-                        </div>
-                        <div class="flex justify-between text-emerald-600">
-                            <span>Diskon Voucher</span>
-                            <span>- Rp 0</span>
-                        </div>
-                        <div class="flex justify-between font-bold text-sm text-stone-800 pt-2 border-t border-stone-200">
-                            <span>Total Pembayaran</span>
-                            <span class="text-brand">Rp 219.000</span>
-                        </div>
-                    </div>
+
                 </div>
+
             </div>
 
-            <!-- Drawer Footer -->
-            <div class="p-4 border-t border-stone-200 bg-stone-50 flex items-center justify-between">
-                <button class="px-3 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-200 rounded-lg flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-[16px]">print</span>
-                    Cetak Label Pengiriman
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 border-t border-atelier-border bg-stone-50/60 flex items-center justify-between">
+                <button @click="showToast('Mencetak Shipping Label dengan QR Code...')" class="px-4 py-2 bg-white border border-atelier-border hover:bg-stone-100 text-stone-700 font-semibold rounded-xl text-xs flex items-center gap-2 shadow-2xs transition">
+                    <svg class="w-3.5 h-3.5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    <span>Cetak Label Pengiriman</span>
                 </button>
-                <button @click="showDetailDrawer = false" class="px-4 py-2 bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-semibold rounded-lg">
+                <button @click="showDetailDrawer = false" class="px-5 py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 font-semibold rounded-xl text-xs transition">
                     Tutup
                 </button>
             </div>
@@ -384,3 +555,4 @@
 
 </body>
 </html>
+

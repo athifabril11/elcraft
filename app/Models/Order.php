@@ -62,4 +62,9 @@ class Order extends Model
     {
         return $this->hasOne(Shipment::class);
     }
+
+    public function returnRequest(): HasOne
+    {
+        return $this->hasOne(ReturnRequest::class);
+    }
 }
