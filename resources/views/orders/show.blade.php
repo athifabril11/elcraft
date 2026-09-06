@@ -305,6 +305,23 @@
                             </button>
                         </form>
                     @endif
+
+                    {{-- Ajukan Retur — only for dikirim/selesai AND no existing return --}}
+                    @if(in_array($order->status, ['dikirim', 'selesai']) && !$order->returnRequest)
+                        <a href="{{ route('orders.returns.create', $order->order_number) }}"
+                           id="btn-ajukan-retur"
+                           class="flex items-center justify-center gap-2 w-full text-center py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200">
+                            <span class="material-symbols-outlined !text-[16px]">assignment_return</span>
+                            Ajukan Retur
+                        </a>
+                    @elseif($order->returnRequest)
+                        <a href="{{ route('orders.returns.show', $order->order_number) }}"
+                           class="flex items-center justify-center gap-2 w-full text-center py-3 border border-rose-300 text-rose-600 hover:bg-rose-50 font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200">
+                            <span class="material-symbols-outlined !text-[16px]">assignment_return</span>
+                            Lihat Detail Retur
+                        </a>
+                    @endif
+
                     <a href="{{ route('orders.index') }}"
                         class="block w-full text-center py-3 border border-brand text-brand hover:bg-warmCream font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200">
                         Kembali ke Pesanan

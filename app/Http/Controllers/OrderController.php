@@ -37,7 +37,7 @@ class OrderController extends Controller
     {
         $order = Auth::user()
             ->orders()
-            ->with(['items.product', 'items.variant', 'address', 'payment', 'shipment', 'voucher'])
+            ->with(['items.product', 'items.variant', 'address', 'payment', 'shipment', 'voucher', 'returnRequest'])
             ->where('order_number', $orderNumber)
             ->firstOrFail();
 

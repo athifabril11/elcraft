@@ -6,6 +6,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ReturnController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ShippingController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\Admin\ShippingDiscountController;
 use App\Http\Controllers\Admin\CourierController;
 use App\Http\Controllers\Admin\OrderAutoCompleteController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Admin\ReturnController as AdminReturnController;
 use Illuminate\Support\Facades\Route;
 
 // Arahkan halaman utama (/) ke HomeController
@@ -65,6 +67,11 @@ Route::middleware('auth')->group(function () {
     Route::patch('/orders/{orderNumber}/confirm-received', [OrderController::class, 'confirmReceived'])->name('orders.confirm-received');
     Route::get('/orders/{orderNumber}/resume-payment', [OrderController::class, 'resumePayment'])->name('orders.resume-payment');
 
+    // Return submission routes
+    Route::get('/orders/{orderNumber}/returns/create', [ReturnController::class, 'create'])->name('orders.returns.create');
+    Route::post('/orders/{orderNumber}/returns', [ReturnController::class, 'store'])->name('orders.returns.store');
+    Route::get('/orders/{orderNumber}/returns', [ReturnController::class, 'show'])->name('orders.returns.show');
+
     Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
 
     Route::post('/wishlist/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
@@ -86,6 +93,12 @@ Route::middleware('auth')->group(function () {
         // Orders (minimal: list + status advance)
             Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
             Route::patch('/orders/{order}/advance-status', [AdminOrderController::class, 'advanceStatus'])->name('orders.advance-status');
+
+        // Returns
+            Route::get('/returns', [AdminReturnController::class, 'index'])->name('returns.index');
+            Route::patch('/returns/{return}/approve', [AdminReturnController::class, 'approve'])->name('returns.approve');
+            Route::patch('/returns/{return}/reject', [AdminReturnController::class, 'reject'])->name('returns.reject');
+            Route::patch('/returns/{return}/advance', [AdminReturnController::class, 'advanceStatus'])->name('returns.advance');
 
         Route::prefix('settings')->name('settings.')->group(function () {
             Route::get('/shipping',  [ShippingOriginController::class, 'index'])->name('shipping.index');

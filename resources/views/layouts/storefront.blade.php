@@ -443,7 +443,6 @@
                 <a href="/" class="{{ request()->is('/') ? 'text-[#C17B6F]' : 'text-[#78716C] hover:text-[#C17B6F]' }} font-semibold text-[12px] transition-colors duration-200 uppercase tracking-[0.15em]">Home</a>
                 <a href="/products" class="{{ request()->is('products*') ? 'text-[#C17B6F]' : 'text-[#78716C] hover:text-[#C17B6F]' }} font-semibold text-[12px] transition-colors duration-200 uppercase tracking-[0.15em]">Produk</a>
                 <a href="/#categories" class="text-[#78716C] hover:text-[#C17B6F] font-semibold text-[12px] transition-colors duration-200 uppercase tracking-[0.15em]">Kategori</a>
-                <a href="/#about" class="text-[#78716C] hover:text-[#C17B6F] font-semibold text-[12px] transition-colors duration-200 uppercase tracking-[0.15em]">Tentang</a>
             </nav>
             
             <!-- Right: Icons -->
@@ -542,7 +541,6 @@
                     <a href="/" class="text-warmBlack hover:text-brand font-medium text-base border-b border-warmLightGrey/50 pb-2 transition-colors duration-200">Home</a>
                     <a href="/products" class="text-warmBlack hover:text-brand font-medium text-base border-b border-warmLightGrey/50 pb-2 transition-colors duration-200">Produk</a>
                     <a href="/#categories" @click="toggleMobileMenu()" class="text-warmBlack hover:text-brand font-medium text-base border-b border-warmLightGrey/50 pb-2 transition-colors duration-200">Kategori</a>
-                    <a href="/#about" @click="toggleMobileMenu()" class="text-warmBlack hover:text-brand font-medium text-base border-b border-warmLightGrey/50 pb-2 transition-colors duration-200">Tentang</a>
                 </nav>
             </div>
             
@@ -578,7 +576,7 @@
     </main>
 
     <!-- 7. FOOTER SECTION (Warm Black Background) -->
-    <footer id="about" class="bg-warmBlack text-white pt-16 pb-20 border-t border-warmGrey/20">
+    <footer class="bg-warmBlack text-white pt-16 pb-20 border-t border-warmGrey/20">
         <div class="max-w-[1280px] mx-auto px-5 md:px-8 lg:px-16 grid grid-cols-1 md:grid-cols-4 gap-10">
             <!-- Brand Column -->
             <div class="flex flex-col space-y-4">
@@ -607,7 +605,6 @@
             <div>
                 <h4 class="text-sm font-semibold tracking-wider uppercase text-brand mb-5">Informasi</h4>
                 <ul class="space-y-3 text-xs text-warmGrey">
-                    <li><a href="/#about" class="hover:text-white transition-colors duration-200">Tentang Kami</a></li>
                     <li><a href="#" class="hover:text-white transition-colors duration-200">Syarat & Ketentuan</a></li>
                     <li><a href="#" class="hover:text-white transition-colors duration-200">Kebijakan Privasi</a></li>
                     <li><a href="#" class="hover:text-white transition-colors duration-200">Cara Pembayaran</a></li>

@@ -159,6 +159,21 @@
                     Pesanan
                 </a>
 
+                @php $pendingReturns = \App\Models\ReturnRequest::where('status', 'diajukan')->count(); @endphp
+                <a href="{{ route('admin.returns.index') }}"
+                   class="admin-sidebar-link {{ request()->routeIs('admin.returns.*') ? 'active' : '' }}"
+                   style="justify-content:space-between;">
+                    <span style="display:flex; align-items:center; gap:0.625rem;">
+                        <span class="material-symbols-outlined">assignment_return</span>
+                        Retur
+                    </span>
+                    @if($pendingReturns > 0)
+                        <span style="background:#ef4444; color:#fff; border-radius:20px; padding:1px 7px; font-size:0.65rem; font-weight:700; line-height:1.4;">
+                            {{ $pendingReturns }}
+                        </span>
+                    @endif
+                </a>
+
                 <div style="font-size:0.65rem; font-weight:700; color:#b5b0ad; text-transform:uppercase; letter-spacing:0.1em; padding:0 0.5rem; margin:12px 0 4px;">Pengaturan Toko</div>
                 <a href="{{ route('admin.settings.shipping.index') }}"
                    class="admin-sidebar-link {{ request()->routeIs('admin.settings.shipping.*') ? 'active' : '' }}">
