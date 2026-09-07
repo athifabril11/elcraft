@@ -25,6 +25,8 @@ use App\Http\Controllers\Admin\CustomerController as AdminCustomerController;
 use App\Http\Controllers\Admin\VoucherController as AdminVoucherController;
 use App\Http\Controllers\Admin\BannerController as AdminBannerController;
 use App\Http\Controllers\Admin\GlobalSearchController as AdminGlobalSearchController;
+use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use Illuminate\Support\Facades\Route;
 
 // Arahkan halaman utama (/) ke HomeController
@@ -96,8 +98,22 @@ Route::middleware('auth')->group(function () {
         Route::get('/global-search', [AdminGlobalSearchController::class, 'search'])->name('global-search');
 
         // Orders (minimal: list + status advance)
-            Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
-            Route::patch('/orders/{order}/advance-status', [AdminOrderController::class, 'advanceStatus'])->name('orders.advance-status');
+        Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
+        Route::patch('/orders/{order}/advance-status', [AdminOrderController::class, 'advanceStatus'])->name('orders.advance-status');
+
+        // Categories Management
+        Route::get('/categories', [AdminCategoryController::class, 'index'])->name('categories.index');
+        Route::post('/categories', [AdminCategoryController::class, 'store'])->name('categories.store');
+        Route::put('/categories/{category}', [AdminCategoryController::class, 'update'])->name('categories.update');
+        Route::patch('/categories/{category}/toggle', [AdminCategoryController::class, 'toggle'])->name('categories.toggle');
+        Route::delete('/categories/{category}', [AdminCategoryController::class, 'destroy'])->name('categories.destroy');
+
+        // Products Management
+        Route::get('/products', [AdminProductController::class, 'index'])->name('products.index');
+        Route::post('/products', [AdminProductController::class, 'store'])->name('products.store');
+        Route::put('/products/{product}', [AdminProductController::class, 'update'])->name('products.update');
+        Route::patch('/products/{product}/toggle', [AdminProductController::class, 'toggle'])->name('products.toggle');
+        Route::delete('/products/{product}', [AdminProductController::class, 'destroy'])->name('products.destroy');
 
         // Returns
         Route::get('/returns', [AdminReturnController::class, 'index'])->name('returns.index');

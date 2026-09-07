@@ -307,7 +307,44 @@
                     </div>
                 </div>
 
-                <!-- Kategori 2: PEMASARAN -->
+                <!-- Kategori 2: KATALOG TOKO -->
+                <div>
+                    <div class="px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-atelier-textLight mb-2.5">Katalog Toko</div>
+                    <div class="space-y-1">
+                        <!-- Produk -->
+                        <a href="{{ route('admin.products.index') }}"
+                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.products.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
+                            @if(request()->routeIs('admin.products.*'))
+                                <span class="absolute left-0 top-2 bottom-2 w-1 bg-brand-500 rounded-r-full"></span>
+                            @endif
+                            <svg class="w-4 h-4 {{ request()->routeIs('admin.products.*') ? 'text-brand-600' : 'text-atelier-textLight group-hover:text-brand-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                            </svg>
+                            <span>Produk</span>
+                        </a>
+
+                        <!-- Kategori -->
+                        <a href="{{ route('admin.categories.index') }}"
+                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.categories.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
+                            @if(request()->routeIs('admin.categories.*'))
+                                <span class="absolute left-0 top-2 bottom-2 w-1 bg-brand-500 rounded-r-full"></span>
+                            @endif
+                            <svg class="w-4 h-4 {{ request()->routeIs('admin.categories.*') ? 'text-brand-600' : 'text-atelier-textLight group-hover:text-brand-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <line x1="8" y1="6" x2="21" y2="6"></line>
+                                <line x1="8" y1="12" x2="21" y2="12"></line>
+                                <line x1="8" y1="18" x2="21" y2="18"></line>
+                                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                            </svg>
+                            <span>Kategori</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Kategori 3: PEMASARAN -->
                 <div>
                     <div class="px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-atelier-textLight mb-2.5">Pemasaran</div>
                     <div class="space-y-1">
@@ -340,7 +377,7 @@
                     </div>
                 </div>
 
-                <!-- Kategori 3: PENGATURAN TOKO -->
+                <!-- Kategori 4: PENGATURAN TOKO -->
                 <div>
                     <div class="px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-atelier-textLight mb-2.5">Pengaturan Toko</div>
                     <div class="space-y-1">

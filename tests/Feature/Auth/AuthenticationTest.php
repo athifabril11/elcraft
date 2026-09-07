@@ -94,6 +94,40 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_admin_user_redirects_to_admin_dashboard_on_login(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $response = $this->post('/login', [
+            'email'    => $admin->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticatedAs($admin);
+        $response->assertRedirect(route('admin.dashboard'));
+    }
+
+    public function test_admin_user_ajax_login_returns_admin_redirect_url(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $response = $this->postJson('/login', [
+            'email'    => $admin->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticatedAs($admin);
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success'  => true,
+            'redirect' => route('admin.dashboard'),
+        ]);
+    }
+
     public function test_users_can_logout(): void
     {
         $user = User::factory()->create();

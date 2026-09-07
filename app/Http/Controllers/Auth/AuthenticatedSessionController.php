@@ -33,11 +33,23 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         if ($request->wantsJson()) {
-            return response()->json(['success' => true]);
+            $redirectUrl = $request->user()->role === 'admin'
+                ? route('admin.dashboard')
+                : null;
+
+            return response()->json([
+                'success'  => true,
+                'redirect' => $redirectUrl,
+            ]);
         }
 
         if ($request->user()->role === 'admin') {
-            return redirect()->intended(route('admin.dashboard', absolute: false));
+            $intended = session('url.intended');
+            if (!$intended || $intended === url('/') || $intended === route('home')) {
+                session()->forget('url.intended');
+                return redirect()->route('admin.dashboard');
+            }
+            return redirect()->intended(route('admin.dashboard'));
         }
 
         return redirect()->intended(route('home', absolute: false));

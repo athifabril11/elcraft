@@ -91,11 +91,9 @@ class AddressAndCheckoutUITest extends TestCase
     // ──────────────────────────────────────────────────────────────────────────
 
     /**
-     * The checkout page must render the Alpine x-for template source that
-     * includes the paymentMethods array values.  Even though Alpine renders
-     * them client-side, the JSON-encoded array (or the literal label strings)
-     * must be present in the raw HTML delivered by the server so a browser
-     * can execute them.
+     * The checkout page must render the payment method info section.
+     * Payment method selection is now delegated to the Midtrans Snap popup,
+     * so we just verify the info panel is present and the section heading exists.
      */
     public function test_checkout_page_html_contains_payment_method_labels(): void
     {
@@ -105,13 +103,14 @@ class AddressAndCheckoutUITest extends TestCase
 
         $response->assertOk();
 
-        // The paymentMethods array is inlined in the Alpine component definition.
-        // These label strings must appear in the raw HTML for Alpine to display them.
-        $response->assertSee('GoPay',            false);
-        $response->assertSee('QRIS',             false);
-        $response->assertSee('ShopeePay',        false);
+        // Payment method section heading must be present
         $response->assertSee('Metode Pembayaran', false);
-        $response->assertSee('paymentMethods',   false);
+        // Info that payment selection happens in Snap popup
+        $response->assertSee('Pilih di halaman pembayaran', false);
+        // Static text describing available payment methods
+        $response->assertSee('Transfer bank', false);
+        $response->assertSee('QRIS', false);
+        $response->assertSee('GoPay', false);
     }
 
     // ──────────────────────────────────────────────────────────────────────────

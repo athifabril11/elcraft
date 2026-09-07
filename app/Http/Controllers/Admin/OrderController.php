@@ -5,26 +5,51 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Admin\OrderController — Minimal order status advancement.
+ * Admin\OrderController — Manajemen pesanan & pembaruan status di panel admin.
  *
- * Scope: list all orders (paginated) and advance status through the
- * paid → diproses → dikirim pipeline only. No other mutations.
+ * Scope: list all orders (paginated, with status filter & search)
+ * and advance status through the paid → diproses → dikirim pipeline.
  */
 class OrderController extends Controller
 {
-    /**
-     * List all orders, newest first, paginated 15 per page.
-     */
-    public function index()
-    {
-        $orders = Order::with(['user', 'items'])
-            ->latest()
-            ->paginate(15);
+    private const STATUSES = ['pending', 'paid', 'diproses', 'dikirim', 'selesai', 'dibatalkan'];
 
-        return view('admin.orders.index', compact('orders'));
+    /**
+     * List all orders, newest first, with optional status filter and search.
+     */
+    public function index(Request $request)
+    {
+        $filter = $request->query('status');
+        $search = trim((string) $request->query('q', ''));
+
+        $query = Order::with(['user', 'items', 'address'])->latest();
+
+        if ($filter && in_array($filter, self::STATUSES, true)) {
+            $query->where('status', $filter);
+        }
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('order_number', 'like', "%{$search}%")
+                  ->orWhereHas('user', function ($uq) use ($search) {
+                      $uq->where('name', 'like', "%{$search}%")
+                         ->orWhere('email', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $orders = $query->paginate(15)->withQueryString();
+
+        // Per-status counts for filter tabs
+        $counts = Order::selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        return view('admin.orders.index', compact('orders', 'counts', 'filter', 'search'));
     }
 
     /**

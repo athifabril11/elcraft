@@ -109,6 +109,34 @@ class MidtransService
     }
 
     /**
+     * Map kode metode pembayaran internal ke array channel Midtrans Snap (enabled_payments).
+     *
+     * @param  string  $method
+     * @return array
+     */
+    public function mapPaymentMethod(string $method): array
+    {
+        return match (strtolower(trim($method))) {
+            'credit_card' => ['credit_card'],
+            'bca_va'      => ['bca_va'],
+            'bni_va'      => ['bni_va'],
+            'bri_va'      => ['bri_va'],
+            'mandiri_va'  => ['echannel'],
+            'permata_va'  => ['permata_va'],
+            'cimb_va'     => ['cimb_va'],
+            'other_va'    => ['other_va'],
+            'gopay'       => ['gopay'],
+            'shopeepay'   => ['shopeepay'],
+            'qris'        => ['qris'],
+            'indomaret'   => ['indomaret'],
+            'alfamart'    => ['alfamart'],
+            'akulaku'     => ['akulaku'],
+            'kredivo'     => ['kredivo'],
+            default       => [],
+        };
+    }
+
+    /**
      * Verifikasi signature webhook dari Midtrans untuk mencegah pemalsuan notifikasi.
      *
      * Algoritma: SHA-512(orderId + statusCode + grossAmount + serverKey)

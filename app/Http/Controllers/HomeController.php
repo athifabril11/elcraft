@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Banner;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\OrderItem;
@@ -64,7 +65,10 @@ class HomeController extends Controller
             ->limit(8)
             ->get();
 
+        // ── Banner Promo Carousel ─────────────────────────────────────────
+        $banners = Banner::active()->orderBy('sort_order', 'asc')->orderByDesc('created_at')->get();
+
         // Kirim data ke view
-        return view('home', compact('categories', 'featuredProducts', 'popularProducts', 'discountedProducts'));
+        return view('home', compact('categories', 'featuredProducts', 'popularProducts', 'discountedProducts', 'banners'));
     }
 }

@@ -133,12 +133,12 @@ Alur: `pending → paid → diproses → dikirim → selesai` (atau `dibatalkan`
 | RF-43 | Middleware proteksi berbasis role (`EnsureUserIsAdmin`) | ✅ Selesai & teruji |
 | RF-44 | Dashboard admin dengan KPI pendapatan/pesanan/stok dan alert actionable | ✅ Desain final disepakati (mockup direvisi berkali-kali), belum diimplementasi jadi Blade beneran |
 | RF-45 | Halaman kelola pesanan (list + ubah status, versi minimal) | ✅ Selesai & teruji — lihat RF-22 |
-| RF-46 | CRUD lengkap: Produk, Kategori, Voucher, Ulasan, Banner | 📋 Direncanakan — mockup lama tidak disukai, sedang dieksplorasi ulang lewat AI design tools (Google Stitch dll), belum final |
+| RF-46 | CRUD lengkap: Produk, Kategori, Voucher, Ulasan, Banner | 🚧 Sebagian — **Voucher & Banner ✅ Selesai & teruji** (`VoucherAdminTest.php`, `BannerAdminTest.php`); Produk, Kategori, Ulasan dalam antrean |
 
 ### 4.11 Homepage Hero Banner CMS
 | ID | Requirement | Status |
 |---|---|---|
-| RF-47 | 5 elemen carousel (foto, eyebrow berwarna, judul, deskripsi, tombol CTA) jadi admin-editable | 📋 Direncanakan, belum diimplementasi — kemungkinan terhubung ke modul Banner (RF-46) |
+| RF-47 | 5 elemen carousel (foto, eyebrow berwarna, judul, deskripsi, tombol CTA) jadi admin-editable | ✅ Selesai & teruji — `BannerAdminTest.php` (8 test), terhubung dinamis ke `home.blade.php` |
 
 ### 4.12 Kelola Metode Pembayaran
 | ID | Requirement | Status |
@@ -148,7 +148,7 @@ Alur: `pending → paid → diproses → dikirim → selesai` (atau `dibatalkan`
 ### 4.13 Kelola Akun Customer
 | ID | Requirement | Status |
 |---|---|---|
-| RF-49 | List semua customer, detail (profil, riwayat order, total belanja), aktifkan/nonaktifkan akun | 📋 Direncanakan — scope diasumsikan read + toggle aktif saja, BUKAN edit data pribadi customer (perlu konfirmasi ulang, lihat Bagian 8) |
+| RF-49 | List semua customer, detail (profil, riwayat order, total belanja), aktifkan/nonaktifkan akun | ✅ Selesai & teruji — `CustomerAdminTest.php` (7 test) |
 
 ### 4.14 Kelola Akun Admin/Staff
 | ID | Requirement | Status |
@@ -158,7 +158,7 @@ Alur: `pending → paid → diproses → dikirim → selesai` (atau `dibatalkan`
 ### 4.15 Laporan/Export Keuangan
 | ID | Requirement | Status |
 |---|---|---|
-| RF-51 | Laporan pendapatan/penjualan per rentang tanggal, dengan kemampuan export | 📋 Direncanakan — format export (CSV/Excel/PDF) belum diputuskan |
+| RF-51 | Laporan pendapatan/penjualan per rentang tanggal, dengan kemampuan export | ✅ Selesai & teruji — `SalesReportTest.php` (5 test), export CSV dengan UTF-8 BOM |
 
 ---
 
@@ -169,7 +169,7 @@ Alur: `pending → paid → diproses → dikirim → selesai` (atau `dibatalkan`
 | RNF-01 | Integritas data di bawah konkurensi — row-level locking (`lockForUpdate`) + `DB::transaction()` di semua mutasi status kritis | Diverifikasi via `WebhookIdempotencyTest.php`, `OrderStatusAdminTest.php`, `AutoCompleteDeliveredOrdersTest.php` — semua pakai pola lock-then-recheck yang konsisten |
 | RNF-02 | Keamanan — nilai dari client tidak pernah dipercaya untuk field kritis (ongkir, stok, harga) | Diverifikasi via `ShippingTest.php` (server re-fetch ongkir, abaikan nilai client) |
 | RNF-03 | Akurasi timestamp — timezone eksplisit di-set `Asia/Jakarta`, tidak mengandalkan default framework | Bug ditemukan & difix: `config/app.php` sebelumnya hardcode `'UTC'` tanpa baca `.env`, menyebabkan semua jam pesanan tampil salah 7 jam meski label "WIB" sudah benar di Blade. Diverifikasi via tinker: `now()` match `Carbon::now('Asia/Jakarta')` |
-| RNF-04 | Cakupan test wajib — setiap fitur harus punya bukti test otomatis sebelum dianggap selesai | Total test lolos meningkat bertahap sepanjang sesi: 150 → 153 → 166 → 178 → 191 → 204 → 205 → 210 → 215 → 222 → **228** (terkonfirmasi via `php artisan test` per 5 Sep 2026) |
+| RNF-04 | Cakupan test wajib — setiap fitur harus punya bukti test otomatis sebelum dianggap selesai | Total test lolos meningkat bertahap sepanjang sesi: 150 → 153 → 166 → 178 → 191 → 204 → 205 → 210 → 215 → 222 → 228 → 298 → **313** (terkonfirmasi via `vendor/bin/phpunit` per 7 Sep 2026) |
 
 ---
 

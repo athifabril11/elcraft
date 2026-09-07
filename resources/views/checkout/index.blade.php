@@ -250,25 +250,18 @@
                     </div>
                 </div>
 
-                {{-- Pilihan Metode Pembayaran --}}
+                {{-- Info Metode Pembayaran — dipilih di popup Midtrans Snap --}}
                 <div class="bg-white rounded-card border border-warmLightGrey p-6">
-                    <h2 class="text-base font-semibold text-warmBlack mb-4 flex items-center space-x-2">
+                    <h2 class="text-base font-semibold text-warmBlack mb-3 flex items-center space-x-2">
                         <span class="material-symbols-outlined text-brand !text-[20px]">payments</span>
                         <span>Metode Pembayaran</span>
                     </h2>
-
-                    {{-- Pilihan Metode Pembayaran (Pill Buttons) --}}
-                    <div class="flex gap-3 flex-wrap">
-                        <template x-for="pm in paymentMethods" :key="pm.code">
-                            <button type="button"
-                                @click="selectedPaymentMethod = pm.code"
-                                :class="selectedPaymentMethod === pm.code ? 'border-brand bg-brand/5 text-brand font-semibold' : 'border-warmLightGrey text-warmGrey hover:border-brand/50'"
-                                class="px-4 py-2 text-xs border rounded-btn transition-all duration-200 flex items-center gap-1.5">
-                                <span class="material-symbols-outlined !text-[14px]"
-                                    :class="selectedPaymentMethod === pm.code ? 'text-brand' : 'text-warmGrey'">payments</span>
-                                <span x-text="pm.label"></span>
-                            </button>
-                        </template>
+                    <div class="flex items-center gap-3 p-3 rounded-card bg-brand/5 border border-brand/20">
+                        <span class="material-symbols-outlined text-brand !text-[22px]">credit_score</span>
+                        <div>
+                            <p class="text-xs font-semibold text-warmBlack">Pilih di halaman pembayaran</p>
+                            <p class="text-[11px] text-warmGrey mt-0.5">Transfer bank, QRIS, GoPay, ShopeePay, kartu kredit, dan lainnya tersedia di langkah berikutnya.</p>
+                        </div>
                     </div>
                 </div>
 
@@ -398,7 +391,7 @@
                         id="pay-button"
                         onclick="initiatePayment()"
                         class="mt-6 w-full py-3.5 bg-brand hover:bg-brandDark text-white font-semibold text-sm uppercase tracking-widest rounded-btn transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                        :disabled="!selectedShipping || !selectedPaymentMethod {{ empty($cartItems) ? '|| true' : '' }}"
+                        :disabled="!selectedShipping {{ empty($cartItems) ? '|| true' : '' }}"
                         aria-label="Bayar sekarang via Midtrans">
                         <span class="material-symbols-outlined !text-[20px]">lock</span>
                         <span>Bayar Sekarang</span>
@@ -453,19 +446,9 @@
             shippingOptions: [],
             selectedShipping: null,
             shippingError: '',
-            selectedPaymentMethod: '',
-            paymentMethods: [
-                { code: 'credit_card', label: 'Kartu Kredit/Debit' },
-                { code: 'bca_va',      label: 'BCA Virtual Account' },
-                { code: 'bni_va',      label: 'BNI Virtual Account' },
-                { code: 'bri_va',      label: 'BRI Virtual Account' },
-                { code: 'other_va',    label: 'VA Bank Lainnya' },
-                { code: 'gopay',       label: 'GoPay' },
-                { code: 'shopeepay',   label: 'ShopeePay' },
-                { code: 'qris',        label: 'QRIS' },
-                { code: 'indomaret',   label: 'Indomaret' },
-                { code: 'alfamart',    label: 'Alfamart' }
-            ],
+            // Metode pembayaran dipilih langsung di popup Midtrans Snap
+            // Nilai 'snap' digunakan sebagai placeholder agar validasi server tetap terpenuhi
+            selectedPaymentMethod: 'snap',
             postalCode: '{{ $addresses->firstWhere("is_default", true)?->postal_code ?? "" }}',
 
             async init() {
@@ -694,14 +677,9 @@
             return;
         }
 
-        const paymentMethod = alpine?.selectedPaymentMethod ?? '';
-
-        if (!paymentMethod) {
-            alert('Silakan pilih metode pembayaran terlebih dahulu.');
-            btn.disabled = false;
-            btn.innerHTML = `<span class="material-symbols-outlined !text-[20px]">lock</span><span>Bayar Sekarang</span>`;
-            return;
-        }
+        // Metode pembayaran dipilih langsung di popup Midtrans Snap oleh user
+        // Placeholder 'snap' dikirim ke server agar validasi terpenuhi
+        const paymentMethod = 'snap';
 
         // Ambil voucher code dari Alpine state jika ada
         const voucherInput = document.getElementById('voucher-code');

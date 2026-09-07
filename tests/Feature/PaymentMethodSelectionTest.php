@@ -64,29 +64,29 @@ class PaymentMethodSelectionTest extends TestCase
             'postal_code'     => '10110',
             'courier'         => 'jne',
             'courier_service' => 'jne-REG',
-            'payment_method'  => 'qris',
+            'payment_method'  => 'snap', // Midtrans Snap handles payment method selection
             'shipping_cost'   => 10000,
         ]);
 
         $response->assertOk()->assertJsonStructure(['snap_token', 'order_id']);
 
-        // Assert payment record has payment_method stored
+        // Assert payment record has payment_method stored as 'snap' (placeholder)
         $this->assertDatabaseHas('payments', [
-            'payment_method' => 'qris',
+            'payment_method' => 'snap',
             'snap_token'     => 'snap_qris_token',
         ]);
 
-        // Assert $order passed to createSnapToken contains payment_method => 'qris'
+        // Assert $order passed to createSnapToken contains payment_method => 'snap'
         $this->assertNotNull($capturedOrder);
-        $this->assertEquals('qris', $capturedOrder['payment_method']);
+        $this->assertEquals('snap', $capturedOrder['payment_method']);
 
-        // Test real MidtransService payload transformation to verify enabled_payments === ['qris']
+        // Verify mapPaymentMethod correctly maps specific payment methods to Midtrans channel codes
         $realMidtrans = new MidtransService();
-        // Use Reflection to check enabled_payments payload logic if needed, or verify array structure directly
-        $reflectedClass = new \ReflectionClass(MidtransService::class);
-        $method = $reflectedClass->getMethod('createSnapToken');
-        // Let's verify via reflection/payload directly:
-        $this->assertEquals('qris', $capturedOrder['payment_method']);
+        $this->assertEquals(['qris'], $realMidtrans->mapPaymentMethod('qris'));
+        $this->assertEquals(['bca_va'], $realMidtrans->mapPaymentMethod('bca_va'));
+        $this->assertEquals(['gopay'], $realMidtrans->mapPaymentMethod('gopay'));
+        $this->assertEquals(['credit_card'], $realMidtrans->mapPaymentMethod('credit_card'));
+        $this->assertEquals([], $realMidtrans->mapPaymentMethod('unknown'));
     }
 
     public function test_checkout_fails_validation_when_payment_method_is_missing(): void
