@@ -88,12 +88,27 @@
 
                         {{-- Order Footer --}}
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-t border-warmLightGrey/60 bg-warmCream/30 rounded-b-card">
-                            <div>
-                                <p class="text-[11px] text-warmGrey">Total Pesanan</p>
-                                <p class="text-sm font-bold text-brandDark">@rupiah($order->total_amount)</p>
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-2.5 text-[11px] text-warmGrey flex-wrap">
+                                    <span class="inline-flex items-center gap-1 font-medium text-warmBlack">
+                                        <span class="material-symbols-outlined !text-[15px] text-brand">local_shipping</span>
+                                        <span>{{ $order->formatted_courier }}</span>
+                                    </span>
+                                    @if($order->payment)
+                                        <span class="text-warmGrey/40">•</span>
+                                        <span class="inline-flex items-center gap-1 font-medium text-warmBlack">
+                                            <span class="material-symbols-outlined !text-[15px] text-brand">credit_card</span>
+                                            <span>{{ $order->payment->formatted_method }}</span>
+                                        </span>
+                                    @endif
+                                </div>
+                                <div class="flex items-baseline gap-2">
+                                    <span class="text-[11px] text-warmGrey">Total Belanja:</span>
+                                    <span class="text-sm font-bold text-brandDark">@rupiah($order->total_amount)</span>
+                                </div>
                             </div>
                             <a href="{{ route('orders.show', $order->order_number) }}"
-                                class="px-4 py-2 border border-brand text-brand hover:bg-brand hover:text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200">
+                                class="px-4 py-2 border border-brand text-brand hover:bg-brand hover:text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200 text-center">
                                 Lihat Detail
                             </a>
                         </div>

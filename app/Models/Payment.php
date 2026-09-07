@@ -45,4 +45,34 @@ class Payment extends Model
     {
         return $this->status === 'success';
     }
+
+    /**
+     * Nama metode pembayaran yang diformat ramah pengguna (misal: BCA Virtual Account).
+     */
+    public function getFormattedMethodAttribute(): string
+    {
+        $raw = $this->payment_method ?: $this->payment_type;
+        if (!$raw) {
+            return 'Belum Dipilih';
+        }
+
+        $map = [
+            'bca_va'        => 'BCA Virtual Account',
+            'bni_va'        => 'BNI Virtual Account',
+            'bri_va'        => 'BRI Virtual Account',
+            'other_va'      => 'Mandiri / VA Lainnya',
+            'echannel'      => 'Mandiri Bill Payment',
+            'bank_transfer' => 'Transfer Bank',
+            'qris'          => 'QRIS',
+            'gopay'         => 'GoPay',
+            'shopeepay'     => 'ShopeePay',
+            'credit_card'   => 'Kartu Kredit',
+            'indomaret'     => 'Indomaret',
+            'alfamart'      => 'Alfamart',
+            'cstore'        => 'Convenience Store',
+            'snap'          => 'Midtrans Snap',
+        ];
+
+        return $map[strtolower($raw)] ?? ucwords(str_replace('_', ' ', $raw));
+    }
 }

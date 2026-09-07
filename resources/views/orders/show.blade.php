@@ -247,7 +247,7 @@
                         <div class="space-y-2 text-xs">
                             <div class="flex justify-between">
                                 <span class="text-warmGrey">Metode</span>
-                                <span class="text-warmBlack font-medium capitalize">{{ $order->payment->payment_method ?? 'Belum dipilih' }}</span>
+                                <span class="text-warmBlack font-medium">{{ $order->payment->formatted_method }}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-warmGrey">Status</span>
@@ -271,13 +271,19 @@
                     </div>
                 @endif
 
-                {{-- Shipping Address --}}
+                {{-- Shipping Address & Courier --}}
                 @if($order->address)
-                    <div class="bg-white rounded-card border border-warmLightGrey p-5">
-                        <h2 class="text-sm font-semibold text-warmBlack mb-3 flex items-center gap-2">
-                            <span class="material-symbols-outlined !text-[18px] text-brand">location_on</span>
-                            Alamat Pengiriman
-                        </h2>
+                    <div class="bg-white rounded-card border border-warmLightGrey p-5 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-sm font-semibold text-warmBlack flex items-center gap-2">
+                                <span class="material-symbols-outlined !text-[18px] text-brand">location_on</span>
+                                Alamat Pengiriman
+                            </h2>
+                            <span class="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                                <span class="material-symbols-outlined !text-[14px]">local_shipping</span>
+                                {{ $order->formatted_courier }}
+                            </span>
+                        </div>
                         <div class="text-xs space-y-1 text-warmGrey">
                             <p class="text-warmBlack font-medium">{{ $order->address->recipient_name }}</p>
                             <p>{{ $order->address->phone }}</p>

@@ -81,8 +81,8 @@
                     <th class="px-5 py-3.5 whitespace-nowrap">Nomor Pesanan</th>
                     <th class="px-5 py-3.5">Pelanggan</th>
                     <th class="px-5 py-3.5">Item Pembelian</th>
-                    <th class="px-5 py-3.5">Pengiriman</th>
-                    <th class="px-5 py-3.5">Total Belanja</th>
+                    <th class="px-5 py-3.5">Pengiriman & Kurir</th>
+                    <th class="px-5 py-3.5">Total & Pembayaran</th>
                     <th class="px-5 py-3.5">Status</th>
                     <th class="px-5 py-3.5 whitespace-nowrap">Tanggal</th>
                     <th class="px-5 py-3.5 text-right whitespace-nowrap">Aksi Cepat</th>
@@ -126,21 +126,41 @@
                             </div>
                         </td>
 
-                        <!-- Pengiriman -->
+                        <!-- Pengiriman & Ekspedisi -->
                         <td class="px-5 py-4 text-[11px] text-stone-600">
                             @if($order->address)
                                 <div class="font-medium text-stone-800">{{ $order->address->city }}, {{ $order->address->province }}</div>
-                                <div class="text-[10px] text-stone-400">{{ $order->shipping_courier ? strtoupper($order->shipping_courier) : 'Kurir Standard' }}</div>
                             @else
-                                <span class="text-stone-400">—</span>
+                                <div class="text-stone-400 italic">Alamat tidak tersedia</div>
                             @endif
+                            <div class="mt-1 flex items-center gap-1.5 flex-wrap">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                    <svg class="w-3 h-3 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="1"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                                    <span>{{ $order->formatted_courier }}</span>
+                                </span>
+                                @if($order->shipping_cost > 0)
+                                    <span class="text-[10px] text-stone-400 font-mono">Rp {{ number_format($order->shipping_cost, 0, ',', '.') }}</span>
+                                @else
+                                    <span class="text-[10px] text-emerald-600 font-bold">Gratis</span>
+                                @endif
+                            </div>
                         </td>
 
-                        <!-- Total Belanja -->
+                        <!-- Total & Metode Pembayaran -->
                         <td class="px-5 py-4 whitespace-nowrap">
-                            <span class="font-sans font-bold text-stone-900 text-xs">
+                            <span class="font-sans font-bold text-stone-900 text-xs block">
                                 Rp {{ number_format($order->total_amount, 0, ',', '.') }}
                             </span>
+                            <div class="mt-1">
+                                @if($order->payment)
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-stone-100 text-stone-700 border border-stone-200">
+                                        <svg class="w-3 h-3 text-stone-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                                        <span>{{ $order->payment->formatted_method }}</span>
+                                    </span>
+                                @else
+                                    <span class="text-[10px] text-stone-400 italic">Belum Ada Bayar</span>
+                                @endif
+                            </div>
                         </td>
 
                         <!-- Status Badge -->

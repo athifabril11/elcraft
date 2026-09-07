@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Models\Address;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -214,5 +215,30 @@ class OrderStatusAdminTest extends TestCase
              ->assertSessionHas('error');
 
         $this->assertEquals('dibatalkan', $order->fresh()->status);
+    }
+
+    public function test_orders_index_displays_payment_method_and_courier(): void
+    {
+        $customer = User::factory()->create(['email_verified_at' => now()]);
+        $order = $this->makeOrder($customer, 'paid');
+        $order->update([
+            'courier' => 'jne',
+            'courier_service' => 'REG',
+            'shipping_cost' => 18000,
+        ]);
+
+        Payment::create([
+            'order_id' => $order->id,
+            'midtrans_order_id' => 'MID-' . uniqid(),
+            'payment_method' => 'bca_va',
+            'amount' => $order->total_amount,
+            'status' => 'success',
+        ]);
+
+        $this->actingAs($this->adminUser())
+             ->get(route('admin.orders.index'))
+             ->assertOk()
+             ->assertSee('JNE (REG)')
+             ->assertSee('BCA Virtual Account');
     }
 }

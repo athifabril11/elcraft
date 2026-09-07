@@ -26,7 +26,7 @@ class OrderController extends Controller
         $filter = $request->query('status');
         $search = trim((string) $request->query('q', ''));
 
-        $query = Order::with(['user', 'items', 'address'])->latest();
+        $query = Order::with(['user', 'items', 'address', 'payment'])->latest();
 
         if ($filter && in_array($filter, self::STATUSES, true)) {
             $query->where('status', $filter);

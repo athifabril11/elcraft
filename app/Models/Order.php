@@ -67,4 +67,19 @@ class Order extends Model
     {
         return $this->hasOne(ReturnRequest::class);
     }
+
+    /**
+     * Nama kurir dan layanan yang diformat rapi (misal: JNE (REG)).
+     */
+    public function getFormattedCourierAttribute(): string
+    {
+        if (!$this->courier) {
+            return 'Kurir Standar';
+        }
+        $courierName = strtoupper($this->courier);
+        if ($this->courier_service) {
+            return "{$courierName} ({$this->courier_service})";
+        }
+        return $courierName;
+    }
 }
