@@ -1,85 +1,435 @@
 @extends('admin.layouts.admin')
 
-@section('title', 'Dashboard Admin')
-@section('page-title', 'Dashboard')
-@section('page-subtitle', 'Selamat datang di panel administrasi el Craft')
+@section('title', 'Dashboard Toko')
 
 @section('content')
-<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:2rem;">
-    <!-- Stat card: Kota Asal -->
-    <div class="admin-card" style="padding:1.25rem;">
-        <div style="display:flex; align-items:center; gap:12px; margin-bottom:0.75rem;">
-            <div style="width:36px; height:36px; border-radius:8px; background:#C17B6F18; display:flex; align-items:center; justify-content:center;">
-                <span class="material-symbols-outlined" style="font-size:20px; color:#C17B6F;">warehouse</span>
-            </div>
-            <span style="font-size:0.75rem; font-weight:600; color:#78716C; text-transform:uppercase; letter-spacing:0.05em;">Kota Asal Kirim</span>
-        </div>
-        <div style="font-size:1rem; font-weight:700; color:#1c1917;">
-            {{ \App\Models\ShopSetting::get('shipping_origin_city_name', 'Jember') }}
-        </div>
-        <div style="font-size:0.7rem; color:#78716C; margin-top:2px;">
-            ID: {{ \App\Models\ShopSetting::get('shipping_origin_city_id', '256') }}
-        </div>
-        <a href="{{ route('admin.settings.shipping.index') }}" style="display:inline-block; margin-top:0.75rem; font-size:0.7rem; color:#C17B6F; text-decoration:none; font-weight:600;">
-            Ubah →
-        </a>
-    </div>
 
-    <!-- Stat card: Aturan Diskon -->
-    <div class="admin-card" style="padding:1.25rem;">
-        <div style="display:flex; align-items:center; gap:12px; margin-bottom:0.75rem;">
-            <div style="width:36px; height:36px; border-radius:8px; background:#C17B6F18; display:flex; align-items:center; justify-content:center;">
-                <span class="material-symbols-outlined" style="font-size:20px; color:#C17B6F;">local_offer</span>
-            </div>
-            <span style="font-size:0.75rem; font-weight:600; color:#78716C; text-transform:uppercase; letter-spacing:0.05em;">Aturan Diskon Ongkir</span>
+@php
+    $orderStatusMap = [
+        'pending'    => ['label' => 'Menunggu Bayar', 'color' => '#D58E82', 'bg' => '#fefce8', 'textColor' => '#854d0e', 'border' => '#fef08a'],
+        'paid'       => ['label' => 'Sudah Dibayar',  'color' => '#8E4034', 'bg' => '#eef2ff', 'textColor' => '#3730a3', 'border' => '#c7d2fe'],
+        'diproses'   => ['label' => 'Sedang Diproses', 'color' => '#E8B4AC', 'bg' => '#faf5ff', 'textColor' => '#6b21a8', 'border' => '#e9d5ff'],
+        'dikirim'    => ['label' => 'Sedang Dikirim',  'color' => '#C17B6F', 'bg' => '#eff6ff', 'textColor' => '#1d4ed8', 'border' => '#bfdbfe'],
+        'selesai'    => ['label' => 'Selesai',         'color' => '#10b981', 'bg' => '#f0fdf4', 'textColor' => '#166534', 'border' => '#bbf7d0'],
+        'dibatalkan' => ['label' => 'Dibatalkan',      'color' => '#e2d5d0', 'bg' => '#fef2f2', 'textColor' => '#991b1b', 'border' => '#fecaca'],
+    ];
+    $selesaiPct = $totalOrders > 0 ? round(($orderCountsByStatus['selesai'] / $totalOrders) * 100) : 0;
+
+    // Donut segments
+    $donutColors = ['#C17B6F', '#8E4034', '#E8B4AC', '#D58E82', '#5F5E5A', '#E2D5D0'];
+    $circumference = 2 * pi() * 38;
+    $donutSegments = [];
+    $offset = 0;
+    $idx = 0;
+    foreach ($orderCountsByStatus as $key => $count) {
+        $pct = $totalOrders > 0 ? ($count / $totalOrders) : 0;
+        $dash = $pct * $circumference;
+        $donutSegments[] = ['color' => $donutColors[$idx % 6], 'dash' => $dash, 'gap' => $circumference - $dash, 'offset' => -$offset, 'key' => $key];
+        $offset += $dash;
+        $idx++;
+    }
+
+    // Weekly chart path
+    $maxRev = max(array_column($weeklyRevenue, 'revenue') ?: [0]);
+    $maxRev = $maxRev > 0 ? $maxRev : 1;
+    $chartH = 140; $padL = 20; $padR = 20; $padT = 15; $padB = 20;
+    $points = [];
+    foreach ($weeklyRevenue as $i => $day) {
+        $x = $padL + ($i / max(count($weeklyRevenue) - 1, 1)) * (680 - $padL - $padR);
+        $y = $padT + (1 - ($day['revenue'] / $maxRev)) * ($chartH - $padT - $padB);
+        $points[] = compact('x', 'y');
+    }
+    $pathD = count($points) > 0 ? ('M ' . $points[0]['x'] . ',' . $points[0]['y']) : 'M 0,140';
+    for ($i = 1; $i < count($points); $i++) {
+        $cp1x = $points[$i-1]['x'] + ($points[$i]['x'] - $points[$i-1]['x']) / 2;
+        $cp2x = $points[$i]['x'] - ($points[$i]['x'] - $points[$i-1]['x']) / 2;
+        $pathD .= ' C ' . $cp1x . ',' . $points[$i-1]['y'] . ' ' . $cp2x . ',' . $points[$i]['y'] . ' ' . $points[$i]['x'] . ',' . $points[$i]['y'];
+    }
+    $lastPt = end($points) ?: ['x' => 0, 'y' => 140];
+    $firstPt = reset($points) ?: ['x' => 0, 'y' => 140];
+    $areaD = $pathD . ' L ' . $lastPt['x'] . ',' . $chartH . ' L ' . $firstPt['x'] . ',' . $chartH . ' Z';
+
+    // Sparkline
+    $maxS = max(array_column($weeklyRevenue, 'revenue') ?: [1]);
+    $maxS = $maxS > 0 ? $maxS : 1;
+    $sparkPts = [];
+    foreach ($weeklyRevenue as $si => $sd) {
+        $sx = count($weeklyRevenue) > 1 ? ($si / (count($weeklyRevenue) - 1)) * 300 : 150;
+        $sy = 55 - (($sd['revenue'] / $maxS) * 50);
+        $sparkPts[] = $sx . ',' . $sy;
+    }
+    $sparkLine = implode(' ', $sparkPts);
+    $sparkFirst = $sparkPts[0] ?? '0,55';
+    $sparkLast = end($sparkPts) ?: '300,55';
+    $sparkLastX = explode(',', $sparkLast)[0];
+    $sparkLastY = explode(',', $sparkLast)[1];
+    $avgDaily = count($weeklyRevenue) > 0 ? array_sum(array_column($weeklyRevenue, 'revenue')) / count($weeklyRevenue) : 0;
+@endphp
+
+{{-- PAGE HEADER --}}
+<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div>
+        <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-brand-500 ring-4 ring-brand-100"></span>
+            <h1 class="text-2xl font-extrabold text-atelier-textDark tracking-tight font-sans">Ringkasan Toko el Craft</h1>
         </div>
-        <div style="font-size:1rem; font-weight:700; color:#1c1917;">
-            {{ \App\Models\ShippingDiscountRule::where('is_active', true)->count() }}
-            <span style="font-size:0.75rem; font-weight:400; color:#78716C;">aktif</span>
+        <p class="text-xs text-atelier-textMuted mt-1 flex items-center gap-2">
+            <span>{{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}</span>
+            <span class="text-stone-300">&bull;</span>
+            <span class="text-emerald-700 font-medium flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Sinkronisasi Real-time
+            </span>
+            <span class="text-stone-300">&bull;</span>
+            <span>{{ $originCity }}</span>
+        </p>
+    </div>
+    <a href="{{ route('admin.dashboard') }}" class="px-3 py-2 bg-white hover:bg-brand-50 border border-atelier-border hover:border-brand-300 rounded-xl text-xs font-semibold text-atelier-textMuted hover:text-brand-700 transition flex items-center gap-1.5 shadow-sm">
+        <svg class="w-3.5 h-3.5 text-brand-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38"/></svg>
+        <span>Perbarui Data</span>
+    </a>
+</div>
+
+{{-- ROW 1: HERO CARDS --}}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+
+{{-- Card 1: Pendapatan --}}
+<div class="rounded-2xl p-5 text-white relative overflow-hidden shadow-md flex flex-col justify-between" style="background:linear-gradient(135deg,#A8584B 0%,#8E4034 50%,#6E2D23 100%);min-height:190px;">
+    <div class="absolute -right-8 -bottom-8 w-36 h-36 rounded-full border border-white/10 pointer-events-none"></div>
+    <div class="absolute -right-2 -bottom-2 w-24 h-24 rounded-full border border-white/10 pointer-events-none"></div>
+    <div>
+        <div class="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-white/80">
+            <span>Pendapatan Hari Ini</span>
+            <span class="px-2 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-bold">Real-time</span>
         </div>
-        <div style="font-size:0.7rem; color:#78716C; margin-top:2px;">
-            {{ \App\Models\ShippingDiscountRule::count() }} total aturan
+        <div class="mt-3">
+            @php $todayRevenueFormatted = number_format($todayRevenue, 0, ',', '.'); $thisMonthRevenueFormatted = number_format($thisMonthRevenue, 0, ',', '.'); @endphp
+            <div class="text-3xl font-extrabold tracking-tight font-sans">Rp {{ $todayRevenueFormatted }}</div>
+            <div class="text-[11px] text-white/75 mt-0.5">Bulan ini: <strong class="text-white">Rp {{ $thisMonthRevenueFormatted }}</strong></div>
         </div>
-        <a href="{{ route('admin.settings.shipping-discounts.index') }}" style="display:inline-block; margin-top:0.75rem; font-size:0.7rem; color:#C17B6F; text-decoration:none; font-weight:600;">
-            Kelola →
-        </a>
-    <!-- Stat card: Kurir -->
-    <div class="admin-card" style="padding:1.25rem;">
-        <div style="display:flex; align-items:center; gap:12px; margin-bottom:0.75rem;">
-            <div style="width:36px; height:36px; border-radius:8px; background:#C17B6F18; display:flex; align-items:center; justify-content:center;">
-                <span class="material-symbols-outlined" style="font-size:20px; color:#C17B6F;">local_shipping</span>
-            </div>
-            <span style="font-size:0.75rem; font-weight:600; color:#78716C; text-transform:uppercase; letter-spacing:0.05em;">Kurir Pengiriman</span>
+    </div>
+    <div class="my-3 relative">
+        <svg class="w-full h-14 overflow-visible" viewBox="0 0 300 60" preserveAspectRatio="none">
+            <defs><linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffffff" stop-opacity="0.35"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0.0"/></linearGradient></defs>
+            <polygon points="{{ $sparkFirst }} {{ $sparkLine }} {{ $sparkLastX }},60 0,60" fill="url(#sparkGrad)"/>
+            <polyline points="{{ $sparkLine }}" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="{{ $sparkLastX }}" cy="{{ $sparkLastY }}" r="3.5" fill="#FFFFFF"/>
+        </svg>
+        <div class="flex justify-between text-[9px] text-white/60 font-mono mt-1">
+            @foreach($weeklyRevenue as $wd)<span>{{ $wd['label'] }}</span>@endforeach
         </div>
-        <div style="font-size:1rem; font-weight:700; color:#1c1917;">
-            {{ \App\Models\Courier::where('is_active', true)->count() }}
-            <span style="font-size:0.75rem; font-weight:400; color:#78716C;">aktif</span>
-        </div>
-        <div style="font-size:0.7rem; color:#78716C; margin-top:2px;">
-            {{ \App\Models\Courier::count() }} total kurir didukung
-        </div>
-        <a href="{{ route('admin.settings.couriers.index') }}" style="display:inline-block; margin-top:0.75rem; font-size:0.7rem; color:#C17B6F; text-decoration:none; font-weight:600;">
-            Kelola →
-        </a>
+    </div>
+    <div class="pt-2 border-t border-white/15 flex items-center justify-between text-[11px]">
+        <span class="text-white/80">{{ $todayTransactionCount }} transaksi selesai</span>
+        <a href="{{ route('admin.orders.index') }}" class="font-bold text-white hover:underline flex items-center gap-1">Lihat Pesanan <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg></a>
     </div>
 </div>
 
-<!-- Quick links -->
-<div class="admin-card" style="padding:1.5rem;">
-    <h2 style="font-size:0.875rem; font-weight:700; color:#1c1917; margin:0 0 1rem;">Pengaturan Cepat</h2>
-    <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
-        <a href="{{ route('admin.settings.shipping.index') }}" class="admin-btn-ghost">
-            <span class="material-symbols-outlined" style="font-size:16px;">warehouse</span>
-            Kota Asal Pengiriman
-        </a>
-        <a href="{{ route('admin.settings.shipping-discounts.index') }}" class="admin-btn-ghost">
-            <span class="material-symbols-outlined" style="font-size:16px;">local_offer</span>
-            Diskon Ongkir
-        </a>
-        <a href="{{ route('admin.settings.couriers.index') }}" class="admin-btn-ghost">
-            <span class="material-symbols-outlined" style="font-size:16px;">local_shipping</span>
-            Kurir
-        </a>
+{{-- Card 2: Perlu Perhatian --}}
+<div class="bg-white rounded-2xl p-5 border border-atelier-border shadow-sm flex flex-col justify-between" style="min-height:190px;">
+    <div>
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="p-1.5 rounded-lg bg-rose-50 text-rose-600"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></span>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-atelier-textLight">Perlu Perhatian</span>
+            </div>
+            <span class="w-6 h-6 rounded-full bg-brand-100 text-brand-700 text-xs font-bold flex items-center justify-center border border-brand-200">{{ $ordersNeedingAttention + $pendingReturnsCount }}</span>
+        </div>
+        <h3 class="text-base font-bold text-atelier-textDark mt-3">Pesanan Perlu Diproses</h3>
+        <div class="mt-2.5 p-3 rounded-xl bg-[#FCFAF9] border border-atelier-border">
+            <div class="text-2xl font-black text-brand-700 font-sans leading-none">{{ $ordersNeedingAttention }} <span class="text-xs font-semibold text-atelier-textMuted">paket tertunda</span></div>
+            <p class="text-[11px] text-atelier-textMuted mt-1.5"><strong class="text-stone-800">{{ $paidOrdersCount }} baru dibayar</strong>, {{ $processingOrdersCount }} sedang dipacking.</p>
+            @if($pendingReturnsCount > 0)
+            <div class="border-t border-dashed border-atelier-border mt-2 pt-2 text-[11px] text-rose-600 font-semibold flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                {{ $pendingReturnsCount }} retur menunggu keputusan
+            </div>
+            @endif
+        </div>
+    </div>
+    <div class="pt-3 border-t border-atelier-border mt-4 flex items-center justify-between">
+        <span class="text-[11px] text-atelier-textLight font-medium">Prioritas Tinggi</span>
+        <a href="{{ route('admin.orders.index') }}" class="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center gap-1 group"><span>Proses Sekarang</span><svg class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg></a>
     </div>
 </div>
+
+{{-- Card 3: Stok Kritis --}}
+<div class="bg-white rounded-2xl p-5 border border-atelier-border shadow-sm flex flex-col justify-between" style="min-height:190px;">
+    <div>
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="p-1.5 rounded-lg bg-amber-50 text-amber-600"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg></span>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-atelier-textLight">Stok Kritis</span>
+            </div>
+            @if($lowStockCount > 0)<span class="w-6 h-6 rounded-full bg-rose-100 text-rose-700 text-xs font-bold flex items-center justify-center border border-rose-200">{{ $lowStockCount }}</span>
+            @else<span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center border border-emerald-200">0</span>@endif
+        </div>
+        <h3 class="text-base font-bold text-atelier-textDark mt-3">Produk Stok Menipis</h3>
+        <div class="mt-2.5 p-3 rounded-xl bg-[#FCFAF9] border border-atelier-border">
+            @if($lowStockCount > 0)
+            <div class="text-2xl font-black text-rose-600 font-sans leading-none">{{ $lowStockCount }} <span class="text-xs font-semibold text-atelier-textMuted">SKU kritis</span></div>
+            <p class="text-[11px] text-atelier-textMuted mt-1.5">@foreach($lowStockProducts->take(2) as $lp)<span class="text-stone-800 font-semibold">{{ $lp->name }} ({{ $lp->stock }})</span>{{ !$loop->last ? ', ' : '' }}@endforeach @if($lowStockProducts->count() > 2)<span class="text-stone-400">+{{ $lowStockProducts->count()-2 }} lainnya</span>@endif</p>
+            @else
+            <div class="text-sm font-bold text-emerald-700 flex items-center gap-1.5"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Semua Stok Aman</div>
+            <p class="text-[11px] text-atelier-textMuted mt-1.5">{{ $totalActiveProducts }} produk aktif di atas batas minimum 3 pcs.</p>
+            @endif
+        </div>
+    </div>
+    <div class="pt-3 border-t border-atelier-border mt-4 flex items-center justify-between">
+        <span class="text-[11px] text-atelier-textLight font-medium">Ambang batas 3 pcs</span>
+        <a href="{{ Route::has('admin.products.index') ? route('admin.products.index') : route('products.index') }}" class="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center gap-1 group"><span>Kelola Stok</span><svg class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg></a>
+    </div>
+</div>
+</div>
+
+{{-- ROW 2: SECONDARY METRICS --}}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+<div class="bg-white p-5 rounded-2xl border border-atelier-border shadow-sm flex flex-col justify-between">
+    <div class="flex items-center justify-between">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-atelier-textLight">Pelanggan Terdaftar</span>
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">+{{ $newCustomersThisWeek }} minggu ini</span>
+    </div>
+    <div class="mt-2">
+        <div class="text-2xl font-extrabold text-atelier-textDark font-sans">{{ $totalCustomers }} <span class="text-xs font-semibold text-atelier-textMuted">Pelanggan</span></div>
+        <div class="text-[11px] text-atelier-textMuted mt-0.5">Basis pembeli terdaftar toko el Craft</div>
+    </div>
+    <div class="mt-3 flex items-center gap-2">
+        <div class="flex -space-x-1.5">@foreach($recentCustomers as $rc)<div class="inline-flex h-6 w-6 rounded-full ring-2 ring-white bg-brand-200 text-brand-800 text-[9px] font-bold items-center justify-center" title="{{ $rc->name }}">{{ strtoupper(substr($rc->name,0,2)) }}</div>@endforeach</div>
+        <span class="text-[10px] font-semibold text-atelier-textLight">Pelanggan terbaru</span>
+    </div>
+</div>
+
+<div class="bg-white p-5 rounded-2xl border border-atelier-border shadow-sm flex flex-col justify-between">
+    <div class="flex items-center justify-between">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-atelier-textLight">Total Semua Pesanan</span>
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">{{ $selesaiPct }}% tuntas</span>
+    </div>
+    <div class="mt-2">
+        <div class="text-2xl font-extrabold text-atelier-textDark font-sans">{{ $totalOrders }} <span class="text-xs font-semibold text-atelier-textMuted">Pesanan</span></div>
+        <div class="text-[11px] text-atelier-textMuted mt-0.5">{{ $orderCountsByStatus['selesai'] }} pesanan selesai sukses</div>
+    </div>
+    <div class="mt-3">
+        <div class="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden"><div class="bg-brand-500 h-1.5 rounded-full" style="width:{{ $selesaiPct }}%"></div></div>
+        <div class="text-[10px] text-atelier-textLight mt-1 text-right">{{ $orderCountsByStatus['dikirim'] }} sedang dalam pengiriman</div>
+    </div>
+</div>
+
+<div class="bg-white p-5 rounded-2xl border border-atelier-border shadow-sm flex flex-col justify-between">
+    <div class="flex items-center justify-between">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-atelier-textLight">Total Pendapatan</span>
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">All-time</span>
+    </div>
+    @php $totalRevenueFormatted = number_format($totalRevenue, 0, ',', '.'); $avgDailyFormatted = number_format($avgDaily, 0, ',', '.'); @endphp
+    <div class="mt-2">
+        <div class="text-2xl font-extrabold text-atelier-textDark font-sans">Rp {{ $totalRevenueFormatted }}</div>
+        <div class="text-[11px] text-atelier-textMuted mt-0.5">{{ $completedOrdersCount }} pesanan berhasil diselesaikan</div>
+    </div>
+    <div class="mt-3 pt-2 border-t border-atelier-border flex gap-3">
+        <a href="{{ route('admin.orders.index') }}" class="text-[11px] text-brand-600 font-semibold hover:underline">Lihat Pesanan</a>
+        <a href="{{ route('admin.reports.index') }}" class="text-[11px] text-brand-600 font-semibold hover:underline">Laporan</a>
+    </div>
+</div>
+</div>
+
+{{-- ROW 3: CHART + DONUT --}}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+<div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-atelier-border shadow-sm">
+    <div class="pb-4 border-b border-atelier-border mb-4">
+        <h3 class="text-base font-bold text-atelier-textDark font-sans">Tren Penjualan 7 Hari Terakhir</h3>
+        <p class="text-xs text-atelier-textMuted mt-0.5">Pendapatan pesanan selesai per hari</p>
+    </div>
+    <div class="relative" style="min-height:200px;">
+        <svg class="w-full h-40 overflow-visible" viewBox="0 0 700 160" preserveAspectRatio="none">
+            <defs><linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#C17B6F" stop-opacity="0.22"/><stop offset="85%" stop-color="#C17B6F" stop-opacity="0.01"/></linearGradient></defs>
+            <line x1="0" y1="20" x2="700" y2="20" stroke="#F1EAE6" stroke-dasharray="4 4" stroke-width="1"/>
+            <line x1="0" y1="65" x2="700" y2="65" stroke="#F1EAE6" stroke-dasharray="4 4" stroke-width="1"/>
+            <line x1="0" y1="110" x2="700" y2="110" stroke="#F1EAE6" stroke-dasharray="4 4" stroke-width="1"/>
+            <line x1="0" y1="150" x2="700" y2="150" stroke="#EFE7E4" stroke-width="1"/>
+            <path d="{{ $areaD }}" fill="url(#chartGrad)"/>
+            <path d="{{ $pathD }}" fill="none" stroke="#C17B6F" stroke-width="2.5" stroke-linecap="round"/>
+            @foreach($points as $pi => $pt)
+                @php $ptFill = ($pi === count($points)-1) ? '#C17B6F' : '#FFFFFF'; $ptR = ($pi === count($points)-1) ? 5 : 3.5; @endphp
+                <circle cx="{{ $pt['x'] }}" cy="{{ $pt['y'] }}" r="{{ $ptR }}" fill="{{ $ptFill }}" stroke="#C17B6F" stroke-width="2"/>
+            @endforeach
+        </svg>
+        <div class="flex justify-between text-xs font-semibold text-atelier-textLight px-1 mt-2">
+            @foreach($weeklyRevenue as $wd)<span>{{ $wd['label'] }}</span>@endforeach
+        </div>
+    </div>
+    <div class="pt-3 border-t border-atelier-border flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2 text-atelier-textMuted"><span class="w-2.5 h-2.5 rounded-full bg-brand-500"></span><span>Pendapatan Pesanan Selesai</span></div>
+        <div class="text-atelier-textMuted">Rata-rata Harian: <strong class="text-stone-800 font-sans">Rp {{ $avgDailyFormatted }}</strong></div>
+    </div>
+</div>
+
+<div class="bg-white rounded-2xl p-6 border border-atelier-border shadow-sm flex flex-col">
+    <h3 class="text-base font-bold text-atelier-textDark font-sans">Status Pesanan</h3>
+    <p class="text-xs text-atelier-textMuted mt-0.5">Distribusi {{ $totalOrders }} total pesanan</p>
+    <div class="flex items-center justify-center relative my-6">
+        <svg class="w-36 h-36 transform -rotate-90" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="38" fill="none" stroke="#F6EFEB" stroke-width="10"/>
+            @foreach($donutSegments as $seg)
+                @if($seg['dash'] > 0)
+                    <circle cx="50" cy="50" r="38" fill="none" stroke="{{ $seg['color'] }}" stroke-width="10" stroke-dasharray="{{ round($seg['dash'],2) }} {{ round($seg['gap'],2) }}" stroke-dashoffset="{{ round($seg['offset'],2) }}"/>
+                @endif
+            @endforeach
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+            <span class="text-2xl font-black text-atelier-textDark leading-none font-sans">{{ $totalOrders }}</span>
+            <span class="text-[9px] font-bold text-atelier-textLight uppercase tracking-wider mt-0.5">TOTAL</span>
+        </div>
+    </div>
+    <div class="grid grid-cols-2 gap-y-2 gap-x-3 pt-3 border-t border-atelier-border text-xs">
+        @foreach($orderCountsByStatus as $statusKey => $count)
+        @php $info=$orderStatusMap[$statusKey]??['label'=>ucfirst($statusKey),'color'=>'#78716C']; $pct=$totalOrders>0?round(($count/$totalOrders)*100):0; @endphp
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full shrink-0" style="background:{{ $info['color'] }}"></span><span class="text-atelier-textMuted text-[11px] truncate">{{ $info['label'] }}</span></div>
+            <span class="font-bold text-stone-800 text-[11px] shrink-0">{{ $pct }}%</span>
+        </div>
+        @endforeach
+    </div>
+    <a href="{{ route('admin.orders.index') }}" class="mt-4 text-center text-xs font-bold text-brand-600 hover:text-brand-700">Kelola Semua Pesanan &rarr;</a>
+</div>
+</div>
+
+{{-- ROW 4: RECENT ORDERS + NEW CUSTOMERS --}}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+<div class="lg:col-span-2 bg-white rounded-2xl border border-atelier-border shadow-sm overflow-hidden flex flex-col">
+    <div class="p-5 border-b border-atelier-border flex items-center justify-between">
+        <div><h3 class="text-base font-bold text-atelier-textDark font-sans">Pesanan Terbaru</h3><p class="text-xs text-atelier-textMuted mt-0.5">Pantauan transaksi masuk secara langsung</p></div>
+        <a href="{{ route('admin.orders.index') }}" class="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center gap-1 group"><span>Lihat Semua ({{ $totalOrders }})</span><svg class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg></a>
+    </div>
+    <div class="overflow-x-auto flex-1">
+        <table class="w-full text-left text-xs">
+            <thead class="bg-stone-50/75 text-atelier-textLight uppercase tracking-wider font-semibold border-b border-atelier-border">
+                <tr>
+                    <th class="px-5 py-3">No. Pesanan</th>
+                    <th class="px-5 py-3">Pelanggan &amp; Item</th>
+                    <th class="px-5 py-3 text-right">Total</th>
+                    <th class="px-5 py-3 text-center">Status</th>
+                    <th class="px-5 py-3">Waktu</th>
+                    <th class="px-5 py-3 text-right">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-atelier-border">
+                @forelse($recentOrders as $order)
+                @php
+                    $st = $orderStatusMap[$order->status] ?? ['label' => ucfirst($order->status), 'bg' => '#f5f5f5', 'textColor' => '#78716C', 'border' => '#e7e5e4'];
+                    $stStyle = 'background:' . $st['bg'] . ';color:' . $st['textColor'] . ';border:1px solid ' . $st['border'] . ';';
+                    $orderAmt = number_format($order->total_amount, 0, ',', '.');
+                    $orderDate = $order->created_at->format('d M, H:i');
+                @endphp
+                <tr class="hover:bg-brand-50/20 transition-colors">
+                    <td class="px-5 py-3.5 font-mono font-bold text-brand-700 whitespace-nowrap">{{ $order->order_number }}</td>
+                    <td class="px-5 py-3.5"><div class="font-bold text-atelier-textDark">{{ $order->user?->name ?? 'Guest' }}</div><div class="text-[11px] text-atelier-textMuted">{{ $order->items->first()?->product_name ?? 'Produk' }}@if($order->items->count()>1)<span class="text-stone-400">+{{ $order->items->count()-1 }} lainnya</span>@endif</div></td>
+                    <td class="px-5 py-3.5 text-right font-bold text-stone-800 whitespace-nowrap">Rp {{ $orderAmt }}</td>
+                    <td class="px-5 py-3.5 text-center whitespace-nowrap"><span class="px-2.5 py-1 rounded-full text-[10px] font-bold" style="{{ $stStyle }}">{{ $st['label'] }}</span></td>
+                    <td class="px-5 py-3.5 text-atelier-textLight font-mono text-[11px] whitespace-nowrap">{{ $orderDate }}</td>
+                    <td class="px-5 py-3.5 text-right whitespace-nowrap"><a href="{{ Route::has('admin.orders.show') ? route('admin.orders.show', $order) : route('admin.orders.index', ['q' => $order->order_number]) }}" class="text-xs font-bold text-brand-600 hover:text-brand-800 hover:underline">Detail</a></td>
+                </tr>
+                @empty
+                <tr><td colspan="6" class="px-5 py-8 text-center text-xs text-atelier-textMuted">Belum ada pesanan masuk.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+    <div class="p-3 bg-stone-50/60 border-t border-atelier-border text-center text-xs text-atelier-textLight">Menampilkan {{ $recentOrders->count() }} dari {{ $totalOrders }} pesanan</div>
+</div>
+
+<div class="bg-white rounded-2xl p-6 border border-atelier-border shadow-sm flex flex-col">
+    <div class="flex items-center justify-between pb-4 border-b border-atelier-border">
+        <div><h3 class="text-base font-bold text-atelier-textDark font-sans">Pelanggan Baru</h3><p class="text-xs text-atelier-textMuted mt-0.5">Pendaftaran terbaru</p></div>
+        <span class="p-1.5 rounded-lg bg-brand-50 text-brand-600"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></span>
+    </div>
+    <div class="divide-y divide-atelier-border flex-1">
+        @forelse($recentCustomersFull as $rc)
+        <div class="py-3.5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-brand-100 text-brand-800 font-bold text-xs flex items-center justify-center">{{ strtoupper(substr($rc->name,0,2)) }}</div>
+                <div><div class="text-xs font-bold text-atelier-textDark">{{ $rc->name }}</div><div class="text-[10px] text-atelier-textLight">Gabung {{ $rc->created_at->diffForHumans() }}</div></div>
+            </div>
+            @if($rc->has_ordered > 0)<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-brand-700 text-white">Sudah Belanja</span>
+            @else<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-stone-100 text-stone-600">Belum Belanja</span>@endif
+        </div>
+        @empty<div class="py-6 text-center text-xs text-atelier-textMuted">Belum ada pelanggan terdaftar.</div>@endforelse
+    </div>
+    <div class="pt-4 border-t border-atelier-border mt-2">
+        <a href="{{ route('admin.customers.index') }}" class="w-full py-2.5 rounded-xl bg-brand-50 hover:bg-brand-100/70 border border-brand-200 text-brand-700 text-xs font-bold transition flex items-center justify-center gap-2">Lihat Semua Pelanggan ({{ $totalCustomers }})</a>
+    </div>
+</div>
+</div>
+
+{{-- ROW 5: LOW STOCK + TOP PRODUCTS --}}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+<div class="bg-white rounded-2xl p-6 border border-atelier-border shadow-sm flex flex-col">
+    <div class="flex items-center justify-between pb-4 border-b border-atelier-border mb-1">
+        <div class="flex items-center gap-2.5">
+            <span class="p-1.5 rounded-lg bg-rose-50 text-rose-600"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
+            <div><h3 class="text-base font-bold text-atelier-textDark font-sans">Peringatan Stok Menipis</h3><p class="text-xs text-atelier-textMuted">Produk di bawah batas minimum</p></div>
+        </div>
+        @if($lowStockCount > 0)<span class="px-2.5 py-1 text-[10px] font-bold bg-rose-50 text-rose-700 rounded-full border border-rose-200">{{ $lowStockCount }} Perlu Restok</span>@endif
+    </div>
+    <div class="divide-y divide-atelier-border flex-1">
+        @forelse($lowStockProducts as $lp)
+        <div class="py-3.5 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-11 h-11 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden shrink-0 flex items-center justify-center">
+                    @if($lp->image)<img src="{{ asset('storage/'.$lp->image) }}" alt="{{ $lp->name }}" class="w-full h-full object-cover">
+                    @else<svg class="w-6 h-6 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>@endif
+                </div>
+                <div class="min-w-0"><div class="text-xs font-bold text-atelier-textDark truncate">{{ $lp->name }}</div><div class="text-[10px] text-atelier-textLight mt-0.5">Kategori: {{ $lp->category?->name ?? 'Umum' }}</div></div>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+                <span class="text-xs font-bold text-rose-600 font-sans">Sisa {{ $lp->stock }}</span>
+                <a href="{{ Route::has('admin.products.edit') ? route('admin.products.edit',$lp) : (Route::has('products.show') ? route('products.show', $lp->slug) : '#') }}" class="px-3 py-1.5 bg-stone-100 hover:bg-brand-50 hover:text-brand-700 text-stone-700 text-[11px] font-semibold rounded-lg border border-stone-200 transition">Restok</a>
+            </div>
+        </div>
+        @empty
+        <div class="py-8 text-center">
+            <svg class="w-10 h-10 mx-auto mb-2 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <div class="text-xs font-semibold text-emerald-700">Semua stok aman!</div>
+            <div class="text-[11px] text-atelier-textMuted mt-1">{{ $totalActiveProducts }} produk aktif di atas ambang minimum.</div>
+        </div>
+        @endforelse
+    </div>
+    <div class="pt-4 border-t border-atelier-border mt-2 text-center">
+        <a href="{{ Route::has('admin.products.index') ? route('admin.products.index') : route('products.index') }}" class="text-xs font-bold text-brand-600 hover:text-brand-700 inline-flex items-center gap-1 group"><span>Buka Halaman Produk</span><svg class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg></a>
+    </div>
+</div>
+
+<div class="bg-white rounded-2xl p-6 border border-atelier-border shadow-sm flex flex-col">
+    <div class="flex items-center justify-between pb-4 border-b border-atelier-border mb-1">
+        <div class="flex items-center gap-2.5">
+            <span class="p-1.5 rounded-lg bg-amber-50 text-amber-600"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></span>
+            <div><h3 class="text-base font-bold text-atelier-textDark font-sans">Produk Terlaris</h3><p class="text-xs text-atelier-textMuted">Volume penjualan 30 hari terakhir</p></div>
+        </div>
+    </div>
+    <div class="divide-y divide-atelier-border flex-1">
+        @forelse($topProducts as $rank => $tp)
+        @php
+            $rankBg = $rank===0 ? '#A8584B' : ($rank===1 ? '#786F6B' : ($rank===2 ? '#b45309' : '#a8a29e'));
+            $rankRevenue = number_format($tp->total_revenue, 0, ',', '.');
+        @endphp
+        <div class="py-3.5 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-7 h-7 rounded-lg text-white font-bold text-xs flex items-center justify-center shrink-0" style="background:{{ $rankBg }}">{{ $rank+1 }}</div>
+                <div class="min-w-0">
+                    <div class="text-xs font-bold text-atelier-textDark truncate">{{ $tp->product_name }}</div>
+                    <div class="text-[10px] text-atelier-textLight mt-0.5">{{ $tp->total_sold }} terjual &bull; Omzet: <strong class="text-stone-700 font-sans">Rp {{ $rankRevenue }}</strong></div>
+                </div>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">#{{ $rank+1 }}</span>
+        </div>
+        @empty
+        <div class="py-8 text-center">
+            <svg class="w-10 h-10 mx-auto mb-2 text-stone-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <div class="text-xs text-atelier-textMuted">Belum ada data penjualan bulan ini.</div>
+        </div>
+        @endforelse
+    </div>
+    <div class="pt-4 border-t border-atelier-border mt-2 text-center">
+        <a href="{{ route('admin.reports.index') }}" class="text-xs font-bold text-brand-600 hover:text-brand-700 inline-flex items-center gap-1 group"><span>Lihat Laporan Lengkap</span><svg class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg></a>
+    </div>
+</div>
+</div>
+
 @endsection
