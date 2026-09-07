@@ -35,7 +35,9 @@
 
     <script>
         window.isUserLoggedIn = {{ auth()->check() ? 'true' : 'false' }};
+        window.isAdminUser = {{ (auth()->check() && auth()->user()->role === 'admin') ? 'true' : 'false' }};
         const isUserLoggedIn = window.isUserLoggedIn;
+        const isAdminUser = window.isAdminUser;
 
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
@@ -195,6 +197,10 @@
                             this.authErrors = { email: [data.message || 'Terjadi kesalahan. Coba lagi.'] };
                             return;
                         }
+                        if (data.redirect) {
+                            window.location.href = data.redirect;
+                            return;
+                        }
                         window.location.reload();
                     })
                     .catch(() => {
@@ -307,6 +313,11 @@
                 addToCart(productId, productName, productPrice) {
                     if (!window.isUserLoggedIn) {
                         this.toggleLoginModal();
+                        return;
+                    }
+
+                    if (window.isAdminUser) {
+                        window.showToast && window.showToast('Akun Administrator tidak dapat berbelanja. Mode Pratinjau Toko aktif.', 'info');
                         return;
                     }
                     
@@ -432,8 +443,23 @@
 </head>
 <body x-data="storefrontLayout()" class="bg-white text-warmBlack font-sans antialiased selection:bg-accent selection:text-brandDark">
 
+    @if(auth()->check() && auth()->user()->role === 'admin')
+        <!-- Admin Store Preview Mode Banner -->
+        <div class="bg-gradient-to-r from-[#8E4034] via-[#A8584B] to-[#C17B6F] text-white px-4 py-2 text-xs font-medium sticky top-0 z-[60] shadow-sm border-b border-[#753229]/40">
+            <div class="max-w-[1280px] mx-auto flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-bold uppercase tracking-wider text-white border border-white/30">Mode Pratinjau Admin</span>
+                    <span class="text-white/90">Anda sedang melihat toko sebagai <strong>{{ auth()->user()->name }}</strong>. Transaksi belanja dinonaktifkan untuk akun ini.</span>
+                </div>
+                <a href="{{ route('admin.dashboard') }}" class="px-3 py-1 bg-white text-[#8E4034] hover:bg-stone-100 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-2xs">
+                    <span>Kembali ke Dashboard Admin</span> &rarr;
+                </a>
+            </div>
+        </div>
+    @endif
+
     <!-- 1. STICKY NAVIGATION BAR (White Background) -->
-    <header class="sticky top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-warmLightGrey/60">
+    <header class="sticky {{ auth()->check() && auth()->user()->role === 'admin' ? 'top-[37px]' : 'top-0' }} w-full z-50 bg-white/95 backdrop-blur-md border-b border-warmLightGrey/60">
         <div class="max-w-[1280px] mx-auto px-6 md:px-12 lg:px-20 h-20 flex items-center justify-between">
             <!-- Left: Logo -->
             <a href="/" class="text-[22px] font-bold text-[#C17B6F] tracking-tight font-sans">el Craft</a>
@@ -471,7 +497,13 @@
                     </button>
                     @auth
                     <div x-show="profileOpen" @click.outside="profileOpen = false" x-cloak
-                        class="absolute right-0 top-full mt-2 w-44 bg-white border border-warmLightGrey rounded-card shadow-md py-1 z-50">
+                        class="absolute right-0 top-full mt-2 w-48 bg-white border border-warmLightGrey rounded-card shadow-md py-1 z-50">
+                        @if(auth()->user()->role === 'admin')
+                            <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2 px-4 py-2.5 text-xs text-brand font-bold bg-brand-50/60 hover:bg-brand-50 transition-colors">
+                                <span class="material-symbols-outlined !text-[16px]">admin_panel_settings</span> Panel Admin
+                            </a>
+                            <div class="border-t border-warmLightGrey/60 my-1"></div>
+                        @endif
                         <a href="{{ route('orders.index') }}" class="flex items-center gap-2 px-4 py-2.5 text-xs text-warmBlack hover:bg-warmCream hover:text-brand transition-colors">
                             <span class="material-symbols-outlined !text-[16px]">receipt_long</span> Pesanan Saya
                         </a>
@@ -546,6 +578,11 @@
             
             @auth
                 <div class="border-t border-warmLightGrey pt-6 flex flex-col space-y-3">
+                    @if(auth()->user()->role === 'admin')
+                        <a href="{{ route('admin.dashboard') }}" class="w-full flex items-center gap-2 py-2.5 text-sm text-brand font-bold bg-brand-50/60 px-3 rounded-lg hover:bg-brand-50 transition-colors">
+                            <span class="material-symbols-outlined !text-[18px]">admin_panel_settings</span> Panel Admin
+                        </a>
+                    @endif
                     <a href="{{ route('orders.index') }}" class="w-full flex items-center gap-2 py-2.5 text-sm text-warmBlack hover:text-brand font-medium transition-colors">
                         <span class="material-symbols-outlined !text-[18px]">receipt_long</span> Pesanan Saya
                     </a>

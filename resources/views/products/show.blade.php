@@ -704,6 +704,13 @@
                     return;
                 }
 
+                if (window.isAdminUser) {
+                    if (window.showToast) {
+                        window.showToast('Akun Administrator tidak dapat berbelanja. Mode Pratinjau Toko aktif.', 'info');
+                    }
+                    return;
+                }
+
                 if (Object.keys(this.selectedVariants).length < requiredVariantsCount) {
                     if (window.showToast) {
                         window.showToast('Silakan pilih varian produk terlebih dahulu.', 'error');
@@ -762,6 +769,13 @@
                 if (!isUserLoggedIn) {
                     if (window.openLoginModal) {
                         window.openLoginModal();
+                    }
+                    return;
+                }
+
+                if (window.isAdminUser) {
+                    if (window.showToast) {
+                        window.showToast('Akun Administrator tidak dapat berbelanja. Mode Pratinjau Toko aktif.', 'info');
                     }
                     return;
                 }

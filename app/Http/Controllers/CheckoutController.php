@@ -46,6 +46,11 @@ class CheckoutController extends Controller
      */
     public function index(Request $request)
     {
+        if ($request->user()?->role === 'admin') {
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'Akun Administrator tidak dapat melakukan checkout belanja. Silakan gunakan akun Pelanggan untuk berbelanja.');
+        }
+
         $cart = $request->user()->getOrCreateCart();
 
         // Alihkan jika keranjang belanja kosong
@@ -95,6 +100,13 @@ class CheckoutController extends Controller
      */
     public function createSnapToken(Request $request): JsonResponse
     {
+        if ($request->user()?->role === 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun Administrator tidak diizinkan melakukan pembayaran belanja.',
+            ], 403);
+        }
+
         $request->validate([
             'recipient_name'  => 'required|string|max:255',
             'recipient_phone' => 'required|string|max:50',
@@ -105,7 +117,7 @@ class CheckoutController extends Controller
             'postal_code'     => 'nullable|string|max:10',
             'courier'         => 'required|string|in:' . implode(',', Courier::getActiveCodes()),
             'courier_service' => 'required|string|max:50',
-            'payment_method'  => 'required|string|in:credit_card,bca_va,bni_va,bri_va,other_va,gopay,shopeepay,qris,indomaret,alfamart',
+            'payment_method'  => 'required|string|in:snap,credit_card,bca_va,bni_va,bri_va,other_va,gopay,shopeepay,qris,indomaret,alfamart',
             'notes'           => 'nullable|string',
             'voucher_code'    => 'nullable|string|max:50',
         ]);

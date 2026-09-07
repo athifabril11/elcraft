@@ -19,6 +19,12 @@ use App\Http\Controllers\Admin\CourierController;
 use App\Http\Controllers\Admin\OrderAutoCompleteController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\ReturnController as AdminReturnController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\ReportController as AdminReportController;
+use App\Http\Controllers\Admin\CustomerController as AdminCustomerController;
+use App\Http\Controllers\Admin\VoucherController as AdminVoucherController;
+use App\Http\Controllers\Admin\BannerController as AdminBannerController;
+use App\Http\Controllers\Admin\GlobalSearchController as AdminGlobalSearchController;
 use Illuminate\Support\Facades\Route;
 
 // Arahkan halaman utama (/) ke HomeController
@@ -86,19 +92,41 @@ Route::middleware('auth')->group(function () {
 
     // Admin Routes
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
-        Route::get('/dashboard', function () {
-            return view('admin.dashboard');
-        })->name('dashboard');
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/global-search', [AdminGlobalSearchController::class, 'search'])->name('global-search');
 
         // Orders (minimal: list + status advance)
             Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
             Route::patch('/orders/{order}/advance-status', [AdminOrderController::class, 'advanceStatus'])->name('orders.advance-status');
 
         // Returns
-            Route::get('/returns', [AdminReturnController::class, 'index'])->name('returns.index');
-            Route::patch('/returns/{return}/approve', [AdminReturnController::class, 'approve'])->name('returns.approve');
-            Route::patch('/returns/{return}/reject', [AdminReturnController::class, 'reject'])->name('returns.reject');
-            Route::patch('/returns/{return}/advance', [AdminReturnController::class, 'advanceStatus'])->name('returns.advance');
+        Route::get('/returns', [AdminReturnController::class, 'index'])->name('returns.index');
+        Route::patch('/returns/{return}/approve', [AdminReturnController::class, 'approve'])->name('returns.approve');
+        Route::patch('/returns/{return}/reject', [AdminReturnController::class, 'reject'])->name('returns.reject');
+        Route::patch('/returns/{return}/advance', [AdminReturnController::class, 'advanceStatus'])->name('returns.advance');
+
+        // Reports & Analytics
+        Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/export', [AdminReportController::class, 'export'])->name('reports.export');
+
+        // Customer Management
+        Route::get('/customers', [AdminCustomerController::class, 'index'])->name('customers.index');
+        Route::get('/customers/{customer}', [AdminCustomerController::class, 'show'])->name('customers.show');
+        Route::patch('/customers/{customer}/toggle-status', [AdminCustomerController::class, 'toggleStatus'])->name('customers.toggle-status');
+
+        // Vouchers Management
+        Route::get('/vouchers', [AdminVoucherController::class, 'index'])->name('vouchers.index');
+        Route::post('/vouchers', [AdminVoucherController::class, 'store'])->name('vouchers.store');
+        Route::put('/vouchers/{voucher}', [AdminVoucherController::class, 'update'])->name('vouchers.update');
+        Route::delete('/vouchers/{voucher}', [AdminVoucherController::class, 'destroy'])->name('vouchers.destroy');
+        Route::patch('/vouchers/{voucher}/toggle', [AdminVoucherController::class, 'toggle'])->name('vouchers.toggle');
+
+        // Banners CMS
+        Route::get('/banners', [AdminBannerController::class, 'index'])->name('banners.index');
+        Route::post('/banners', [AdminBannerController::class, 'store'])->name('banners.store');
+        Route::put('/banners/{banner}', [AdminBannerController::class, 'update'])->name('banners.update');
+        Route::delete('/banners/{banner}', [AdminBannerController::class, 'destroy'])->name('banners.destroy');
+        Route::patch('/banners/{banner}/toggle', [AdminBannerController::class, 'toggle'])->name('banners.toggle');
 
         Route::prefix('settings')->name('settings.')->group(function () {
             Route::get('/shipping',  [ShippingOriginController::class, 'index'])->name('shipping.index');

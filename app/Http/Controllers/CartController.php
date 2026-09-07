@@ -24,6 +24,11 @@ class CartController extends Controller
      */
     public function index()
     {
+        if (Auth::user()?->role === 'admin') {
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'Akun Administrator tidak memiliki keranjang belanja. Silakan gunakan akun Pelanggan untuk berbelanja.');
+        }
+
         $cart = Auth::user()->getOrCreateCart();
 
         return view('cart.index', compact('cart'));
@@ -37,6 +42,13 @@ class CartController extends Controller
      */
     public function add(Request $request): JsonResponse
     {
+        if (Auth::user()?->role === 'admin') {
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Akun Administrator tidak dapat berbelanja atau menambahkan produk ke keranjang. Silakan gunakan akun Pelanggan.',
+            ], 403);
+        }
         $request->validate([
             'product_id' => 'required|exists:products,id',
             'variant_id' => 'nullable|exists:product_variants,id',
@@ -102,6 +114,13 @@ class CartController extends Controller
      */
     public function update(Request $request): JsonResponse
     {
+        if (Auth::user()?->role === 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun Administrator tidak dapat berbelanja.',
+            ], 403);
+        }
+
         $request->validate([
             'item_id' => 'required|exists:cart_items,id',
             'quantity' => 'required|integer|min:1',
@@ -151,6 +170,13 @@ class CartController extends Controller
      */
     public function remove(Request $request): JsonResponse
     {
+        if (Auth::user()?->role === 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun Administrator tidak dapat berbelanja.',
+            ], 403);
+        }
+
         $request->validate([
             'item_id' => 'required|exists:cart_items,id',
         ]);
