@@ -194,35 +194,35 @@
         <aside class="w-64 bg-white border-r border-atelier-border flex flex-col shrink-0 h-screen relative z-20 shadow-[1px_0_12px_rgba(0,0,0,0.02)]">
 
             <!-- Brand Header -->
-            <div class="p-6 border-b border-atelier-border/80 flex items-center justify-between shrink-0">
+            <div class="px-5 py-4 border-b border-atelier-border/80 flex items-center justify-between shrink-0">
                 <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3 group text-decoration-none">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-100 via-white to-brand-50 border border-brand-200 flex items-center justify-center shadow-xs group-hover:border-brand-400 transition-colors">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-100 via-white to-brand-50 border border-brand-200 flex items-center justify-center shadow-xs group-hover:border-brand-400 transition-colors">
                         <!-- Elegant Jewelry Diamond Vector Icon -->
-                        <svg class="w-5 h-5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <svg class="w-4.5 h-4.5 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                             <polygon points="6 3 18 3 22 9 12 22 2 9 6 3"></polygon>
                             <line x1="12" y1="22" x2="12" y2="9"></line>
                             <line x1="2" y1="9" x2="22" y2="9"></line>
                         </svg>
                     </div>
                     <div>
-                        <div class="font-extrabold text-xl text-atelier-textDark tracking-tight leading-none group-hover:text-brand-600 transition-colors font-sans">el Craft</div>
-                        <div class="text-[9px] font-bold text-brand-600 uppercase tracking-[0.16em] mt-1.5 font-sans">Admin Atelier & Aksesoris</div>
+                        <div class="font-extrabold text-lg text-atelier-textDark tracking-tight leading-none group-hover:text-brand-600 transition-colors font-sans">el Craft</div>
+                        <div class="text-[8.5px] font-bold text-brand-600 uppercase tracking-[0.16em] mt-1 font-sans">Admin Atelier & Aksesoris</div>
                     </div>
                 </a>
             </div>
 
             <!-- Navigation Links -->
-            <nav class="flex-1 px-4 py-5 space-y-6 overflow-y-auto">
+            <nav class="flex-1 px-3 py-3 space-y-3.5 overflow-y-auto">
 
                 <!-- Kategori 1: UTAMA -->
                 <div>
-                    <div class="px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-atelier-textLight mb-2.5">Utama</div>
-                    <div class="space-y-1">
+                    <div class="px-3 text-[9.5px] font-bold uppercase tracking-[0.16em] text-atelier-textLight mb-1.5">Utama</div>
+                    <div class="space-y-0.5">
                         <!-- Dashboard -->
                         <a href="{{ route('admin.dashboard') }}"
-                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all relative group {{ request()->routeIs('admin.dashboard') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 shadow-[0_1px_3px_rgba(193,123,111,0.08)]' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
+                           class="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition-all relative group {{ request()->routeIs('admin.dashboard') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 shadow-[0_1px_3px_rgba(193,123,111,0.08)]' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
                             @if(request()->routeIs('admin.dashboard'))
-                                <span class="absolute left-0 top-2 bottom-2 w-1 bg-brand-500 rounded-r-full"></span>
+                                <span class="absolute left-0 top-1.5 bottom-1.5 w-1 bg-brand-500 rounded-r-full"></span>
                             @endif
                             <svg class="w-4 h-4 {{ request()->routeIs('admin.dashboard') ? 'text-brand-600' : 'text-atelier-textLight group-hover:text-brand-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                 <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
@@ -235,9 +235,9 @@
 
                         <!-- Pesanan -->
                         <a href="{{ route('admin.orders.index') }}"
-                           class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.orders.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
+                           class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.orders.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
                             @if(request()->routeIs('admin.orders.*'))
-                                <span class="absolute left-0 top-2 bottom-2 w-1 bg-brand-500 rounded-r-full"></span>
+                                <span class="absolute left-0 top-1.5 bottom-1.5 w-1 bg-brand-500 rounded-r-full"></span>
                             @endif
                             <div class="flex items-center gap-3">
                                 <svg class="w-4 h-4 {{ request()->routeIs('admin.orders.*') ? 'text-brand-600' : 'text-atelier-textLight group-hover:text-brand-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -256,9 +256,9 @@
 
                         <!-- Retur & Refund -->
                         <a href="{{ route('admin.returns.index') }}"
-                           class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.returns.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
+                           class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.returns.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
                             @if(request()->routeIs('admin.returns.*'))
-                                <span class="absolute left-0 top-2 bottom-2 w-1 bg-brand-500 rounded-r-full"></span>
+                                <span class="absolute left-0 top-1.5 bottom-1.5 w-1 bg-brand-500 rounded-r-full"></span>
                             @endif
                             <div class="flex items-center gap-3">
                                 <svg class="w-4 h-4 {{ request()->routeIs('admin.returns.*') ? 'text-brand-600' : 'text-atelier-textLight group-hover:text-brand-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -278,9 +278,9 @@
 
                         <!-- Laporan & Analitik -->
                         <a href="{{ route('admin.reports.index') }}"
-                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.reports.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
+                           class="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.reports.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
                             @if(request()->routeIs('admin.reports.*'))
-                                <span class="absolute left-0 top-2 bottom-2 w-1 bg-brand-500 rounded-r-full"></span>
+                                <span class="absolute left-0 top-1.5 bottom-1.5 w-1 bg-brand-500 rounded-r-full"></span>
                             @endif
                             <svg class="w-4 h-4 {{ request()->routeIs('admin.reports.*') ? 'text-brand-600' : 'text-atelier-textLight group-hover:text-brand-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                 <line x1="18" y1="20" x2="18" y2="10"></line>
@@ -292,9 +292,9 @@
 
                         <!-- Pelanggan -->
                         <a href="{{ route('admin.customers.index') }}"
-                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.customers.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
+                           class="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.customers.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
                             @if(request()->routeIs('admin.customers.*'))
-                                <span class="absolute left-0 top-2 bottom-2 w-1 bg-brand-500 rounded-r-full"></span>
+                                <span class="absolute left-0 top-1.5 bottom-1.5 w-1 bg-brand-500 rounded-r-full"></span>
                             @endif
                             <svg class="w-4 h-4 {{ request()->routeIs('admin.customers.*') ? 'text-brand-600' : 'text-atelier-textLight group-hover:text-brand-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -309,13 +309,13 @@
 
                 <!-- Kategori 2: KATALOG TOKO -->
                 <div>
-                    <div class="px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-atelier-textLight mb-2.5">Katalog Toko</div>
-                    <div class="space-y-1">
+                    <div class="px-3 text-[9.5px] font-bold uppercase tracking-[0.16em] text-atelier-textLight mb-1.5">Katalog Toko</div>
+                    <div class="space-y-0.5">
                         <!-- Produk -->
                         <a href="{{ route('admin.products.index') }}"
-                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.products.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
+                           class="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.products.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
                             @if(request()->routeIs('admin.products.*'))
-                                <span class="absolute left-0 top-2 bottom-2 w-1 bg-brand-500 rounded-r-full"></span>
+                                <span class="absolute left-0 top-1.5 bottom-1.5 w-1 bg-brand-500 rounded-r-full"></span>
                             @endif
                             <svg class="w-4 h-4 {{ request()->routeIs('admin.products.*') ? 'text-brand-600' : 'text-atelier-textLight group-hover:text-brand-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                 <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
@@ -327,9 +327,9 @@
 
                         <!-- Kategori -->
                         <a href="{{ route('admin.categories.index') }}"
-                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.categories.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
+                           class="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.categories.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
                             @if(request()->routeIs('admin.categories.*'))
-                                <span class="absolute left-0 top-2 bottom-2 w-1 bg-brand-500 rounded-r-full"></span>
+                                <span class="absolute left-0 top-1.5 bottom-1.5 w-1 bg-brand-500 rounded-r-full"></span>
                             @endif
                             <svg class="w-4 h-4 {{ request()->routeIs('admin.categories.*') ? 'text-brand-600' : 'text-atelier-textLight group-hover:text-brand-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                 <line x1="8" y1="6" x2="21" y2="6"></line>
@@ -346,13 +346,13 @@
 
                 <!-- Kategori 3: PEMASARAN -->
                 <div>
-                    <div class="px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-atelier-textLight mb-2.5">Pemasaran</div>
-                    <div class="space-y-1">
+                    <div class="px-3 text-[9.5px] font-bold uppercase tracking-[0.16em] text-atelier-textLight mb-1.5">Pemasaran</div>
+                    <div class="space-y-0.5">
                         <!-- Voucher Diskon -->
                         <a href="{{ route('admin.vouchers.index') }}"
-                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.vouchers.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
+                           class="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.vouchers.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
                             @if(request()->routeIs('admin.vouchers.*'))
-                                <span class="absolute left-0 top-2 bottom-2 w-1 bg-brand-500 rounded-r-full"></span>
+                                <span class="absolute left-0 top-1.5 bottom-1.5 w-1 bg-brand-500 rounded-r-full"></span>
                             @endif
                             <svg class="w-4 h-4 {{ request()->routeIs('admin.vouchers.*') ? 'text-brand-600' : 'text-atelier-textLight group-hover:text-brand-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                 <path d="M2.5 12a2.5 2.5 0 0 1 0-5h19a2.5 2.5 0 0 1 0 5 2.5 2.5 0 0 1 0 5h-19a2.5 2.5 0 0 1 0-5z"></path>
@@ -363,14 +363,14 @@
 
                         <!-- Banner Promo -->
                         <a href="{{ route('admin.banners.index') }}"
-                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.banners.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
+                           class="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.banners.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
                             @if(request()->routeIs('admin.banners.*'))
-                                <span class="absolute left-0 top-2 bottom-2 w-1 bg-brand-500 rounded-r-full"></span>
+                                <span class="absolute left-0 top-1.5 bottom-1.5 w-1 bg-brand-500 rounded-r-full"></span>
                             @endif
                             <svg class="w-4 h-4 {{ request()->routeIs('admin.banners.*') ? 'text-brand-600' : 'text-atelier-textLight group-hover:text-brand-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
-                                <circle cx="8" cy="10" r="2"></circle>
-                                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 20"></path>
+                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                <line x1="8" y1="21" x2="16" y2="21"></line>
+                                <line x1="12" y1="17" x2="12" y2="21"></line>
                             </svg>
                             <span>Banner Promo</span>
                         </a>
@@ -379,13 +379,13 @@
 
                 <!-- Kategori 4: PENGATURAN TOKO -->
                 <div>
-                    <div class="px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-atelier-textLight mb-2.5">Pengaturan Toko</div>
-                    <div class="space-y-1">
+                    <div class="px-3 text-[9.5px] font-bold uppercase tracking-[0.16em] text-atelier-textLight mb-1.5">Pengaturan Toko</div>
+                    <div class="space-y-0.5">
                         <!-- Kota Asal Kirim -->
                         <a href="{{ route('admin.settings.shipping.index') }}"
-                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.settings.shipping.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
+                           class="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.settings.shipping.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
                             @if(request()->routeIs('admin.settings.shipping.*'))
-                                <span class="absolute left-0 top-2 bottom-2 w-1 bg-brand-500 rounded-r-full"></span>
+                                <span class="absolute left-0 top-1.5 bottom-1.5 w-1 bg-brand-500 rounded-r-full"></span>
                             @endif
                             <svg class="w-4 h-4 {{ request()->routeIs('admin.settings.shipping.*') ? 'text-brand-600' : 'text-atelier-textLight group-hover:text-brand-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
@@ -396,9 +396,9 @@
 
                         <!-- Diskon Ongkir -->
                         <a href="{{ route('admin.settings.shipping-discounts.index') }}"
-                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.settings.shipping-discounts.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
+                           class="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.settings.shipping-discounts.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
                             @if(request()->routeIs('admin.settings.shipping-discounts.*'))
-                                <span class="absolute left-0 top-2 bottom-2 w-1 bg-brand-500 rounded-r-full"></span>
+                                <span class="absolute left-0 top-1.5 bottom-1.5 w-1 bg-brand-500 rounded-r-full"></span>
                             @endif
                             <svg class="w-4 h-4 {{ request()->routeIs('admin.settings.shipping-discounts.*') ? 'text-brand-600' : 'text-atelier-textLight group-hover:text-brand-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                 <line x1="19" y1="5" x2="5" y2="19"></line>
@@ -410,9 +410,9 @@
 
                         <!-- Kurir Ekspedisi -->
                         <a href="{{ route('admin.settings.couriers.index') }}"
-                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.settings.couriers.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
+                           class="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.settings.couriers.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
                             @if(request()->routeIs('admin.settings.couriers.*'))
-                                <span class="absolute left-0 top-2 bottom-2 w-1 bg-brand-500 rounded-r-full"></span>
+                                <span class="absolute left-0 top-1.5 bottom-1.5 w-1 bg-brand-500 rounded-r-full"></span>
                             @endif
                             <svg class="w-4 h-4 {{ request()->routeIs('admin.settings.couriers.*') ? 'text-brand-600' : 'text-atelier-textLight group-hover:text-brand-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                 <rect x="1" y="3" width="15" height="13" rx="1"></rect>
@@ -425,9 +425,9 @@
 
                         <!-- Auto-Selesai Pesanan -->
                         <a href="{{ route('admin.settings.order-auto-complete.index') }}"
-                           class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.settings.order-auto-complete.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
+                           class="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.settings.order-auto-complete.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
                             @if(request()->routeIs('admin.settings.order-auto-complete.*'))
-                                <span class="absolute left-0 top-2 bottom-2 w-1 bg-brand-500 rounded-r-full"></span>
+                                <span class="absolute left-0 top-1.5 bottom-1.5 w-1 bg-brand-500 rounded-r-full"></span>
                             @endif
                             <svg class="w-4 h-4 {{ request()->routeIs('admin.settings.order-auto-complete.*') ? 'text-brand-600' : 'text-atelier-textLight group-hover:text-brand-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                 <circle cx="12" cy="12" r="10"></circle>
@@ -441,11 +441,11 @@
             </nav>
 
             <!-- Bottom Action & Profile -->
-            <div class="p-4 border-t border-atelier-border bg-gradient-to-b from-white to-brand-50/30 space-y-3 shrink-0">
+            <div class="p-3 border-t border-atelier-border bg-gradient-to-b from-white to-brand-50/30 space-y-2.5 shrink-0">
                 <!-- Lihat Toko Action -->
                 <a href="{{ route('home') }}"
                    target="_blank"
-                   class="flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold text-brand-700 bg-white border border-brand-200 hover:bg-brand-50 hover:border-brand-400 transition-all shadow-xs">
+                   class="flex items-center justify-center gap-2 py-1.5 px-3 rounded-xl text-xs font-bold text-brand-700 bg-white border border-brand-200 hover:bg-brand-50 hover:border-brand-400 transition-all shadow-xs">
                     <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                         <polyline points="15 3 21 3 21 9"></polyline>
@@ -455,20 +455,20 @@
                 </a>
 
                 <!-- Profile Card -->
-                <div class="p-2.5 rounded-xl border border-brand-100 bg-white/95 flex items-center justify-between shadow-2xs">
-                    <div class="flex items-center gap-2.5 min-w-0">
-                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 text-white flex items-center justify-center text-xs font-bold shadow-xs shrink-0">
+                <div class="p-2 rounded-xl border border-brand-100 bg-white/95 flex items-center justify-between shadow-2xs">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 text-white flex items-center justify-center text-[11px] font-bold shadow-xs shrink-0">
                             {{ strtoupper(substr(auth()->user()->name ?? 'AD', 0, 2)) }}
                         </div>
                         <div class="min-w-0">
-                            <div class="text-xs font-bold text-atelier-textDark truncate">{{ auth()->user()->name ?? 'Administrator' }}</div>
-                            <div class="text-[10px] text-brand-600 font-medium truncate">Toko el Craft</div>
+                            <div class="text-xs font-bold text-atelier-textDark truncate leading-tight">{{ auth()->user()->name ?? 'Administrator' }}</div>
+                            <div class="text-[9.5px] text-brand-600 font-medium truncate">Toko el Craft</div>
                         </div>
                     </div>
                     <form method="POST" action="{{ route('logout') }}" class="m-0">
                         @csrf
                         <button type="submit" title="Keluar / Logout" class="text-atelier-textLight hover:text-rose-600 p-1 rounded-md hover:bg-rose-50 transition border-0 bg-transparent cursor-pointer">
-                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                                 <polyline points="16 17 21 12 16 7"></polyline>
                                 <line x1="21" y1="12" x2="9" y2="12"></line>

@@ -88,109 +88,132 @@
         </div>
     </div>
 
-    <!-- Quick Stats Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div class="bg-white p-4.5 rounded-2xl border border-atelier-border shadow-2xs flex items-center justify-between">
+    <!-- Quick Stats Cards (Interactive Click-to-Filter) -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <!-- Total Produk -->
+        <a href="{{ route('admin.products.index') }}"
+           class="p-4 rounded-2xl border transition-all duration-200 flex items-center justify-between group {{ empty($stockFilter) ? 'bg-white border-brand-300 ring-2 ring-brand-400/20 shadow-xs' : 'bg-white border-atelier-border hover:border-brand-200 hover:shadow-xs' }}">
             <div>
                 <span class="text-[10px] font-bold uppercase tracking-wider text-atelier-textLight">Total Produk</span>
                 <div class="text-xl font-black text-atelier-textDark font-sans mt-0.5">{{ $totalProducts }}</div>
             </div>
-            <div class="w-9 h-9 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center border border-brand-100">
-                <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center border border-brand-100 group-hover:scale-105 transition-transform shrink-0">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white p-4.5 rounded-2xl border border-atelier-border shadow-2xs flex items-center justify-between">
+        <!-- Stok Aman -->
+        <a href="{{ route('admin.products.index', array_merge(request()->except(['stock', 'page']), ['stock' => 'safe'])) }}"
+           class="p-4 rounded-2xl border transition-all duration-200 flex items-center justify-between group {{ $stockFilter === 'safe' ? 'bg-emerald-50/40 border-emerald-300 ring-2 ring-emerald-400/20 shadow-xs' : 'bg-white border-atelier-border hover:border-emerald-200 hover:shadow-xs' }}">
             <div>
-                <span class="text-[10px] font-bold uppercase tracking-wider text-atelier-textLight">Stok Aman (> 3)</span>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-800">Stok Aman (> 3)</span>
                 <div class="text-xl font-black text-emerald-700 font-sans mt-0.5">{{ $safeStockCount }}</div>
             </div>
-            <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
-                <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 group-hover:scale-105 transition-transform shrink-0">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="20 6 9 17 4 12"></polyline></svg>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white p-4.5 rounded-2xl border border-atelier-border shadow-2xs flex items-center justify-between">
+        <!-- Stok Menipis -->
+        <a href="{{ route('admin.products.index', array_merge(request()->except(['stock', 'page']), ['stock' => 'low'])) }}"
+           class="p-4 rounded-2xl border transition-all duration-200 flex items-center justify-between group {{ $stockFilter === 'low' ? 'bg-amber-50/40 border-amber-300 ring-2 ring-amber-400/20 shadow-xs' : 'bg-white border-atelier-border hover:border-amber-200 hover:shadow-xs' }}">
             <div>
-                <span class="text-[10px] font-bold uppercase tracking-wider text-atelier-textLight">Stok Menipis (≤ 3)</span>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-amber-800">Stok Menipis (≤ 3)</span>
                 <div class="text-xl font-black text-amber-600 font-sans mt-0.5">{{ $lowStockCount }}</div>
             </div>
-            <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
-                <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100 group-hover:scale-105 transition-transform shrink-0">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white p-4.5 rounded-2xl border border-atelier-border shadow-2xs flex items-center justify-between">
+        <!-- Stok Habis -->
+        <a href="{{ route('admin.products.index', array_merge(request()->except(['stock', 'page']), ['stock' => 'out'])) }}"
+           class="p-4 rounded-2xl border transition-all duration-200 flex items-center justify-between group {{ $stockFilter === 'out' ? 'bg-rose-50/40 border-rose-300 ring-2 ring-rose-400/20 shadow-xs' : 'bg-white border-atelier-border hover:border-rose-200 hover:shadow-xs' }}">
             <div>
-                <span class="text-[10px] font-bold uppercase tracking-wider text-atelier-textLight">Stok Habis (0)</span>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-rose-800">Stok Habis (0)</span>
                 <div class="text-xl font-black text-rose-600 font-sans mt-0.5">{{ $outOfStockCount }}</div>
             </div>
-            <div class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
-                <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+            <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100 group-hover:scale-105 transition-transform shrink-0">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
             </div>
-        </div>
+        </a>
     </div>
 
-    <!-- Filter & Search Bar -->
-    <div class="bg-white rounded-2xl p-4 border border-atelier-border shadow-2xs flex flex-wrap items-center justify-between gap-3">
-        <form method="GET" action="{{ route('admin.products.index') }}" class="flex flex-wrap items-center gap-3 flex-1">
-            <div class="relative flex-1 min-w-[200px] max-w-md">
-                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400">
+    <!-- Filter & Search Bar with Bespoke Select Styling -->
+    <div class="bg-white rounded-2xl p-4 border border-atelier-border shadow-2xs">
+        <form method="GET" action="{{ route('admin.products.index') }}" class="flex flex-wrap items-center gap-3">
+            <!-- Search Input -->
+            <div class="relative flex-1 min-w-[220px]">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 </span>
                 <input type="text" name="q" value="{{ $search }}" placeholder="Cari nama produk, SKU, atau kategori..."
-                       class="w-full pl-9 pr-3 py-2 text-xs border border-stone-200 rounded-xl outline-none focus:border-brand-400 bg-stone-50 hover:bg-white focus:bg-white transition">
+                       class="w-full pl-10 pr-3.5 py-2.5 text-xs border border-stone-200 rounded-xl outline-none focus:border-brand-400 bg-stone-50/70 hover:bg-white focus:bg-white transition shadow-2xs">
             </div>
 
             <!-- Filter Kategori -->
-            <select name="category" onchange="this.form.submit()" class="text-xs border border-stone-200 rounded-xl px-3 py-2 bg-stone-50 outline-none focus:border-brand-400 text-stone-700">
-                <option value="">Semua Kategori</option>
-                @foreach($categories as $cat)
-                    <option value="{{ $cat->id }}" {{ $categoryFilter == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
-                @endforeach
-            </select>
+            <div class="relative min-w-[150px]">
+                <select name="category" onchange="this.form.submit()" class="w-full appearance-none text-xs border border-stone-200 rounded-xl pl-3.5 pr-8 py-2.5 bg-stone-50/70 hover:bg-white focus:bg-white outline-none focus:border-brand-400 text-stone-700 font-medium transition cursor-pointer shadow-2xs">
+                    <option value="">Semua Kategori</option>
+                    @foreach($categories as $cat)
+                        <option value="{{ $cat->id }}" {{ $categoryFilter == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                    @endforeach
+                </select>
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-stone-400">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+            </div>
 
             <!-- Filter Stok -->
-            <select name="stock" onchange="this.form.submit()" class="text-xs border border-stone-200 rounded-xl px-3 py-2 bg-stone-50 outline-none focus:border-brand-400 text-stone-700">
-                <option value="">Kondisi Stok: Semua</option>
-                <option value="safe" {{ $stockFilter === 'safe' ? 'selected' : '' }}>Stok Aman (> 3)</option>
-                <option value="low" {{ $stockFilter === 'low' ? 'selected' : '' }}>Stok Menipis (≤ 3)</option>
-                <option value="out" {{ $stockFilter === 'out' ? 'selected' : '' }}>Stok Habis (0)</option>
-            </select>
+            <div class="relative min-w-[160px]">
+                <select name="stock" onchange="this.form.submit()" class="w-full appearance-none text-xs border border-stone-200 rounded-xl pl-3.5 pr-8 py-2.5 bg-stone-50/70 hover:bg-white focus:bg-white outline-none focus:border-brand-400 text-stone-700 font-medium transition cursor-pointer shadow-2xs">
+                    <option value="">Kondisi Stok: Semua</option>
+                    <option value="safe" {{ $stockFilter === 'safe' ? 'selected' : '' }}>Stok Aman (> 3)</option>
+                    <option value="low" {{ $stockFilter === 'low' ? 'selected' : '' }}>Stok Menipis (≤ 3)</option>
+                    <option value="out" {{ $stockFilter === 'out' ? 'selected' : '' }}>Stok Habis (0)</option>
+                </select>
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-stone-400">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+            </div>
 
             <!-- Filter Status -->
-            <select name="status" onchange="this.form.submit()" class="text-xs border border-stone-200 rounded-xl px-3 py-2 bg-stone-50 outline-none focus:border-brand-400 text-stone-700">
-                <option value="">Status: Semua</option>
-                <option value="active" {{ $statusFilter === 'active' ? 'selected' : '' }}>Hanya Aktif</option>
-                <option value="inactive" {{ $statusFilter === 'inactive' ? 'selected' : '' }}>Hanya Nonaktif</option>
-            </select>
+            <div class="relative min-w-[140px]">
+                <select name="status" onchange="this.form.submit()" class="w-full appearance-none text-xs border border-stone-200 rounded-xl pl-3.5 pr-8 py-2.5 bg-stone-50/70 hover:bg-white focus:bg-white outline-none focus:border-brand-400 text-stone-700 font-medium transition cursor-pointer shadow-2xs">
+                    <option value="">Status: Semua</option>
+                    <option value="active" {{ $statusFilter === 'active' ? 'selected' : '' }}>Hanya Aktif</option>
+                    <option value="inactive" {{ $statusFilter === 'inactive' ? 'selected' : '' }}>Hanya Nonaktif</option>
+                </select>
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-stone-400">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+            </div>
 
-            <button type="submit" class="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold rounded-xl transition">
+            <button type="submit" class="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold rounded-xl transition cursor-pointer">
                 Filter
             </button>
 
             @if($search || $categoryFilter || $stockFilter || $statusFilter)
-                <a href="{{ route('admin.products.index') }}" class="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1">
+                <a href="{{ route('admin.products.index') }}" class="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-rose-50 transition">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     <span>Reset Filter</span>
                 </a>
             @endif
         </form>
     </div>
 
-    <!-- Products Table -->
+    <!-- Products Table (Balanced, Responsive & Zero Column Truncation) -->
     <div class="bg-white rounded-2xl border border-atelier-border shadow-2xs overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
-                <thead class="bg-stone-50/80 text-atelier-textLight uppercase tracking-wider font-semibold border-b border-atelier-borderSubtle">
+            <table class="w-full text-left text-xs min-w-[920px]">
+                <thead class="bg-stone-50/90 text-atelier-textLight uppercase tracking-wider font-semibold border-b border-atelier-borderSubtle">
                     <tr>
-                        <th class="px-6 py-3.5">Produk &amp; Base SKU</th>
-                        <th class="px-6 py-3.5">Kategori</th>
-                        <th class="px-6 py-3.5">Harga Dasar</th>
-                        <th class="px-6 py-3.5">Varian</th>
-                        <th class="px-6 py-3.5">Stok</th>
-                        <th class="px-6 py-3.5">Berat</th>
-                        <th class="px-6 py-3.5 text-center">Status</th>
-                        <th class="px-6 py-3.5 text-right">Aksi</th>
+                        <th class="px-5 py-3.5">Produk &amp; Detail</th>
+                        <th class="px-4 py-3.5 whitespace-nowrap">Harga Dasar</th>
+                        <th class="px-4 py-3.5">Varian</th>
+                        <th class="px-4 py-3.5 whitespace-nowrap min-w-[95px]">Stok</th>
+                        <th class="px-4 py-3.5 text-center whitespace-nowrap min-w-[100px]">Status</th>
+                        <th class="px-5 py-3.5 text-right whitespace-nowrap min-w-[100px]">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-atelier-borderSubtle">
@@ -200,126 +223,126 @@
                         $imgSrc = $primaryImg ? (str_starts_with($primaryImg, 'http') ? $primaryImg : asset('storage/'.$primaryImg)) : null;
                     @endphp
                     <tr class="hover:bg-brand-50/20 transition-colors">
-                        <!-- Foto & Nama Produk -->
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-3.5">
-                                <div class="w-12 h-12 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden flex items-center justify-center shrink-0">
+                        <!-- Foto & Info Produk & Kategori -->
+                        <td class="px-5 py-3.5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-xl bg-stone-100 border border-stone-200/80 overflow-hidden flex items-center justify-center shrink-0 shadow-2xs">
                                     @if($imgSrc)
                                         <img src="{{ $imgSrc }}" alt="{{ $product->name }}" class="w-full h-full object-cover">
                                     @else
-                                        <svg class="w-6 h-6 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="6 3 18 3 22 9 12 22 2 9 6 3"></polygon></svg>
+                                        <svg class="w-5 h-5 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="6 3 18 3 22 9 12 22 2 9 6 3"></polygon></svg>
                                     @endif
                                 </div>
-                                <div class="min-w-0">
-                                    <div class="font-bold text-stone-900 text-sm truncate max-w-xs">{{ $product->name }}</div>
-                                    <div class="text-[11px] text-brand-700 font-mono mt-0.5">
-                                        {{ $product->sku ? 'SKU: ' . $product->sku : 'Tanpa SKU' }}
-                                        @if($product->variants->count() > 0)
-                                            • <span class="text-stone-500 font-sans">{{ $product->variants->count() }} varian</span>
-                                        @endif
+                                <div class="min-w-0 flex-1">
+                                    <div class="font-bold text-stone-900 text-xs truncate leading-snug" title="{{ $product->name }}">
+                                        {{ $product->name }}
+                                    </div>
+                                    <div class="flex items-center gap-1.5 flex-wrap mt-1">
+                                        <span class="px-2 py-0.5 bg-stone-100 text-stone-700 rounded-md font-semibold text-[10px] border border-stone-200/60">
+                                            {{ $product->category?->name ?? 'Umum' }}
+                                        </span>
+                                        <span class="text-[10px] text-brand-700 font-mono font-medium">
+                                            {{ $product->sku ? 'SKU: ' . $product->sku : 'Tanpa SKU' }}
+                                        </span>
+                                        <span class="text-[10px] text-stone-400 font-mono">
+                                            • {{ $product->weight ?? 100 }}g
+                                        </span>
                                     </div>
                                 </div>
                             </div>
                         </td>
 
-                        <!-- Kategori -->
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2.5 py-1 bg-stone-100 text-stone-700 rounded-full font-semibold text-[10px]">
-                                {{ $product->category?->name ?? 'Umum' }}
-                            </span>
-                        </td>
-
-                        <!-- Harga Dasar -->
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <!-- Harga Dasar & Promo -->
+                        <td class="px-4 py-3.5">
                             <div class="font-bold text-stone-800 font-sans text-xs">
                                 Rp {{ number_format($product->price, 0, ',', '.') }}
                             </div>
                             @if($product->isDiscountActive())
-                                <div class="text-[10px] text-rose-600 font-semibold mt-0.5">
-                                    Diskon {{ $product->discount_percent }}% (Rp {{ number_format($product->final_price, 0, ',', '.') }})
+                                <div class="flex items-center gap-1 mt-0.5">
+                                    <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 border border-rose-200">
+                                        -{{ $product->discount_percent }}%
+                                    </span>
+                                    <span class="text-[10px] text-rose-600 font-semibold">
+                                        Rp {{ number_format($product->final_price, 0, ',', '.') }}
+                                    </span>
                                 </div>
                             @endif
                         </td>
 
                         <!-- Varian & SKU Varian -->
-                        <td class="px-6 py-4">
+                        <td class="px-4 py-3.5">
                             @if($product->variants->count() > 0)
-                                <div class="space-y-0.5 max-w-xs">
+                                <div class="space-y-1">
                                     @foreach($product->variants->take(2) as $v)
-                                        <div class="text-stone-700 text-[11px] truncate">
-                                            <span class="font-semibold">{{ $v->variant_name }}</span>
+                                        <div class="text-stone-700 text-[11px] truncate flex items-center gap-1">
+                                            <span class="font-semibold text-stone-800">{{ $v->variant_name }}</span>
                                             @if($v->additional_price > 0)
-                                                <span class="text-stone-400">(+Rp {{ number_format($v->additional_price, 0, ',', '.') }})</span>
+                                                <span class="text-brand-600 text-[10px] font-medium">(+{{ number_format($v->additional_price, 0, ',', '.') }})</span>
                                             @endif
                                             @if($v->sku)
-                                                <span class="text-brand-700 font-mono text-[10px]">&bull; {{ $v->sku }}</span>
+                                                <span class="text-stone-400 font-mono text-[9px]">&bull; {{ $v->sku }}</span>
                                             @endif
                                         </div>
                                     @endforeach
                                     @if($product->variants->count() > 2)
-                                        <div class="text-[10px] text-stone-400">+{{ $product->variants->count() - 2 }} varian lainnya</div>
+                                        <div class="text-[10px] font-semibold text-brand-700 hover:underline">
+                                            +{{ $product->variants->count() - 2 }} varian lainnya
+                                        </div>
                                     @endif
                                 </div>
                             @else
-                                <span class="text-stone-400 text-[11px]">Satu Ukuran / Standar</span>
+                                <span class="text-stone-400 text-[10px] italic">1 Varian Standar</span>
                             @endif
                         </td>
 
                         <!-- Total Stok -->
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-3.5 whitespace-nowrap">
                             @if($product->stock > 3)
-                                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                    {{ $product->stock }} pcs
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                                    <span class="whitespace-nowrap">{{ $product->stock }} pcs</span>
                                 </span>
                             @elseif($product->stock > 0)
-                                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                    Sisa {{ $product->stock }} pcs
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap bg-amber-50 text-amber-700 border border-amber-200/80">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
+                                    <span class="whitespace-nowrap">Sisa {{ $product->stock }}</span>
                                 </span>
                             @else
-                                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                    Habis
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap bg-rose-50 text-rose-700 border border-rose-200/80">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                                    <span class="whitespace-nowrap">Habis</span>
                                 </span>
                             @endif
                         </td>
 
-                        <!-- Berat -->
-                        <td class="px-6 py-4 text-stone-600 font-mono whitespace-nowrap">
-                            {{ $product->weight ?? 100 }} g
-                        </td>
-
-                        <!-- Status Aktif -->
-                        <td class="px-6 py-4 text-center whitespace-nowrap">
-                            <form method="POST" action="{{ route('admin.products.toggle', $product) }}" class="inline m-0">
+                        <!-- Status Aktif / Nonaktif Toggle -->
+                        <td class="px-4 py-3.5 text-center whitespace-nowrap">
+                            <form method="POST" action="{{ route('admin.products.toggle', $product) }}" class="inline-block m-0">
                                 @csrf
                                 @method('PATCH')
-                                <button type="submit" class="px-2.5 py-1 rounded-full text-[10px] font-bold transition cursor-pointer {{ $product->is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' : 'bg-stone-100 text-stone-500 border border-stone-200 hover:bg-stone-200' }}">
-                                    {{ $product->is_active ? 'Aktif' : 'Nonaktif' }}
+                                <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold transition cursor-pointer shadow-2xs {{ $product->is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300' : 'bg-stone-100 text-stone-500 border border-stone-200 hover:bg-stone-200 hover:border-stone-300' }}" title="Klik untuk mengubah status produk">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ $product->is_active ? 'bg-emerald-500' : 'bg-stone-400' }}"></span>
+                                    <span>{{ $product->is_active ? 'Aktif' : 'Nonaktif' }}</span>
                                 </button>
                             </form>
                         </td>
 
-                        <!-- Aksi -->
-                        <td class="px-6 py-4 text-right whitespace-nowrap">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <!-- View in storefront -->
-                                <a href="{{ route('products.show', $product->slug) }}" target="_blank" title="Lihat di Toko"
-                                   class="p-1.5 text-stone-400 hover:text-brand-600 rounded-lg hover:bg-brand-50 transition">
-                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                                </a>
-
+                        <!-- Aksi (Edit, Hapus) -->
+                        <td class="px-5 py-3.5 text-right whitespace-nowrap">
+                            <div class="inline-flex items-center justify-end gap-1.5">
                                 <!-- Edit button -->
                                 <button type="button"
                                         @click="openEdit({{ $product->toJson() }}, '{{ route('admin.products.update', $product) }}')"
                                         title="Edit Produk"
-                                        class="p-1.5 text-stone-500 hover:text-brand-600 rounded-lg hover:bg-brand-50 transition cursor-pointer">
+                                        class="w-7 h-7 inline-flex items-center justify-center text-stone-500 hover:text-brand-700 rounded-lg hover:bg-brand-50 transition border border-transparent hover:border-brand-200/50 cursor-pointer">
                                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                                 </button>
 
                                 <!-- Delete button -->
-                                <form method="POST" action="{{ route('admin.products.destroy', $product) }}" onsubmit="return confirm('Apakah Anda yakin ingin menghapus produk \"{{ $product->name }}\"?')" class="inline m-0">
+                                <form method="POST" action="{{ route('admin.products.destroy', $product) }}" onsubmit="return confirm('Apakah Anda yakin ingin menghapus produk \"{{ $product->name }}\"?')" class="inline-block m-0">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" title="Hapus Produk" class="p-1.5 text-stone-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition cursor-pointer">
+                                    <button type="submit" title="Hapus Produk" class="w-7 h-7 inline-flex items-center justify-center text-stone-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition border border-transparent hover:border-rose-200/50 cursor-pointer">
                                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                     </button>
                                 </form>
@@ -328,7 +351,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="px-6 py-12 text-center text-xs text-atelier-textMuted">
+                        <td colspan="6" class="px-6 py-12 text-center text-xs text-atelier-textMuted">
                             <div class="w-12 h-12 mx-auto mb-2 text-stone-300 flex items-center justify-center rounded-2xl bg-stone-50 border border-stone-100">
                                 <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
                             </div>
