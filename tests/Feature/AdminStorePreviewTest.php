@@ -98,4 +98,31 @@ class AdminStorePreviewTest extends TestCase
             'success' => true,
         ]);
     }
+
+    public function test_admin_can_preview_inactive_product_while_customer_gets_404(): void
+    {
+        $admin = $this->admin();
+        $customer = $this->customer();
+        $cat = Category::create(['name' => 'Bros', 'slug' => 'bros', 'is_active' => true]);
+        $product = Product::create([
+            'category_id' => $cat->id,
+            'name' => 'Bros Draft Belum Rilis',
+            'slug' => 'bros-draft-belum-rilis',
+            'price' => 150000,
+            'stock' => 5,
+            'weight' => 30,
+            'is_active' => false,
+        ]);
+
+        // Customer gets 404
+        $this->actingAs($customer)
+            ->get(route('products.show', $product->slug))
+            ->assertNotFound();
+
+        // Admin can preview
+        $this->actingAs($admin)
+            ->get(route('products.show', $product->slug))
+            ->assertOk()
+            ->assertSee('Bros Draft Belum Rilis');
+    }
 }

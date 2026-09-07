@@ -63,16 +63,22 @@ class ProductController extends Controller
 
     public function show(string $slug)
     {
-        // Cari produk aktif berdasarkan slug, eager-load semua relasi yang dibutuhkan
-        $product = Product::where('slug', $slug)
-            ->where('is_active', true)
-            ->with([
-                'category',
-                'images' => fn($q) => $q->orderBy('sort_order'),
-                'variants'  => fn($q) => $q->where('is_active', true),
-                'reviews'   => fn($q) => $q->where('is_approved', true)->with('user')->latest('id')->take(10),
-            ])
-            ->firstOrFail();
+        $isAdmin = auth()->check() && auth()->user()->role === 'admin';
+
+        $query = Product::where('slug', $slug);
+
+        // Pelanggan umum hanya bisa melihat produk aktif. Admin dalam mode pratinjau toko dapat melihat produk nonaktif
+        if (!$isAdmin) {
+            $query->where('is_active', true);
+        }
+
+        // Cari produk berdasarkan slug, eager-load semua relasi yang dibutuhkan
+        $product = $query->with([
+            'category',
+            'images' => fn($q) => $q->orderBy('sort_order'),
+            'variants'  => fn($q) => $isAdmin ? $q : $q->where('is_active', true),
+            'reviews'   => fn($q) => $q->where('is_approved', true)->with('user')->latest('id')->take(10),
+        ])->firstOrFail();
 
         // Produk terkait dari kategori yang sama (max 4, exclude produk ini sendiri)
         $relatedProducts = Product::where('is_active', true)

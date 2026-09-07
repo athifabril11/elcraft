@@ -95,6 +95,8 @@ class GlobalSearchAdminTest extends TestCase
         $this->assertNotEmpty($response['results']['products']);
         $this->assertNotEmpty($response['results']['orders']);
         $this->assertEquals('Gelang Perak Mutiara', $response['results']['products'][0]['title']);
+        $this->assertStringContainsString('/admin/products', $response['results']['products'][0]['url']);
+        $this->assertNotEmpty($response['results']['products'][0]['store_url']);
         $this->assertEquals('#ORD-MUTIARA-01', $response['results']['orders'][0]['title']);
 
         // Search for "budi" -> Should match customer!

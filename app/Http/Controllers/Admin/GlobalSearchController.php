@@ -71,6 +71,7 @@ class GlobalSearchController extends Controller
         $products = Product::with('category')
             ->where(function ($query) use ($q) {
                 $query->where('name', 'like', "%{$q}%")
+                      ->orWhere('sku', 'like', "%{$q}%")
                       ->orWhereHas('category', function ($cq) use ($q) {
                           $cq->where('name', 'like', "%{$q}%");
                       });
@@ -81,10 +82,11 @@ class GlobalSearchController extends Controller
                 return [
                     'id' => $product->id,
                     'title' => $product->name,
-                    'subtitle' => ($product->category?->name ?? 'Umum') . ' • Rp ' . number_format($product->price, 0, ',', '.') . ' • Stok: ' . $product->stock,
-                    'badge' => $product->stock <= 3 ? 'Stok Menipis' : 'Tersedia',
-                    'badge_color' => $product->stock <= 3 ? 'rose' : 'emerald',
-                    'url' => route('products.show', $product->slug),
+                    'subtitle' => ($product->category?->name ?? 'Umum') . ($product->sku ? ' • ' . $product->sku : '') . ' • Rp ' . number_format($product->price, 0, ',', '.') . ' • Stok: ' . $product->stock,
+                    'badge' => !$product->is_active ? 'Nonaktif' : ($product->stock <= 3 ? 'Stok Menipis' : 'Tersedia'),
+                    'badge_color' => !$product->is_active ? 'stone' : ($product->stock <= 3 ? 'rose' : 'emerald'),
+                    'url' => route('admin.products.index', ['q' => $product->name]),
+                    'store_url' => route('products.show', $product->slug),
                 ];
             });
 

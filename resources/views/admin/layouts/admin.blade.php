@@ -821,9 +821,18 @@
                 if (item.badge_color === 'rose') badgeClass = 'bg-rose-50 text-rose-700 border border-rose-200';
                 if (item.badge_color === 'amber') badgeClass = 'bg-amber-50 text-amber-700 border border-amber-200';
 
+                let storeLinkHtml = '';
+                if (item.store_url) {
+                    storeLinkHtml = `
+                        <a href="${item.store_url}" target="_blank" title="Lihat di Toko Publik" class="p-1 text-stone-400 hover:text-brand-600 rounded-md hover:bg-white transition shrink-0" onclick="event.stopPropagation()">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                        </a>
+                    `;
+                }
+
                 sectionHtml += `
-                    <a href="${item.url}" class="flex items-center justify-between gap-3 px-3 py-2 rounded-xl hover:bg-brand-50/50 group transition">
-                        <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl hover:bg-brand-50/50 group transition">
+                        <a href="${item.url}" class="flex items-center gap-2.5 min-w-0 flex-1">
                             <span class="w-6 h-6 rounded-lg bg-stone-100 group-hover:bg-white text-stone-500 group-hover:text-brand-600 flex items-center justify-center shrink-0 border border-stone-200/60 transition">
                                 ${getTypeIcon(type)}
                             </span>
@@ -831,9 +840,12 @@
                                 <div class="font-bold text-atelier-textDark group-hover:text-brand-700 truncate transition text-xs">${escapeHtml(item.title)}</div>
                                 <div class="text-[10px] text-atelier-textMuted truncate">${escapeHtml(item.subtitle)}</div>
                             </div>
+                        </a>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            ${storeLinkHtml}
+                            ${item.badge ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${badgeClass}">${escapeHtml(item.badge)}</span>` : ''}
                         </div>
-                        ${item.badge ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${badgeClass}">${escapeHtml(item.badge)}</span>` : ''}
-                    </a>
+                    </div>
                 `;
             });
 
