@@ -250,21 +250,6 @@
                     </div>
                 </div>
 
-                {{-- Info Metode Pembayaran — dipilih di popup Midtrans Snap --}}
-                <div class="bg-white rounded-card border border-warmLightGrey p-6">
-                    <h2 class="text-base font-semibold text-warmBlack mb-3 flex items-center space-x-2">
-                        <span class="material-symbols-outlined text-brand !text-[20px]">payments</span>
-                        <span>Metode Pembayaran</span>
-                    </h2>
-                    <div class="flex items-center gap-3 p-3 rounded-card bg-brand/5 border border-brand/20">
-                        <span class="material-symbols-outlined text-brand !text-[22px]">credit_score</span>
-                        <div>
-                            <p class="text-xs font-semibold text-warmBlack">Pilih di halaman pembayaran</p>
-                            <p class="text-[11px] text-warmGrey mt-0.5">Transfer bank, QRIS, GoPay, ShopeePay, kartu kredit, dan lainnya tersedia di langkah berikutnya.</p>
-                        </div>
-                    </div>
-                </div>
-
                 {{-- Catatan untuk Penjual --}}
                 <div class="bg-white rounded-card border border-warmLightGrey p-6">
                     <h2 class="text-base font-semibold text-warmBlack mb-4 flex items-center space-x-2">

@@ -91,9 +91,9 @@ class AddressAndCheckoutUITest extends TestCase
     // ──────────────────────────────────────────────────────────────────────────
 
     /**
-     * The checkout page must render the payment method info section.
-     * Payment method selection is now delegated to the Midtrans Snap popup,
-     * so we just verify the info panel is present and the section heading exists.
+     * The checkout page renders essential sections cleanly:
+     * address selector, shipping options, notes, and voucher.
+     * Payment selection is delegated directly to the Midtrans Snap modal upon clicking pay.
      */
     public function test_checkout_page_html_contains_payment_method_labels(): void
     {
@@ -103,14 +103,13 @@ class AddressAndCheckoutUITest extends TestCase
 
         $response->assertOk();
 
-        // Payment method section heading must be present
-        $response->assertSee('Metode Pembayaran', false);
-        // Info that payment selection happens in Snap popup
-        $response->assertSee('Pilih di halaman pembayaran', false);
-        // Static text describing available payment methods
-        $response->assertSee('Transfer bank', false);
-        $response->assertSee('QRIS', false);
-        $response->assertSee('GoPay', false);
+        // Essential sections rendered
+        $response->assertSee('Informasi Pengiriman', false);
+        $response->assertSee('Pilih Kurir', false);
+        $response->assertSee('Catatan Pesanan', false);
+        $response->assertSee('Kode Voucher / Promo', false);
+        // Redundant placeholder card is removed
+        $response->assertDontSee('Pilih di halaman pembayaran', false);
     }
 
     // ──────────────────────────────────────────────────────────────────────────
