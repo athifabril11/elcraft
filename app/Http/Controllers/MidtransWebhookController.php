@@ -103,6 +103,14 @@ class MidtransWebhookController extends Controller
                 return;
             }
 
+            // Guard whitelist: Hanya pesanan dengan status 'pending' yang boleh diproses ke 'paid'.
+            // Mencegah membangkitkan pesanan yang sudah dibatalkan ('dibatalkan') atau
+            // menduplikasi pemotongan stok pada pesanan yang sudah berjalan ('diproses', 'dikirim', 'selesai').
+            if (!in_array($order->status, ['pending'])) {
+                Log::warning("Midtrans webhook: order {$orderId} memiliki status '{$order->status}', penyelesaian pembayaran ditolak");
+                return;
+            }
+
             // Update order status
             $order->update(['status' => 'paid']);
 
