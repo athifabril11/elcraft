@@ -314,11 +314,29 @@ class ConcurrencyRaceConditionAuditTest extends TestCase
             'fraud_status'       => 'accept',
         ])->assertStatus(200);
 
-        // 7. Bukti over-redemption empiris:
-        //    used_count menjadi 2 padahal kuota voucher di DB hanya 1!
-        $this->assertEquals(2, $voucher->fresh()->used_count, 'BUKTI BOLONG: used_count naik menjadi 2');
-        $this->assertGreaterThan($voucher->quota, $voucher->fresh()->used_count, 'BUKTI BOLONG: used_count (2) melampaui quota (1)');
+        // 7. Verifikasi perilaku yang benar (FIX BUG #2):
+        //    used_count TIDAK BOLEH melebihi kuota (tetap 1, BUKAN 2).
+        //    Order A mendapatkan pemakaian voucher resmi, sedangkan Order B
+        //    tetap 'paid' tetapi tanpa mencatat VoucherUsage dan diberi catatan peringatan sistem.
+        $this->assertEquals(1, $voucher->fresh()->used_count, 'used_count tetap 1 sesuai batas kuota');
+        $this->assertLessThanOrEqual($voucher->quota, $voucher->fresh()->used_count, 'used_count tidak melampaui quota');
+
         $this->assertEquals('paid', $orderA->fresh()->status);
         $this->assertEquals('paid', $orderB->fresh()->status);
+
+        // Order A tercatat di tabel voucher_usages
+        $this->assertDatabaseHas('voucher_usages', [
+            'order_id'   => $orderA->id,
+            'voucher_id' => $voucher->id,
+        ]);
+
+        // Order B TIDAK tercatat di tabel voucher_usages (karena kuota sudah habis)
+        $this->assertDatabaseMissing('voucher_usages', [
+            'order_id'   => $orderB->id,
+            'voucher_id' => $voucher->id,
+        ]);
+
+        // Order B memiliki catatan peringatan sistem pada kolom notes
+        $this->assertStringContainsString('PERINGATAN SISTEM: Kuota voucher', (string) $orderB->fresh()->notes);
     }
 }

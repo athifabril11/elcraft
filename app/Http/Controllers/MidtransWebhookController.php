@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\Voucher;
 use App\Models\VoucherUsage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -149,19 +150,34 @@ class MidtransWebhookController extends Controller
                 }
             }
 
-            // Catat penggunaan voucher jika ada
+            // Catat penggunaan voucher jika ada (dengan lock & re-validasi kuota)
             if ($order->voucher_id) {
-                VoucherUsage::firstOrCreate(
-                    [
-                        'voucher_id' => $order->voucher_id,
-                        'user_id'    => $order->user_id,
-                        'order_id'   => $order->id,
-                    ],
-                    [
-                        'discount_applied' => $order->voucher_discount,
-                    ]
-                );
-                $order->voucher()->increment('used_count');
+                $voucher = Voucher::where('id', $order->voucher_id)->lockForUpdate()->first();
+
+                if ($voucher && $voucher->used_count < $voucher->quota) {
+                    VoucherUsage::firstOrCreate(
+                        [
+                            'voucher_id' => $voucher->id,
+                            'user_id'    => $order->user_id,
+                            'order_id'   => $order->id,
+                        ],
+                        [
+                            'discount_applied' => $order->voucher_discount,
+                        ]
+                    );
+                    $voucher->increment('used_count');
+                } else {
+                    // Kuota voucher telah habis oleh pesanan lain yang diselesaikan terlebih dahulu (race condition).
+                    // Dana pelanggan di Midtrans sudah terpotong sehingga status pesanan tetap 'paid',
+                    // namun counter voucher tidak dinaikkan (used_count <= quota) dan pesanan
+                    // diberi catatan peringatan agar ditinjau oleh administrator toko.
+                    Log::warning("Midtrans webhook: Kuota voucher '{$voucher?->code}' habis saat settlement pesanan {$order->order_number}. Selisih diskon diserap toko / ditandai untuk review admin.");
+
+                    $warningNote = '[PERINGATAN SISTEM: Kuota voucher ' . ($voucher?->code ?? '') . ' telah habis saat pembayaran dikonfirmasi. Periksa transaksi ini]';
+                    $order->update([
+                        'notes' => trim(($order->notes ? $order->notes . ' | ' : '') . $warningNote),
+                    ]);
+                }
             }
         });
     }
