@@ -134,9 +134,9 @@
                                 <div class="text-stone-400 italic">Alamat tidak tersedia</div>
                             @endif
                             <div class="mt-1 flex items-center gap-1.5 flex-wrap">
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                                    <svg class="w-3 h-3 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="1"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
-                                    <span>{{ $order->formatted_courier }}</span>
+                                {{-- TASK 4: SVG truck icon removed; text-only courier badge --}}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                    {{ $order->formatted_courier }}
                                 </span>
                                 @if($order->shipping_cost > 0)
                                     <span class="text-[10px] text-stone-400 font-mono">Rp {{ number_format($order->shipping_cost, 0, ',', '.') }}</span>
@@ -153,9 +153,9 @@
                             </span>
                             <div class="mt-1">
                                 @if($order->payment)
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-stone-100 text-stone-700 border border-stone-200">
-                                        <svg class="w-3 h-3 text-stone-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                                        <span>{{ $order->payment->formatted_method }}</span>
+                                    {{-- TASK 4: SVG credit card icon removed; text-only payment badge --}}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-stone-100 text-stone-700 border border-stone-200">
+                                        {{ $order->payment->formatted_method }}
                                     </span>
                                 @else
                                     <span class="text-[10px] text-stone-400 italic">Belum Ada Bayar</span>
@@ -175,29 +175,32 @@
                             {{ $order->created_at->format('d M Y, H:i') }}
                         </td>
 
-                        <!-- Aksi Pipeline -->
+                        <!-- Aksi Cepat -->
                         <td class="px-5 py-4 text-right whitespace-nowrap">
-                            @if($order->status === 'paid')
-                                <form method="POST" action="{{ route('admin.orders.advance-status', $order) }}" class="inline m-0">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit" class="admin-btn-primary" style="font-size:0.75rem; padding:0.35rem 0.85rem;">
-                                        <span class="material-symbols-outlined" style="font-size:14px;">inbox</span>
-                                        Tandai Diproses
-                                    </button>
-                                </form>
-                            @elseif($order->status === 'diproses')
-                                <form method="POST" action="{{ route('admin.orders.advance-status', $order) }}" class="inline m-0">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit" class="admin-btn-primary" style="font-size:0.75rem; padding:0.35rem 0.85rem;">
-                                        <span class="material-symbols-outlined" style="font-size:14px;">local_shipping</span>
-                                        Tandai Dikirim
-                                    </button>
-                                </form>
-                            @else
-                                <span class="text-stone-400 text-xs">—</span>
-                            @endif
+                            <div class="inline-flex items-center gap-2 justify-end">
+                                {{-- "Tandai Diproses" quick-action (paid only) — unchanged --}}
+                                @if($order->status === 'paid')
+                                    <form method="POST" action="{{ route('admin.orders.advance-status', $order) }}" class="inline m-0">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="admin-btn-primary" style="font-size:0.75rem; padding:0.35rem 0.85rem;">
+                                            <span class="material-symbols-outlined" style="font-size:14px;">inbox</span>
+                                            Tandai Diproses
+                                        </button>
+                                    </form>
+                                @endif
+
+                                {{-- "Detail" button — shown for every row; opens Alpine modal --}}
+                                <button
+                                    type="button"
+                                    class="admin-btn-ghost"
+                                    style="font-size:0.75rem; padding:0.35rem 0.85rem;"
+                                    x-data
+                                    @click="$dispatch('open-order-detail', { id: {{ $order->id }} })"
+                                >
+                                    Detail
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 @empty
@@ -219,5 +222,8 @@
         </div>
     @endif
 </div>
+
+{{-- Detail Pesanan Modal (one instance, opened via Alpine event dispatch) --}}
+@include('admin.orders._detail-modal')
 
 @endsection

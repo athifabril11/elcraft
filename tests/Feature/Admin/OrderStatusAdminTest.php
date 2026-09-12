@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 /**
@@ -152,11 +153,15 @@ class OrderStatusAdminTest extends TestCase
 
     public function test_admin_can_advance_diproses_order_to_dikirim(): void
     {
+        Mail::fake();
+
         $customer = User::factory()->create(['email_verified_at' => now()]);
         $order    = $this->makeOrder($customer, 'diproses');
 
         $this->actingAs($this->adminUser())
-             ->patch("/admin/orders/{$order->id}/advance-status")
+             ->patch("/admin/orders/{$order->id}/advance-status", [
+                 'tracking_number' => 'RESI-REGRESSION-001',
+             ])
              ->assertRedirect(route('admin.orders.index'))
              ->assertSessionHas('success');
 

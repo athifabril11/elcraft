@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\CustomerController as AdminCustomerController;
 use App\Http\Controllers\Admin\VoucherController as AdminVoucherController;
 use App\Http\Controllers\Admin\BannerController as AdminBannerController;
 use App\Http\Controllers\Admin\GlobalSearchController as AdminGlobalSearchController;
+use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use Illuminate\Support\Facades\Route;
@@ -97,8 +98,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         Route::get('/global-search', [AdminGlobalSearchController::class, 'search'])->name('global-search');
 
-        // Orders (minimal: list + status advance)
+        // Orders (list + detail JSON + status advance)
         Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/{order}/detail', [AdminOrderController::class, 'detail'])->name('orders.detail');
         Route::patch('/orders/{order}/advance-status', [AdminOrderController::class, 'advanceStatus'])->name('orders.advance-status');
 
         // Categories Management
@@ -120,6 +122,12 @@ Route::middleware('auth')->group(function () {
         Route::patch('/returns/{return}/approve', [AdminReturnController::class, 'approve'])->name('returns.approve');
         Route::patch('/returns/{return}/reject', [AdminReturnController::class, 'reject'])->name('returns.reject');
         Route::patch('/returns/{return}/advance', [AdminReturnController::class, 'advanceStatus'])->name('returns.advance');
+
+        // Reviews Moderation
+        Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews.index');
+        Route::patch('/reviews/{review}/approve', [AdminReviewController::class, 'approve'])->name('reviews.approve');
+        Route::patch('/reviews/{review}/reject', [AdminReviewController::class, 'reject'])->name('reviews.reject');
+        Route::delete('/reviews/{review}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
 
         // Reports & Analytics
         Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
