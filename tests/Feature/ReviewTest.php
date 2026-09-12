@@ -170,7 +170,7 @@ class ReviewTest extends TestCase
             'order_item_id' => $this->orderItem->id,
             'rating'        => 4,
             'comment'       => 'Barang mewah dan sangat memuaskan.',
-            'is_approved'   => false,
+            'is_approved'   => null,
         ]);
 
         $review = Review::first();

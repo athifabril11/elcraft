@@ -42,7 +42,7 @@ class ReviewController extends Controller
             'rating'        => $request->rating,
             'comment'       => $request->comment,
             'image'         => $imagePath,
-            'is_approved'   => false, // Default: requires admin approval
+            'is_approved'   => null, // null = pending admin moderation
         ]);
 
         return redirect()->back()->with('success', 'Ulasan Anda berhasil dikirim dan sedang menunggu persetujuan admin.');
