@@ -497,10 +497,10 @@
  */
 async function resumeOrderPayment(btn) {
     const resumeUrl = btn.dataset.resumeUrl;
-    const textEl    = document.getElementById('btn-resume-text');
+    const defaultBtnHtml = `<span class="material-symbols-outlined !text-[16px]">payments</span><span id="btn-resume-text">Lanjutkan Pembayaran</span>`;
 
-    btn.disabled   = true;
-    textEl.textContent = 'Memproses...';
+    btn.disabled = true;
+    btn.innerHTML = `<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span><span id="btn-resume-text">Memproses...</span>`;
 
     try {
         const response = await fetch(resumeUrl, {
@@ -520,7 +520,7 @@ async function resumeOrderPayment(btn) {
         if (data.expired) {
             // Token sudah kedaluwarsa — arahkan pengguna kembali ke checkout
             // (createSnapToken akan otomatis membatalkan pesanan pending lama ini)
-            textEl.textContent = 'Sesi kedaluwarsa...';
+            btn.innerHTML = `<span id="btn-resume-text">Sesi kedaluwarsa...</span>`;
             const notice = document.createElement('p');
             notice.className = 'text-xs text-yellow-700 mt-2 text-center';
             notice.textContent = 'Sesi pembayaran sudah kedaluwarsa, mengarahkan ke checkout...';
@@ -528,6 +528,10 @@ async function resumeOrderPayment(btn) {
             setTimeout(() => { window.location.href = '/checkout'; }, 1500);
             return;
         }
+
+        // Pulihkan tombol sebelum popup Midtrans Snap dibuka agar tidak stuck di state loading
+        btn.disabled = false;
+        btn.innerHTML = defaultBtnHtml;
 
         // Token masih valid — buka popup Midtrans Snap
         window.snap.pay(data.snap_token, {
@@ -542,16 +546,16 @@ async function resumeOrderPayment(btn) {
                 window.location.href = '{{ route("checkout.error") }}';
             },
             onClose: () => {
-                btn.disabled      = false;
-                textEl.textContent = 'Lanjutkan Pembayaran';
+                btn.disabled = false;
+                btn.innerHTML = defaultBtnHtml;
             },
         });
 
     } catch (error) {
         console.error('Resume payment error:', error);
         alert('Terjadi kesalahan: ' + error.message);
-        btn.disabled      = false;
-        textEl.textContent = 'Lanjutkan Pembayaran';
+        btn.disabled = false;
+        btn.innerHTML = defaultBtnHtml;
     }
 }
 </script>

@@ -621,13 +621,14 @@
      */
     async function initiatePayment() {
         const btn = document.getElementById('pay-button');
+        const defaultBtnHtml = `<span class="material-symbols-outlined !text-[20px]">lock</span><span>Bayar Sekarang</span>`;
         btn.disabled = true;
-        btn.innerHTML = `<span class="material-symbols-outlined !text-[18px] animate-spin">sync</span><span>Memproses...</span>`;
+        btn.innerHTML = `<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span><span>Memproses...</span>`;
 
         const form = document.getElementById('shipping-form');
         if (!form.reportValidity()) {
             btn.disabled = false;
-            btn.innerHTML = `<span class="material-symbols-outlined !text-[20px]">lock</span><span>Bayar Sekarang</span>`;
+            btn.innerHTML = defaultBtnHtml;
             return;
         }
 
@@ -651,14 +652,14 @@
         if (!cityId) {
             alert('Silakan pilih kota tujuan pengiriman terlebih dahulu.');
             btn.disabled = false;
-            btn.innerHTML = `<span class="material-symbols-outlined !text-[20px]">lock</span><span>Bayar Sekarang</span>`;
+            btn.innerHTML = defaultBtnHtml;
             return;
         }
 
         if (!alpine?.selectedShipping) {
             alert('Silakan pilih layanan kurir pengiriman terlebih dahulu.');
             btn.disabled = false;
-            btn.innerHTML = `<span class="material-symbols-outlined !text-[20px]">lock</span><span>Bayar Sekarang</span>`;
+            btn.innerHTML = defaultBtnHtml;
             return;
         }
 
@@ -703,6 +704,10 @@
 
             const { snap_token } = await response.json();
 
+            // Pulihkan status tombol sebelum popup Midtrans Snap dibuka agar tidak stuck di state loading
+            btn.disabled = false;
+            btn.innerHTML = defaultBtnHtml;
+
             // Buka popup Midtrans Snap — pengguna mengisi data pembayaran di sini
             window.snap.pay(snap_token, {
                 onSuccess: (result) => {
@@ -717,7 +722,7 @@
                 },
                 onClose: () => {
                     btn.disabled = false;
-                    btn.innerHTML = `<span class="material-symbols-outlined !text-[20px]">lock</span><span>Bayar Sekarang</span>`;
+                    btn.innerHTML = defaultBtnHtml;
                 },
             });
 
@@ -725,7 +730,7 @@
             console.error('Payment initiation error:', error);
             alert('Terjadi kesalahan: ' + error.message + '\nSilakan coba lagi atau hubungi kami.');
             btn.disabled = false;
-            btn.innerHTML = `<span class="material-symbols-outlined !text-[20px]">lock</span><span>Bayar Sekarang</span>`;
+            btn.innerHTML = defaultBtnHtml;
         }
     }
 </script>

@@ -115,6 +115,18 @@ class MidtransWebhookController extends Controller
             // Update order status
             $order->update(['status' => 'paid']);
 
+            // Kosongkan keranjang belanja pelanggan setelah pembayaran terkonfirmasi.
+            // Ini server-side (bukan bergantung pada redirect browser) supaya reliable
+            // meskipun customer menutup/refresh browser sebelum popup Midtrans Snap redirect.
+            //
+            // Catatan: Jika pelanggan menambahkan produk baru ke keranjang belanja saat pesanan
+            // ini masih 'pending' (sebelum pembayaran terkonfirmasi), item baru tersebut juga
+            // akan terhapus karena seluruh isi keranjang dikosongkan.
+            $cart = $order->user?->cart;
+            if ($cart) {
+                $cart->items()->delete();
+            }
+
             // Update payment details
             if ($order->payment) {
                 $order->payment->update([
