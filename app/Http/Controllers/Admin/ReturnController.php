@@ -46,6 +46,25 @@ class ReturnController extends Controller
     }
 
     /**
+     * Tampilkan detail lengkap pengajuan retur pelanggan.
+     */
+    public function show(ReturnRequest $return)
+    {
+        $return->loadMissing([
+            'order.items.product',
+            'order.items.variant',
+            'order.user',
+            'order.address',
+            'order.payment',
+            'user',
+            'items.orderItem.product',
+            'items.orderItem.variant',
+        ]);
+
+        return view('admin.returns.show', compact('return'));
+    }
+
+    /**
      * Approve a diajukan return.
      * refund_amount required only when resolution_type is 'refund'.
      */

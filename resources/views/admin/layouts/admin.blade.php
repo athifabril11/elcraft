@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="description" content="Admin Atelier & Aksesoris — el Craft">
     <title>@yield('title', 'Admin') — el Craft</title>
 
@@ -186,6 +187,7 @@
         @php
             $pendingOrdersCount = \App\Models\Order::whereIn('status', ['paid', 'diproses'])->count();
             $pendingReturnsCount = \App\Models\ReturnRequest::where('status', 'diajukan')->count();
+            $pendingReviewsCount = \App\Models\Review::whereNull('is_approved')->count();
         @endphp
 
         <!-- ========================================================= -->
@@ -272,6 +274,27 @@
                             @if($pendingReturnsCount > 0)
                                 <span class="px-2 py-0.5 text-[10px] font-bold bg-rose-100 text-rose-700 rounded-full border border-rose-200 animate-pulse">
                                     {{ $pendingReturnsCount }}
+                                </span>
+                            @endif
+                        </a>
+
+                        <!-- Ulasan Produk -->
+                        <a href="{{ route('admin.reviews.index') }}"
+                           class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.reviews.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
+                            @if(request()->routeIs('admin.reviews.*'))
+                                <span class="absolute left-0 top-1.5 bottom-1.5 w-1 bg-brand-500 rounded-r-full"></span>
+                            @endif
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 {{ request()->routeIs('admin.reviews.*') ? 'text-brand-600' : 'text-atelier-textLight group-hover:text-brand-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                    <line x1="9" y1="10" x2="15" y2="10"></line>
+                                    <line x1="12" y1="7" x2="12" y2="13"></line>
+                                </svg>
+                                <span>Ulasan Produk</span>
+                            </div>
+                            @if($pendingReviewsCount > 0)
+                                <span class="px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 rounded-full border border-amber-200 animate-pulse">
+                                    {{ $pendingReviewsCount }}
                                 </span>
                             @endif
                         </a>
@@ -489,7 +512,7 @@
 
                 <!-- Left: Global Live Search Bar -->
                 <div class="flex-1 max-w-lg relative" id="global-search-container">
-                    <form method="GET" action="{{ route('admin.orders.index') }}" id="global-search-form" class="relative flex items-center">
+                    <form method="GET" id="global-search-form" onsubmit="event.preventDefault(); return false;" class="relative flex items-center">
                         <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-atelier-textLight">
                             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="11" cy="11" r="8"></circle>
@@ -530,8 +553,8 @@
                             <!-- Injected by JavaScript -->
                         </div>
                         <div class="px-4 py-2 bg-stone-50 border-t border-atelier-border text-[11px] text-atelier-textLight flex items-center justify-between">
-                            <span>Tekan <strong class="text-stone-700 font-semibold">Enter</strong> untuk cari di Pesanan</span>
-                            <span>Tekan <strong class="text-stone-700 font-semibold">Esc</strong> untuk tutup</span>
+                            <span><strong class="text-stone-700 font-semibold">↑↓</strong> pilih • <strong class="text-stone-700 font-semibold">Enter</strong> buka</span>
+                            <span><strong class="text-stone-700 font-semibold">Esc</strong> tutup</span>
                         </div>
                     </div>
                 </div>
@@ -671,6 +694,8 @@
         const searchUrl = "{{ route('admin.global-search') }}";
 
         let searchDebounceTimer = null;
+        let activeIndex = -1;
+        let globalIndex = 0;
 
         // Shortcut: Ctrl+K or Cmd+K
         document.addEventListener('keydown', (e) => {
@@ -683,11 +708,42 @@
             } else if (e.key === 'Escape') {
                 if (searchDropdown) {
                     searchDropdown.classList.add('hidden');
+                    activeIndex = -1;
                 }
             }
         });
 
         if (searchInput && searchDropdown && searchResultsContent) {
+            // Keyboard navigation on search input
+            searchInput.addEventListener('keydown', (e) => {
+                if (searchDropdown.classList.contains('hidden')) {
+                    return;
+                }
+
+                const items = searchResultsContent.querySelectorAll('[data-search-item]');
+                if (items.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    activeIndex = (activeIndex + 1) % items.length;
+                    updateHighlight(items, activeIndex);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    activeIndex = activeIndex <= 0 ? items.length - 1 : activeIndex - 1;
+                    updateHighlight(items, activeIndex);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const targetIndex = activeIndex >= 0 ? activeIndex : 0;
+                    if (targetIndex < items.length) {
+                        const targetItem = items[targetIndex];
+                        const targetLink = targetItem ? targetItem.querySelector('a') : null;
+                        if (targetLink && targetLink.href) {
+                            window.location.href = targetLink.href;
+                        }
+                    }
+                }
+            });
+
             // Input event with debounce
             searchInput.addEventListener('input', (e) => {
                 const query = e.target.value.trim();
@@ -703,6 +759,7 @@
                 if (query.length < 2) {
                     searchDropdown.classList.add('hidden');
                     searchResultsContent.innerHTML = '';
+                    activeIndex = -1;
                     if (searchSpinner) searchSpinner.classList.add('hidden');
                     return;
                 }
@@ -743,6 +800,18 @@
                     searchClear.classList.add('hidden');
                     searchDropdown.classList.add('hidden');
                     searchResultsContent.innerHTML = '';
+                    activeIndex = -1;
+
+                    // Task 5: Check if URL contains ?q= parameter
+                    const currentUrlParams = new URLSearchParams(window.location.search);
+                    if (currentUrlParams.has('q')) {
+                        currentUrlParams.delete('q');
+                        const newQueryString = currentUrlParams.toString();
+                        const newUrl = window.location.pathname + (newQueryString ? '?' + newQueryString : '') + window.location.hash;
+                        window.location.href = newUrl;
+                        return;
+                    }
+
                     searchInput.focus();
                 });
             }
@@ -751,6 +820,31 @@
             document.addEventListener('click', (e) => {
                 if (searchContainer && !searchContainer.contains(e.target)) {
                     searchDropdown.classList.add('hidden');
+                    activeIndex = -1;
+                }
+            });
+
+            // Mouse hover syncs activeIndex
+            searchResultsContent.addEventListener('mouseover', (e) => {
+                const item = e.target.closest('[data-search-item]');
+                if (item) {
+                    const idx = parseInt(item.getAttribute('data-index'), 10);
+                    if (!isNaN(idx)) {
+                        activeIndex = idx;
+                        const items = searchResultsContent.querySelectorAll('[data-search-item]');
+                        updateHighlight(items, activeIndex);
+                    }
+                }
+            });
+        }
+
+        function updateHighlight(items, index) {
+            items.forEach((item, idx) => {
+                if (idx === index) {
+                    item.classList.add('bg-brand-50', 'ring-1', 'ring-brand-200');
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.classList.remove('bg-brand-50', 'ring-1', 'ring-brand-200');
                 }
             });
         }
@@ -758,6 +852,8 @@
         function renderSearchResults(data, query) {
             const results = data.results || {};
             const total = data.total || 0;
+            activeIndex = -1;
+            globalIndex = 0;
 
             if (total === 0) {
                 searchResultsContent.innerHTML = `
@@ -813,6 +909,7 @@
             sectionHtml += `<div class="mt-1 space-y-0.5">`;
 
             items.forEach(item => {
+                const currentIndex = globalIndex++;
                 let badgeClass = 'bg-stone-100 text-stone-700';
                 if (item.badge_color === 'brand') badgeClass = 'bg-brand-50 text-brand-700 border border-brand-200';
                 if (item.badge_color === 'emerald') badgeClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
@@ -831,7 +928,7 @@
                 }
 
                 sectionHtml += `
-                    <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl hover:bg-brand-50/50 group transition">
+                    <div data-search-item data-index="${currentIndex}" class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl hover:bg-brand-50/50 group transition cursor-pointer">
                         <a href="${item.url}" class="flex items-center gap-2.5 min-w-0 flex-1">
                             <span class="w-6 h-6 rounded-lg bg-stone-100 group-hover:bg-white text-stone-500 group-hover:text-brand-600 flex items-center justify-center shrink-0 border border-stone-200/60 transition">
                                 ${getTypeIcon(type)}
@@ -872,5 +969,91 @@
                 .replace(/'/g, "&#039;");
         }
     </script>
+
+    {{-- Global Confirm Delete Modal (reusable across all admin delete actions) --}}
+    <div
+        x-data="{
+            open: false,
+            title: 'Hapus Item?',
+            message: '',
+            formAction: '',
+            confirmLabel: 'Ya, Hapus',
+            submitting: false,
+            openConfirm(detail) {
+                this.title = detail.title || 'Hapus Item?';
+                this.message = detail.message || 'Tindakan ini tidak dapat dibatalkan.';
+                this.formAction = detail.action;
+                this.confirmLabel = detail.confirmLabel || 'Ya, Hapus';
+                this.submitting = false;
+                this.open = true;
+            },
+            closeConfirm() {
+                if (this.submitting) return;
+                this.open = false;
+            },
+            submitDelete() {
+                this.submitting = true;
+                this.$refs.deleteForm.submit();
+            }
+        }"
+        x-on:confirm-delete.window="openConfirm($event.detail)"
+        x-on:keydown.escape.window="closeConfirm()"
+        id="global-confirm-delete-modal"
+    >
+        <div
+            x-show="open"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+            style="display:none;"
+            x-cloak
+        >
+            <div
+                x-show="open"
+                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 translate-y-4 scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                @click.away="closeConfirm()"
+                class="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-atelier-border overflow-hidden"
+            >
+                <div class="p-5">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                        </div>
+                        <div class="min-w-0 flex-1 pt-1">
+                            <h3 class="text-sm font-bold text-atelier-textDark" x-text="title"></h3>
+                            <p class="text-xs text-atelier-textMuted mt-1.5 leading-relaxed" x-text="message"></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-5 pb-5 flex items-center justify-end gap-2">
+                    <button type="button" @click="closeConfirm()" :disabled="submitting"
+                            class="px-4 py-2 rounded-xl text-xs font-bold text-stone-600 bg-stone-100 hover:bg-stone-200 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                        Batal
+                    </button>
+                    <button type="button" @click="submitDelete()" :disabled="submitting"
+                            class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5">
+                        <span x-show="submitting" class="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                        <span x-text="submitting ? 'Menghapus...' : confirmLabel"></span>
+                    </button>
+                </div>
+
+                {{-- Hidden real form that actually submits the DELETE request --}}
+                <form method="POST" :action="formAction" x-ref="deleteForm" class="hidden">
+                    @csrf
+                    @method('DELETE')
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

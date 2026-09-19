@@ -65,6 +65,15 @@
     }"
     x-on:keydown.escape.window="closeModal()"
     x-on:open-order-detail.window="openDetail($event.detail.id)"
+    x-init="
+        const urlParams = new URLSearchParams(window.location.search);
+        const highlightId = urlParams.get('highlight');
+        if (highlightId) {
+            $nextTick(() => {
+                openDetail(highlightId);
+            });
+        }
+    "
     id="order-detail-modal-root"
 >
     {{-- Backdrop + Modal wrapper --}}

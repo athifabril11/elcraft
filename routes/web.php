@@ -115,10 +115,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/products', [AdminProductController::class, 'store'])->name('products.store');
         Route::put('/products/{product}', [AdminProductController::class, 'update'])->name('products.update');
         Route::patch('/products/{product}/toggle', [AdminProductController::class, 'toggle'])->name('products.toggle');
+        Route::patch('/products/{product}/variants/{variant}/toggle', [AdminProductController::class, 'toggleVariant'])->name('products.variants.toggle');
         Route::delete('/products/{product}', [AdminProductController::class, 'destroy'])->name('products.destroy');
 
         // Returns
         Route::get('/returns', [AdminReturnController::class, 'index'])->name('returns.index');
+        Route::get('/returns/{return}', [AdminReturnController::class, 'show'])->name('returns.show');
         Route::patch('/returns/{return}/approve', [AdminReturnController::class, 'approve'])->name('returns.approve');
         Route::patch('/returns/{return}/reject', [AdminReturnController::class, 'reject'])->name('returns.reject');
         Route::patch('/returns/{return}/advance', [AdminReturnController::class, 'advanceStatus'])->name('returns.advance');

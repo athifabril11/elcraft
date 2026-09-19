@@ -63,7 +63,7 @@ class GlobalSearchController extends Controller
                     'subtitle' => ($order->user?->name ?? 'Guest') . ' • Rp ' . number_format($order->total_amount, 0, ',', '.'),
                     'badge' => $statusLabels[$order->status] ?? ucfirst($order->status),
                     'badge_color' => $order->status === 'selesai' ? 'emerald' : ($order->status === 'paid' ? 'indigo' : ($order->status === 'diproses' ? 'purple' : 'stone')),
-                    'url' => route('admin.orders.index', ['q' => $order->order_number]),
+                    'url' => route('admin.orders.index', ['highlight' => $order->id]),
                 ];
             });
 
@@ -137,7 +137,7 @@ class GlobalSearchController extends Controller
                     'subtitle' => ($ret->user?->name ?? 'Pelanggan') . ' • Ref: #' . ($ret->order?->order_number ?? '-'),
                     'badge' => $retLabels[$ret->status] ?? ucfirst($ret->status),
                     'badge_color' => $ret->status === 'diajukan' ? 'rose' : ($ret->status === 'selesai' ? 'emerald' : 'amber'),
-                    'url' => route('admin.returns.index', ['status' => $ret->status]),
+                    'url' => route('admin.returns.show', $ret->id),
                 ];
             });
 

@@ -92,8 +92,9 @@
                 @forelse($orders as $order)
                     @php
                         $st = $statusMap[$order->status] ?? ['label' => ucfirst($order->status), 'style' => 'background:#f5f5f5; color:#78716C; border:1px solid #e5e5e5;'];
+                        $isHighlighted = request('highlight') == $order->id;
                     @endphp
-                    <tr class="hover:bg-brand-50/20 transition-colors">
+                    <tr class="{{ $isHighlighted ? 'bg-amber-50/70 ring-1 ring-amber-300' : 'hover:bg-brand-50/20' }} transition-colors" id="order-row-{{ $order->id }}">
                         <!-- Nomor Pesanan -->
                         <td class="px-5 py-4 whitespace-nowrap">
                             <span class="font-mono font-bold text-brand-700 tracking-tight text-xs block">
