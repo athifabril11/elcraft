@@ -458,8 +458,21 @@
                             </svg>
                             <span>Auto-Selesai</span>
                         </a>
+
+                        <!-- Nomor WhatsApp Admin -->
+                        <a href="{{ route('admin.settings.whatsapp.index') }}"
+                           class="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all group {{ request()->routeIs('admin.settings.whatsapp.*') ? 'text-brand-700 bg-brand-50/80 border border-brand-200/90 font-bold relative shadow-xs' : 'text-atelier-textMuted hover:text-brand-700 hover:bg-brand-50/40 border border-transparent' }}">
+                            @if(request()->routeIs('admin.settings.whatsapp.*'))
+                                <span class="absolute left-0 top-1.5 bottom-1.5 w-1 bg-brand-500 rounded-r-full"></span>
+                            @endif
+                            <svg class="w-4 h-4 {{ request()->routeIs('admin.settings.whatsapp.*') ? 'text-brand-600' : 'text-atelier-textLight group-hover:text-brand-500' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                            </svg>
+                            <span>WhatsApp</span>
+                        </a>
                     </div>
                 </div>
+
 
             </nav>
 

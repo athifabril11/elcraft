@@ -230,6 +230,12 @@ class GlobalSearchController extends Controller
                 'icon' => 'timer',
             ],
             [
+                'title' => 'Pengaturan Nomor WhatsApp',
+                'keywords' => ['whatsapp', 'wa', 'nomor', 'kontak', 'hubungi', 'footer', 'chat'],
+                'url' => route('admin.settings.whatsapp.index'),
+                'icon' => 'chat',
+            ],
+            [
                 'title' => 'Katalog Produk Publik',
                 'keywords' => ['produk', 'product', 'katalog', 'stok', 'aksesoris', 'kalung', 'gelang'],
                 'url' => route('products.index'),

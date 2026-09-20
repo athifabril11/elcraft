@@ -14,6 +14,7 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\MidtransWebhookController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\Admin\ShippingOriginController;
+use App\Http\Controllers\Admin\WhatsAppSettingController;
 use App\Http\Controllers\Admin\ShippingDiscountController;
 use App\Http\Controllers\Admin\CourierController;
 use App\Http\Controllers\Admin\OrderAutoCompleteController;
@@ -172,6 +173,10 @@ Route::middleware('auth')->group(function () {
             // Auto-Selesai Pesanan
             Route::get('/order-auto-complete',  [OrderAutoCompleteController::class, 'index'])->name('order-auto-complete.index');
             Route::post('/order-auto-complete', [OrderAutoCompleteController::class, 'update'])->name('order-auto-complete.update');
+
+            // Nomor WhatsApp Admin
+            Route::get('/whatsapp',  [WhatsAppSettingController::class, 'index'])->name('whatsapp.index');
+            Route::post('/whatsapp', [WhatsAppSettingController::class, 'update'])->name('whatsapp.update');
         });
     });
 });
