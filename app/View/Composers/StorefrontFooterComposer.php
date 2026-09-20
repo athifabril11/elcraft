@@ -34,9 +34,15 @@ class StorefrontFooterComposer
             $footerWaDisplay = null;
         }
 
+        $waHelpMessage = 'Halo Admin el Craft, saya ingin bertanya tentang produk.';
+        $waHelpLink    = $footerWaLink !== null
+            ? $footerWaLink . '?text=' . urlencode($waHelpMessage)
+            : null;
+
         $view->with([
             'footerWaLink'    => $footerWaLink,
             'footerWaDisplay' => $footerWaDisplay,
+            'waHelpLink'      => $waHelpLink,
         ]);
     }
 }
