@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 use App\Models\Address;
 use App\Policies\AddressPolicy;
+use App\View\Composers\StorefrontFooterComposer;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -40,5 +42,8 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\Blade::directive('rupiah', function ($expression) {
             return "<?php echo 'Rp ' . number_format((float) ($expression), 0, ',', '.'); ?>";
         });
+
+        // View Composer untuk layout storefront
+        View::composer('layouts.storefront', StorefrontFooterComposer::class);
     }
 }

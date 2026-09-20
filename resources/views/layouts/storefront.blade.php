@@ -656,10 +656,12 @@
                     <span class="material-symbols-outlined text-brand !text-[18px] mt-0.5">location_on</span>
                     <span>Jl. Craft No. 123, Jakarta Selatan, Indonesia</span>
                 </div>
+                @if(!empty($footerWaLink))
                 <div class="flex items-center space-x-3 text-xs text-warmGrey">
                     <span class="material-symbols-outlined text-brand !text-[18px]">phone</span>
-                    <span>+62 812-3456-7890</span>
+                    <a href="{{ $footerWaLink }}" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors duration-200">{{ $footerWaDisplay }}</a>
                 </div>
+                @endif
                 <div class="flex items-center space-x-3 text-xs text-warmGrey">
                     <span class="material-symbols-outlined text-brand !text-[18px]">mail</span>
                     <span>support@elcraft.id</span>
