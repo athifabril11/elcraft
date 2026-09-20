@@ -211,6 +211,12 @@ class CartController extends Controller
      */
     public function count(): JsonResponse
     {
+        // Akun Admin tidak memiliki keranjang belanja — kembalikan 0 untuk lencana navbar.
+        // Tidak menggunakan 403 karena ini adalah endpoint tampilan saja, bukan tindakan transaksi.
+        if (Auth::user()?->role === 'admin') {
+            return response()->json(['count' => 0]);
+        }
+
         if (Auth::check()) {
             $cart = Auth::user()->cart;
             $count = $cart ? $cart->getTotalItems() : 0;

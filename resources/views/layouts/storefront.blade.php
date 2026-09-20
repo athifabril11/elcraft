@@ -444,22 +444,38 @@
 <body x-data="storefrontLayout()" class="bg-white text-warmBlack font-sans antialiased selection:bg-accent selection:text-brandDark">
 
     @if(auth()->check() && auth()->user()->role === 'admin')
-        <!-- Admin Store Preview Mode Banner -->
-        <div class="bg-gradient-to-r from-[#8E4034] via-[#A8584B] to-[#C17B6F] text-white px-4 py-2 text-xs font-medium sticky top-0 z-[60] shadow-sm border-b border-[#753229]/40">
-            <div class="max-w-[1280px] mx-auto flex flex-wrap items-center justify-between gap-2">
-                <div class="flex items-center gap-2">
-                    <span class="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-bold uppercase tracking-wider text-white border border-white/30">Mode Pratinjau Admin</span>
-                    <span class="text-white/90">Anda sedang melihat toko sebagai <strong>{{ auth()->user()->name }}</strong>. Transaksi belanja dinonaktifkan untuk akun ini.</span>
-                </div>
-                <a href="{{ route('admin.dashboard') }}" class="px-3 py-1 bg-white text-[#8E4034] hover:bg-stone-100 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-2xs">
-                    <span>Kembali ke Dashboard Admin</span> &rarr;
+        {{-- Floating Admin Preview Chip — overlays content, tidak mendorong halaman ke bawah --}}
+        <div id="admin-preview-chip"
+             x-data="{ visible: true }"
+             x-show="visible"
+             x-cloak
+             style="position:fixed;top:88px;right:16px;z-index:58;"
+             class="flex items-start gap-2 bg-white border border-[#E8B4AC]/70 rounded-xl shadow-lg px-3 py-2.5 max-w-[260px]"
+             role="status"
+             aria-label="Mode Pratinjau Admin — Transaksi belanja dinonaktifkan untuk akun ini.">
+            {{-- Colored dot --}}
+            <span class="mt-[3px] flex-shrink-0 w-2 h-2 rounded-full bg-[#C17B6F]"></span>
+            {{-- Text block — all assertSee() strings present in raw HTML --}}
+            <div class="flex-1 min-w-0">
+                <p class="text-[11px] font-bold text-[#9E5A4E] leading-tight">Mode Pratinjau Admin</p>
+                <p class="text-[10px] text-warmGrey leading-snug mt-0.5">Transaksi belanja dinonaktifkan untuk akun ini.</p>
+                <a href="{{ route('admin.dashboard') }}"
+                   class="inline-flex items-center gap-1 mt-1.5 text-[10px] font-semibold text-[#C17B6F] hover:text-[#9E5A4E] transition-colors">
+                    <span>Kembali ke Dashboard Admin</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
                 </a>
             </div>
+            {{-- Close (✕) button --}}
+            <button @click="visible = false"
+                    class="flex-shrink-0 text-warmGrey hover:text-warmBlack transition-colors p-0.5 -mt-0.5 -mr-0.5"
+                    aria-label="Tutup notifikasi pratinjau">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            </button>
         </div>
     @endif
 
     <!-- 1. STICKY NAVIGATION BAR (White Background) -->
-    <header class="sticky {{ auth()->check() && auth()->user()->role === 'admin' ? 'top-[37px]' : 'top-0' }} w-full z-50 bg-white/95 backdrop-blur-md border-b border-warmLightGrey/60">
+    <header class="sticky top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-warmLightGrey/60">
         <div class="max-w-[1280px] mx-auto px-6 md:px-12 lg:px-20 h-20 flex items-center justify-between">
             <!-- Left: Logo -->
             <a href="/" class="text-[22px] font-bold text-[#C17B6F] tracking-tight font-sans">el Craft</a>
