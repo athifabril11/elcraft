@@ -183,11 +183,11 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="admin-label">Teks Tombol CTA</label>
+                        <label class="admin-label">Teks Tombol</label>
                         <input type="text" name="button_text" value="LIHAT KOLEKSI" class="admin-input">
                     </div>
                     <div>
-                        <label class="admin-label">Link Tujuan CTA</label>
+                        <label class="admin-label">Link Halaman Produk</label>
                         <input type="text" name="button_url" value="/products" class="admin-input font-mono">
                     </div>
                 </div>
@@ -251,11 +251,11 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="admin-label">Teks Tombol CTA</label>
+                        <label class="admin-label">Teks Tombol</label>
                         <input type="text" name="button_text" x-model="editData.button_text" class="admin-input">
                     </div>
                     <div>
-                        <label class="admin-label">Link Tujuan CTA</label>
+                        <label class="admin-label">Link Halaman Produk</label>
                         <input type="text" name="button_url" x-model="editData.button_url" class="admin-input font-mono">
                     </div>
                 </div>
