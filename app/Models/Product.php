@@ -32,6 +32,7 @@ class Product extends Model
         'discount_end'   => 'date',
         'is_featured'    => 'boolean',
         'is_active'      => 'boolean',
+        'rating_avg'     => 'decimal:1',
     ];
 
     // ─── Relasi ───────────────────────────────

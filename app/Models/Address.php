@@ -25,8 +25,10 @@ class Address extends Model
     ];
 
     protected $casts = [
-        'is_default' => 'boolean',
-        'created_at' => 'datetime',
+        'is_default'  => 'boolean',
+        'province_id' => 'integer',
+        'city_id'     => 'integer',
+        'created_at'  => 'datetime',
     ];
 
     public function user(): BelongsTo

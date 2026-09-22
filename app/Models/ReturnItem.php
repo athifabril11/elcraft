@@ -21,6 +21,10 @@ class ReturnItem extends Model
         'quantity',
     ];
 
+    protected $casts = [
+        'quantity' => 'integer',
+    ];
+
     // ── Relationships ─────────────────────────────────────────────────────────
 
     public function returnRequest(): BelongsTo

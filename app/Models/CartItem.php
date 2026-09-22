@@ -35,6 +35,10 @@ class CartItem extends Model
         'quantity',
     ];
 
+    protected $casts = [
+        'quantity' => 'integer',
+    ];
+
     /**
      * Relasi default yang akan selalu dimuat (eager load).
      *

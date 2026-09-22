@@ -39,7 +39,8 @@ class ReturnRequest extends Model
     ];
 
     protected $casts = [
-        'resolved_at' => 'datetime',
+        'refund_amount' => 'decimal:2',
+        'resolved_at'   => 'datetime',
     ];
 
     // ── Relationships ─────────────────────────────────────────────────────────
