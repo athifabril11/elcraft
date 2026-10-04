@@ -82,4 +82,27 @@ class Order extends Model
         }
         return $courierName;
     }
+
+    /**
+     * Waktu kedaluwarsa batas pembayaran.
+     */
+    public function getPaymentExpiresAtAttribute(): ?\Carbon\Carbon
+    {
+        if ($this->relationLoaded('payment') && $this->payment?->expired_at) {
+            return $this->payment->expired_at;
+        }
+        if ($this->payment?->expired_at) {
+            return $this->payment->expired_at;
+        }
+        return $this->created_at ? $this->created_at->copy()->addHours(24) : null;
+    }
+
+    /**
+     * Cek apakah batas waktu pembayaran sudah lewat.
+     */
+    public function isPaymentExpired(): bool
+    {
+        $expiresAt = $this->payment_expires_at;
+        return $expiresAt ? now()->isAfter($expiresAt) : false;
+    }
 }

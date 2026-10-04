@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\Address;
 use App\Services\MidtransService;
 use App\Services\ShippingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -638,5 +639,83 @@ class CheckoutTest extends TestCase
         $redirectUrl = $response->headers->get('Location');
         $this->assertStringNotContainsString('/login', $redirectUrl);
         $response->assertSessionHas('show_login_modal', true);
+    }
+
+    public function test_checkout_with_existing_address_id_reuses_address_without_creating_new_one(): void
+    {
+        $user = User::factory()->create();
+        $category = Category::create(['name' => 'Cincin', 'slug' => 'cincin', 'is_active' => true]);
+        $product = Product::create([
+            'category_id' => $category->id,
+            'name'        => 'Cincin Perak',
+            'slug'        => 'cincin-perak',
+            'price'       => 50000,
+            'stock'       => 5,
+            'weight'      => 10,
+            'is_active'   => true,
+        ]);
+
+        $existingAddress = Address::create([
+            'user_id'        => $user->id,
+            'label'          => 'Rumahku',
+            'recipient_name' => 'Budi Santoso',
+            'phone'          => '08123456789',
+            'province'       => 'Jawa Barat',
+            'city'           => 'Bandung',
+            'district'       => 'Coblong',
+            'postal_code'    => '40132',
+            'full_address'   => 'Jl. Dago No. 123',
+            'is_default'     => true,
+        ]);
+
+        $cart = $user->getOrCreateCart();
+        $cart->items()->create([
+            'product_id' => $product->id,
+            'quantity'   => 1,
+        ]);
+
+        $shippingMock = $this->mock(\App\Services\ShippingService::class);
+        $shippingMock->shouldReceive('calculateCost')
+            ->once()
+            ->andReturn([
+                [
+                    'code'        => 'jne',
+                    'service'     => 'REG',
+                    'description' => 'Layanan Reguler',
+                    'cost'        => 10000,
+                    'etd'         => '2-3 hari',
+                ],
+            ]);
+
+        $midtransMock = $this->mock(\App\Services\MidtransService::class);
+        $midtransMock->shouldReceive('createSnapToken')
+            ->once()
+            ->andReturn([
+                'token'        => 'test-snap-token-12345',
+                'redirect_url' => 'https://app.sandbox.midtrans.com/snap/v2/vtweb/test-snap-token-12345',
+            ]);
+
+        $response = $this->actingAs($user)->postJson(route('checkout.token'), [
+            'address_id'      => $existingAddress->id,
+            'recipient_name'  => 'Budi Santoso (Updated)',
+            'recipient_phone' => '08123456789',
+            'full_address'    => 'Jl. Dago No. 123',
+            'city'            => 'Bandung',
+            'city_id'         => 23,
+            'province_id'     => 9,
+            'postal_code'     => '40132',
+            'courier'         => 'jne',
+            'courier_service' => 'jne-REG',
+            'payment_method'  => 'snap',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonStructure(['snap_token', 'order_id']);
+
+        // Assert user STILL only has 1 address in database
+        $this->assertEquals(1, $user->addresses()->count());
+        $this->assertEquals('Budi Santoso (Updated)', $existingAddress->fresh()->recipient_name);
+        $this->assertEquals('Rumahku', $existingAddress->fresh()->label);
+        $this->assertTrue((bool) $existingAddress->fresh()->is_default);
     }
 }

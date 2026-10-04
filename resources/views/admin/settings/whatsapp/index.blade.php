@@ -43,14 +43,6 @@
             Ubah Nomor WhatsApp
         </h2>
 
-        {{-- Success flash --}}
-        @if(session('success'))
-            <div style="background:#dcfce7; border:1px solid #86efac; border-radius:8px; padding:0.75rem 1rem; margin-bottom:1rem; font-size:0.8rem; color:#166534; display:flex; gap:8px; align-items:center;">
-                <span class="material-symbols-outlined" style="font-size:16px; flex-shrink:0;">check_circle</span>
-                {{ session('success') }}
-            </div>
-        @endif
-
         {{-- Validation errors --}}
         @if($errors->any())
             <div style="background:#fee2e2; border:1px solid #fca5a5; border-radius:8px; padding:0.75rem 1rem; margin-bottom:1rem; font-size:0.8rem; color:#991b1b;">

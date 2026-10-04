@@ -233,4 +233,78 @@ class AddressAndCheckoutUITest extends TestCase
             'is_default' => true,
         ]);
     }
+
+    /**
+     * Test adding multiple addresses: exactly one address remains default at any time.
+     */
+    public function test_only_one_address_can_be_default_when_creating_addresses(): void
+    {
+        $user = User::factory()->create();
+
+        // 1. First address automatically becomes default
+        $this->actingAs($user)->post(route('profile.addresses.store'), [
+            'label'          => 'Rumah',
+            'recipient_name' => 'Budi',
+            'phone'          => '081234567890',
+            'province'       => 'Jawa Barat',
+            'city'           => 'Bandung',
+            'district'       => 'Coblong',
+            'postal_code'    => '40132',
+            'full_address'   => 'Jl. Dago No. 10',
+        ]);
+
+        $firstAddr = $user->addresses()->first();
+        $this->assertTrue((bool) $firstAddr->is_default);
+
+        // 2. Second address without is_default must NOT be default
+        $this->actingAs($user)->post(route('profile.addresses.store'), [
+            'label'          => 'Kantor',
+            'recipient_name' => 'Budi Kantor',
+            'phone'          => '081234567890',
+            'province'       => 'DKI Jakarta',
+            'city'           => 'Jakarta Selatan',
+            'district'       => 'Kebayoran Baru',
+            'postal_code'    => '12110',
+            'full_address'   => 'Jl. Sudirman No. 50',
+        ]);
+
+        $this->assertEquals(1, $user->addresses()->where('is_default', true)->count());
+        $secondAddr = $user->addresses()->where('label', 'Kantor')->first();
+        $this->assertFalse((bool) $secondAddr->is_default);
+
+        // 3. Third address with is_default=1 becomes the only default
+        $this->actingAs($user)->post(route('profile.addresses.store'), [
+            'label'          => 'Apartemen',
+            'recipient_name' => 'Budi Apartemen',
+            'phone'          => '081234567890',
+            'province'       => 'DI Yogyakarta',
+            'city'           => 'Yogyakarta',
+            'district'       => 'Depok',
+            'postal_code'    => '55281',
+            'full_address'   => 'Jl. Gejayan No. 20',
+            'is_default'     => 1,
+        ]);
+
+        $this->assertEquals(1, $user->addresses()->where('is_default', true)->count());
+        $thirdAddr = $user->addresses()->where('label', 'Apartemen')->first();
+        $this->assertTrue((bool) $thirdAddr->is_default);
+        $this->assertFalse((bool) $firstAddr->fresh()->is_default);
+
+        // 4. Updating second address to default resets third address
+        $this->actingAs($user)->put(route('profile.addresses.update', $secondAddr), [
+            'label'          => 'Kantor Utama',
+            'recipient_name' => 'Budi Kantor',
+            'phone'          => '081234567890',
+            'province'       => 'DKI Jakarta',
+            'city'           => 'Jakarta Selatan',
+            'district'       => 'Kebayoran Baru',
+            'postal_code'    => '12110',
+            'full_address'   => 'Jl. Sudirman No. 50',
+            'is_default'     => 1,
+        ]);
+
+        $this->assertEquals(1, $user->addresses()->where('is_default', true)->count());
+        $this->assertTrue((bool) $secondAddr->fresh()->is_default);
+        $this->assertFalse((bool) $thirdAddr->fresh()->is_default);
+    }
 }

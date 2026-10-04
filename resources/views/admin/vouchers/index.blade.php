@@ -28,13 +28,6 @@
     }
 }">
 
-@if(session('success'))
-    <div class="mb-4 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
-        <span class="material-symbols-outlined text-base text-emerald-600">check_circle</span>
-        <span>{{ session('success') }}</span>
-    </div>
-@endif
-
 @if($errors->any())
     <div class="mb-4 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold space-y-1">
         @foreach($errors->all() as $err)
@@ -202,14 +195,13 @@
                                     </button>
                                 </form>
 
-                                <form method="POST" action="{{ route('admin.vouchers.destroy', $item->id) }}"
-                                      onsubmit="return confirm('Hapus voucher {{ $item->code }}?')" class="inline m-0">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="p-1.5 text-atelier-textLight hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Hapus">
-                                        <span class="material-symbols-outlined !text-sm">delete</span>
-                                    </button>
-                                </form>
+                                <button type="button" title="Hapus" @click="$dispatch('confirm-delete', {
+                                    action: '{{ route('admin.vouchers.destroy', $item->id) }}',
+                                    title: 'Hapus Voucher?',
+                                    message: 'Apakah Anda yakin ingin menghapus voucher &quot;{{ addslashes($item->code) }}&quot;? Jika voucher ini pernah digunakan, voucher akan dinonaktifkan alih-alih dihapus permanen.'
+                                })" class="p-1.5 text-atelier-textLight hover:text-rose-600 rounded-lg hover:bg-rose-50 transition">
+                                    <span class="material-symbols-outlined !text-sm">delete</span>
+                                </button>
                             </div>
                         </td>
                     </tr>

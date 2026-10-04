@@ -6,20 +6,6 @@
 
 @section('content')
 
-@if(session('success'))
-    <div class="mb-4 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
-        <span class="material-symbols-outlined text-base text-emerald-600">check_circle</span>
-        <span>{{ session('success') }}</span>
-    </div>
-@endif
-
-@if(session('error'))
-    <div class="mb-4 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
-        <span class="material-symbols-outlined text-base text-rose-600">error</span>
-        <span>{{ session('error') }}</span>
-    </div>
-@endif
-
 <!-- ========================================================= -->
 <!-- SUMMARY STATS -->
 <!-- ========================================================= -->

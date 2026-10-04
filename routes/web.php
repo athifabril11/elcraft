@@ -74,7 +74,9 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::post('/orders/{orderNumber}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+    Route::post('/orders/{orderNumber}/reorder', [OrderController::class, 'reorder'])->name('orders.reorder');
     Route::patch('/orders/{orderNumber}/confirm-received', [OrderController::class, 'confirmReceived'])->name('orders.confirm-received');
+    Route::get('/orders/{orderNumber}/resume-payment', [OrderController::class, 'resumePayment'])->name('orders.resume-payment');
     Route::get('/orders/{orderNumber}/resume-payment', [OrderController::class, 'resumePayment'])->name('orders.resume-payment');
 
     // Return submission routes

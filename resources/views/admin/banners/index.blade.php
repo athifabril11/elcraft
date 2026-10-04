@@ -26,13 +26,6 @@
     }
 }">
 
-@if(session('success'))
-    <div class="mb-4 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
-        <span class="material-symbols-outlined text-base text-emerald-600">check_circle</span>
-        <span>{{ session('success') }}</span>
-    </div>
-@endif
-
 @if($errors->any())
     <div class="mb-4 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold space-y-1">
         @foreach($errors->all() as $err)
@@ -125,14 +118,13 @@
                     </button>
                 </form>
 
-                <form method="POST" action="{{ route('admin.banners.destroy', $banner->id) }}"
-                      onsubmit="return confirm('Hapus banner ini?')" class="inline m-0">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="p-1.5 text-atelier-textLight hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Hapus">
-                        <span class="material-symbols-outlined !text-sm">delete</span>
-                    </button>
-                </form>
+                <button type="button" title="Hapus" @click="$dispatch('confirm-delete', {
+                    action: '{{ route('admin.banners.destroy', $banner->id) }}',
+                    title: 'Hapus Banner?',
+                    message: 'Apakah Anda yakin ingin menghapus banner ini? Tindakan ini tidak dapat dibatalkan.'
+                })" class="p-1.5 text-atelier-textLight hover:text-rose-600 rounded-lg hover:bg-rose-50 transition">
+                    <span class="material-symbols-outlined !text-sm">delete</span>
+                </button>
             </div>
 
         </div>

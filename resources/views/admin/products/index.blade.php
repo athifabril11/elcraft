@@ -30,13 +30,13 @@
         images: []
     },
     addVariantRow() {
-        this.variants.push({ variant_name: '', sku: '', additional_price: 0, stock: 0 });
+        this.variants.push({ variant_name: '', sku: '', additional_price: 0, stock: 0, is_active: true });
     },
     removeVariantRow(index) {
         this.variants.splice(index, 1);
     },
     addEditVariantRow() {
-        this.editProduct.variants.push({ id: null, variant_name: '', sku: '', additional_price: 0, stock: 0 });
+        this.editProduct.variants.push({ id: null, variant_name: '', sku: '', additional_price: 0, stock: 0, is_active: true });
     },
     removeEditVariantRow(index) {
         this.editProduct.variants.splice(index, 1);
@@ -58,7 +58,16 @@
             is_featured: prod.is_featured ? 1 : 0,
             is_active: prod.is_active ? 1 : 0,
             actionUrl: actionUrl,
-            variants: prod.variants && prod.variants.length > 0 ? JSON.parse(JSON.stringify(prod.variants)) : [],
+            variants: prod.variants && prod.variants.length > 0
+                ? prod.variants.map(v => ({
+                    id: v.id,
+                    variant_name: v.variant_name,
+                    sku: v.sku || '',
+                    additional_price: v.additional_price || 0,
+                    stock: v.stock || 0,
+                    is_active: typeof v.is_active !== 'undefined' ? Boolean(v.is_active) : true
+                }))
+                : [],
             primary_image_url: prod.primary_image || null,
             images: prod.images || []
         };
@@ -216,12 +225,51 @@
                         <th class="px-5 py-3.5 text-right whitespace-nowrap min-w-[100px]">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-atelier-borderSubtle">
-                    @forelse($products as $product)
-                    @php
-                        $primaryImg = $product->primary_image;
-                        $imgSrc = $primaryImg ? (str_starts_with($primaryImg, 'http') ? $primaryImg : asset('storage/'.$primaryImg)) : null;
-                    @endphp
+                @forelse($products as $product)
+                @php
+                    $primaryImg = $product->primary_image;
+                    $imgSrc = $primaryImg ? (str_starts_with($primaryImg, 'http') ? $primaryImg : asset('storage/'.$primaryImg)) : null;
+                @endphp
+                <tbody x-data="{
+                    expanded: false,
+                    variants: {{ $product->variants->map(fn($v) => [
+                        'id' => $v->id,
+                        'variant_name' => $v->variant_name,
+                        'sku' => $v->sku,
+                        'additional_price' => (float) $v->additional_price,
+                        'stock' => (int) $v->stock,
+                        'is_active' => (bool) $v->is_active,
+                        'toggling' => false,
+                    ])->toJson() }},
+                    toggleVariant(v) {
+                        if (v.toggling) return;
+                        v.toggling = true;
+                        const csrfToken = document.querySelector('meta[name=\'csrf-token\']')?.getAttribute('content') || '{{ csrf_token() }}';
+                        fetch('{{ url('admin/products/' . $product->id . '/variants') }}/' + v.id + '/toggle', {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken
+                            }
+                        })
+                        .then(res => {
+                            if (!res.ok) throw new Error('Network error');
+                            return res.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                v.is_active = Boolean(data.is_active);
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Gagal mengubah status varian:', err);
+                        })
+                        .finally(() => {
+                            v.toggling = false;
+                        });
+                    }
+                }" class="divide-y divide-atelier-borderSubtle border-b border-atelier-borderSubtle last:border-b-0">
                     <tr class="hover:bg-brand-50/20 transition-colors">
                         <!-- Foto & Info Produk & Kategori -->
                         <td class="px-5 py-3.5">
@@ -270,25 +318,16 @@
                         </td>
 
                         <!-- Varian & SKU Varian -->
-                        <td class="px-4 py-3.5">
+                        <td class="px-4 py-3.5 align-top">
                             @if($product->variants->count() > 0)
-                                <div class="space-y-1">
-                                    @foreach($product->variants->take(2) as $v)
-                                        <div class="text-stone-700 text-[11px] truncate flex items-center gap-1">
-                                            <span class="font-semibold text-stone-800">{{ $v->variant_name }}</span>
-                                            @if($v->additional_price > 0)
-                                                <span class="text-brand-600 text-[10px] font-medium">(+{{ number_format($v->additional_price, 0, ',', '.') }})</span>
-                                            @endif
-                                            @if($v->sku)
-                                                <span class="text-stone-400 font-mono text-[9px]">&bull; {{ $v->sku }}</span>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                    @if($product->variants->count() > 2)
-                                        <div class="text-[10px] font-semibold text-brand-700 hover:underline">
-                                            +{{ $product->variants->count() - 2 }} varian lainnya
-                                        </div>
-                                    @endif
+                                <div class="space-y-1.5">
+                                    <button type="button" @click="expanded = !expanded" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-brand-50 text-stone-700 hover:text-brand-700 text-[11px] font-semibold transition border border-stone-200/80 cursor-pointer shadow-2xs">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+                                        <span x-text="variants.length + ' varian'">{{ $product->variants->count() }} varian</span>
+                                        <svg class="w-3.5 h-3.5 text-stone-400 transition-transform duration-200" :class="{ 'rotate-180 text-brand-600': expanded }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
+                                    </button>
                                 </div>
                             @else
                                 <span class="text-stone-400 text-[10px] italic">1 Varian Standar</span>
@@ -339,17 +378,109 @@
                                 </button>
 
                                 <!-- Delete button -->
-                                <form method="POST" action="{{ route('admin.products.destroy', $product) }}" onsubmit="return confirm('Apakah Anda yakin ingin menghapus produk \"{{ $product->name }}\"?')" class="inline-block m-0">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" title="Hapus Produk" class="w-7 h-7 inline-flex items-center justify-center text-stone-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition border border-transparent hover:border-rose-200/50 cursor-pointer">
-                                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                    </button>
-                                </form>
+                                <button type="button" title="Hapus Produk" @click="$dispatch('confirm-delete', {
+                                    action: '{{ route('admin.products.destroy', $product) }}',
+                                    title: 'Hapus Produk?',
+                                    message: 'Apakah Anda yakin ingin menghapus produk &quot;{{ addslashes($product->name) }}&quot;? Jika produk ini memiliki riwayat transaksi, produk akan dinonaktifkan alih-alih dihapus permanen.'
+                                })" class="w-7 h-7 inline-flex items-center justify-center text-stone-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition border border-transparent hover:border-rose-200/50 cursor-pointer">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                </button>
                             </div>
                         </td>
                     </tr>
-                    @empty
+
+                    @if($product->variants->count() > 0)
+                    <!-- Full-width Expandable Variant Sub-row -->
+                    <tr x-show="expanded" x-cloak class="bg-stone-50/60">
+                        <td colspan="6" class="px-6 py-4 bg-stone-50/60">
+                            <div class="rounded-xl border border-stone-200/80 bg-white overflow-hidden shadow-2xs">
+                                <div class="px-4 py-2 bg-stone-50/80 border-b border-stone-200/60 flex items-center justify-between">
+                                    <span class="text-[11px] font-bold text-stone-700 flex items-center gap-1.5">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+                                        Daftar Varian Produk
+                                    </span>
+                                    <span class="text-[10px] text-stone-400 font-medium">Total <span x-text="variants.length"></span> varian</span>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left text-[11px]">
+                                        <thead class="bg-stone-50/50 text-[10px] uppercase font-bold text-stone-400 border-b border-stone-100 tracking-wider">
+                                            <tr>
+                                                <th class="px-4 py-2">Nama Varian</th>
+                                                <th class="px-4 py-2">Harga Tambahan</th>
+                                                <th class="px-4 py-2">SKU</th>
+                                                <th class="px-4 py-2">Stok</th>
+                                                <th class="px-4 py-2 text-center">Status</th>
+                                                <th class="px-4 py-2 text-right">Aktif</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-stone-100">
+                                            <template x-for="v in variants" :key="v.id">
+                                                <tr class="hover:bg-brand-50/10 transition-colors" :class="{ 'opacity-60 bg-stone-50/50': !v.is_active }">
+                                                    <!-- Nama Varian -->
+                                                    <td class="px-4 py-2.5 font-medium">
+                                                        <span :class="{ 'line-through text-stone-400': !v.is_active, 'text-stone-800 font-semibold': v.is_active }" x-text="v.variant_name"></span>
+                                                    </td>
+
+                                                    <!-- Harga Tambahan -->
+                                                    <td class="px-4 py-2.5 font-mono">
+                                                        <span x-show="v.additional_price > 0" class="text-brand-600 font-semibold" x-text="'+Rp ' + Number(v.additional_price).toLocaleString('id-ID')"></span>
+                                                        <span x-show="!v.additional_price || v.additional_price <= 0" class="text-stone-400">&mdash;</span>
+                                                    </td>
+
+                                                    <!-- SKU -->
+                                                    <td class="px-4 py-2.5 font-mono text-stone-500">
+                                                        <span x-show="v.sku" x-text="v.sku"></span>
+                                                        <span x-show="!v.sku" class="text-stone-300">&mdash;</span>
+                                                    </td>
+
+                                                    <!-- Stok -->
+                                                    <td class="px-4 py-2.5">
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold font-mono"
+                                                              :class="{
+                                                                  'bg-rose-50 text-rose-700 border border-rose-200': v.stock <= 0,
+                                                                  'bg-amber-50 text-amber-700 border border-amber-200': v.stock > 0 && v.stock <= 3,
+                                                                  'bg-emerald-50 text-emerald-700 border border-emerald-200': v.stock > 3
+                                                              }"
+                                                              x-text="v.stock + ' pcs'"></span>
+                                                    </td>
+
+                                                    <!-- Status -->
+                                                    <td class="px-4 py-2.5 text-center">
+                                                        <span x-show="v.is_active" class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/70 px-2 py-0.5 rounded-full">
+                                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                            Aktif
+                                                        </span>
+                                                        <span x-show="!v.is_active" class="inline-flex items-center gap-1 text-[10px] font-bold text-stone-500 bg-stone-100 border border-stone-200 px-2 py-0.5 rounded-full">
+                                                            <span class="w-1.5 h-1.5 rounded-full bg-stone-400"></span>
+                                                            Nonaktif
+                                                        </span>
+                                                    </td>
+
+                                                    <!-- Aktif (Toggle button) -->
+                                                    <td class="px-4 py-2.5 text-right">
+                                                        <button type="button"
+                                                                @click="toggleVariant(v)"
+                                                                :disabled="v.toggling"
+                                                                class="relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50"
+                                                                :class="v.is_active ? 'bg-emerald-500' : 'bg-stone-300'"
+                                                                :title="v.is_active ? 'Klik untuk menonaktifkan varian' : 'Klik untuk mengaktifkan varian'">
+                                                            <span class="sr-only">Toggle Varian</span>
+                                                            <span class="pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                                                  :class="v.is_active ? 'translate-x-3' : 'translate-x-0'"></span>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    @endif
+                </tbody>
+                @empty
+                <tbody class="divide-y divide-atelier-borderSubtle">
                     <tr>
                         <td colspan="6" class="px-6 py-12 text-center text-xs text-atelier-textMuted">
                             <div class="w-12 h-12 mx-auto mb-2 text-stone-300 flex items-center justify-center rounded-2xl bg-stone-50 border border-stone-100">
@@ -359,8 +490,8 @@
                             <div class="text-[11px] text-stone-400 mt-1">Gunakan tombol "Tambah Produk Baru" untuk menambahkan karya ke etalase toko.</div>
                         </td>
                     </tr>
-                    @endforelse
                 </tbody>
+                @endforelse
             </table>
         </div>
 
@@ -501,7 +632,7 @@
                         <div class="space-y-2.5">
                             <template x-for="(v, idx) in variants" :key="idx">
                                 <div class="p-3 rounded-xl border border-stone-200 bg-stone-50/60 grid grid-cols-12 gap-2.5 items-center">
-                                    <div class="col-span-4">
+                                    <div class="col-span-3">
                                         <label class="text-[10px] font-bold text-stone-500 uppercase">Nama Varian *</label>
                                         <input type="text" :name="'variants[' + idx + '][variant_name]'" x-model="v.variant_name" required placeholder="cth: 16 cm (Rose Gold)" class="w-full mt-1 px-2.5 py-1.5 border border-stone-200 rounded-lg bg-white text-xs">
                                     </div>
@@ -516,6 +647,15 @@
                                     <div class="col-span-2">
                                         <label class="text-[10px] font-bold text-stone-500 uppercase">Stok</label>
                                         <input type="number" :name="'variants[' + idx + '][stock]'" x-model="v.stock" min="0" class="w-full mt-1 px-2.5 py-1.5 border border-stone-200 rounded-lg bg-white text-xs">
+                                    </div>
+                                    <div class="col-span-1 text-center">
+                                        <label class="text-[10px] font-bold text-stone-500 uppercase">Aktif</label>
+                                        <div class="mt-1 flex items-center justify-center h-[34px]">
+                                            <label class="inline-flex items-center cursor-pointer">
+                                                <input type="hidden" :name="'variants[' + idx + '][is_active]'" value="0">
+                                                <input type="checkbox" :name="'variants[' + idx + '][is_active]'" value="1" x-model="v.is_active" class="w-4 h-4 rounded text-brand-600 focus:ring-brand-400">
+                                            </label>
+                                        </div>
                                     </div>
                                     <div class="col-span-1 text-right pt-4">
                                         <button type="button" @click="removeVariantRow(idx)" class="p-1.5 text-stone-400 hover:text-rose-600 rounded-lg transition cursor-pointer" title="Hapus baris varian">
@@ -701,7 +841,7 @@
                             <template x-for="(v, idx) in editProduct.variants" :key="idx">
                                 <div class="p-3 rounded-xl border border-stone-200 bg-stone-50/60 grid grid-cols-12 gap-2.5 items-center">
                                     <input type="hidden" :name="'variants[' + idx + '][id]'" :value="v.id">
-                                    <div class="col-span-4">
+                                    <div class="col-span-3">
                                         <label class="text-[10px] font-bold text-stone-500 uppercase">Nama Varian *</label>
                                         <input type="text" :name="'variants[' + idx + '][variant_name]'" x-model="v.variant_name" required class="w-full mt-1 px-2.5 py-1.5 border border-stone-200 rounded-lg bg-white text-xs">
                                     </div>
@@ -716,6 +856,15 @@
                                     <div class="col-span-2">
                                         <label class="text-[10px] font-bold text-stone-500 uppercase">Stok</label>
                                         <input type="number" :name="'variants[' + idx + '][stock]'" x-model="v.stock" min="0" class="w-full mt-1 px-2.5 py-1.5 border border-stone-200 rounded-lg bg-white text-xs">
+                                    </div>
+                                    <div class="col-span-1 text-center">
+                                        <label class="text-[10px] font-bold text-stone-500 uppercase">Aktif</label>
+                                        <div class="mt-1 flex items-center justify-center h-[34px]">
+                                            <label class="inline-flex items-center cursor-pointer">
+                                                <input type="hidden" :name="'variants[' + idx + '][is_active]'" value="0">
+                                                <input type="checkbox" :name="'variants[' + idx + '][is_active]'" value="1" x-model="v.is_active" class="w-4 h-4 rounded text-brand-600 focus:ring-brand-400">
+                                            </label>
+                                        </div>
                                     </div>
                                     <div class="col-span-1 text-right pt-4">
                                         <button type="button" @click="removeEditVariantRow(idx)" class="p-1.5 text-stone-400 hover:text-rose-600 rounded-lg transition cursor-pointer">

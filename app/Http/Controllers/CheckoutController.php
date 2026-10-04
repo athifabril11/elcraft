@@ -108,6 +108,7 @@ class CheckoutController extends Controller
         }
 
         $request->validate([
+            'address_id'      => 'nullable|integer',
             'recipient_name'  => 'required|string|max:255',
             'recipient_phone' => 'required|string|max:50',
             'full_address'    => 'required|string',
@@ -179,23 +180,45 @@ class CheckoutController extends Controller
         try {
             return DB::transaction(function () use ($request, $user, $cart, $verifiedShipping) {
                 // 5. Simpan atau perbarui alamat pengiriman
-                $address = $user->addresses()->updateOrCreate(
-                    [
+                $address = null;
+                if ($request->filled('address_id')) {
+                    $address = $user->addresses()->find($request->address_id);
+                }
+
+                if ($address) {
+                    $address->update([
                         'recipient_name' => $request->recipient_name,
                         'phone'          => $request->recipient_phone,
                         'full_address'   => $request->full_address,
                         'city'           => $request->city,
-                    ],
-                    [
-                        'label'       => 'Utama',
-                        'province'    => 'Jawa Barat',
-                        'province_id' => $request->province_id,
-                        'city_id'     => $request->city_id,
-                        'district'    => 'Kecamatan',
-                        'postal_code' => $request->postal_code ?? '',
-                        'is_default'  => $user->addresses()->count() === 0,
-                    ]
-                );
+                        'city_id'        => $request->city_id,
+                        'province_id'    => $request->province_id,
+                        'postal_code'    => $request->postal_code ?? '',
+                    ]);
+                } else {
+                    $isFirst = $user->addresses()->count() === 0;
+                    $address = $user->addresses()->updateOrCreate(
+                        [
+                            'recipient_name' => $request->recipient_name,
+                            'phone'          => $request->recipient_phone,
+                            'full_address'   => $request->full_address,
+                            'city'           => $request->city,
+                        ],
+                        [
+                            'label'       => 'Alamat Pengiriman',
+                            'province'    => $request->province ?? '',
+                            'province_id' => $request->province_id,
+                            'city_id'     => $request->city_id,
+                            'district'    => $request->district ?? '',
+                            'postal_code' => $request->postal_code ?? '',
+                            'is_default'  => $isFirst,
+                        ]
+                    );
+
+                    if ($isFirst) {
+                        $address->update(['is_default' => true]);
+                    }
+                }
 
                 // 6. Susun data pesanan menggunakan nilai dari database dan API
                 $orderId  = 'ELCRAFT-' . strtoupper(Str::random(8)) . '-' . time();

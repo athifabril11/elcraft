@@ -82,14 +82,13 @@
                                     </form>
 
                                     <!-- Delete -->
-                                    <form method="POST" action="{{ route('admin.settings.shipping-discounts.destroy', $rule) }}"
-                                          onsubmit="return confirm('Yakin hapus aturan ini?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="admin-btn-danger" title="Hapus">
-                                            <span class="material-symbols-outlined" style="font-size:14px;">delete</span>
-                                        </button>
-                                    </form>
+                                    <button type="button" title="Hapus" @click="$dispatch('confirm-delete', {
+                                        action: '{{ route('admin.settings.shipping-discounts.destroy', $rule) }}',
+                                        title: 'Hapus Aturan Diskon?',
+                                        message: 'Apakah Anda yakin ingin menghapus aturan diskon ongkir ini? Tindakan ini tidak dapat dibatalkan.'
+                                    })" class="admin-btn-danger">
+                                        <span class="material-symbols-outlined" style="font-size:14px;">delete</span>
+                                    </button>
                                 </div>
                             </td>
                         </tr>

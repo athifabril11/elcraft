@@ -125,4 +125,30 @@ class AdminStorePreviewTest extends TestCase
             ->assertOk()
             ->assertSee('Bros Draft Belum Rilis');
     }
+
+    public function test_admin_sees_preview_banner_and_dashboard_button_on_storefront(): void
+    {
+        $admin = $this->admin();
+
+        $response = $this->actingAs($admin)->get('/');
+
+        $response->assertOk();
+        $response->assertSee('Mode Pratinjau Admin');
+        $response->assertSee('Transaksi belanja dinonaktifkan untuk akun ini.');
+        $response->assertSee('Kembali ke Dashboard Admin');
+        $response->assertSee(route('admin.dashboard'));
+    }
+
+    public function test_customer_does_not_see_admin_preview_banner(): void
+    {
+        $customer = $this->customer();
+
+        $response = $this->actingAs($customer)->get('/');
+
+        $response->assertOk();
+        $response->assertDontSee('Mode Pratinjau Admin');
+        $response->assertDontSee('Transaksi belanja dinonaktifkan untuk akun ini.');
+        $response->assertDontSee('Kembali ke Dashboard Admin');
+    }
 }
+

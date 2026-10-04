@@ -762,7 +762,8 @@
 
                     {{-- ─── Post-reset (or other) status message ─────────────────────── --}}
                     @if (session('status'))
-                        <div class="mb-4 px-4 py-3 rounded-xl border text-xs font-medium text-center"
+                        <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition.duration.300ms
+                             class="mb-4 px-4 py-3 rounded-xl border text-xs font-medium text-center shadow-2xs"
                              style="background:#F0FDF4;border-color:#BBF7D0;color:#15803D;">
                             {{ session('status') }}
                         </div>

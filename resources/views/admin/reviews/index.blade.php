@@ -15,17 +15,6 @@
     ];
 @endphp
 
-{{-- Flash Messages --}}
-@if(session('success'))
-<div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4000)"
-     class="mb-5 flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium shadow-xs">
-    <svg class="w-4 h-4 shrink-0 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-        <polyline points="20 6 9 17 4 12"></polyline>
-    </svg>
-    {{ session('success') }}
-</div>
-@endif
-
 {{-- Filter Tabs --}}
 <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:1.25rem; align-items:center;">
     @foreach($filterOptions as $key => $opt)
@@ -184,17 +173,15 @@
                                 @endunless
 
                                 {{-- Hapus --}}
-                                <form method="POST" action="{{ route('admin.reviews.destroy', $review->id) }}?status={{ $filter }}" style="display:inline;"
-                                      onsubmit="return confirm('Hapus ulasan ini secara permanen?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" style="display:inline-flex; align-items:center; gap:4px; background:transparent; color:#A39994; border:1px solid #EDE8E4; border-radius:8px; padding:5px 9px; font-size:0.72rem; font-weight:600; cursor:pointer; transition:all 0.15s;"
-                                            onmouseover="this.style.color='#ef4444'; this.style.borderColor='#fecaca';"
-                                            onmouseout="this.style.color='#A39994'; this.style.borderColor='#EDE8E4';"
-                                            title="Hapus ulasan">
-                                        <span class="material-symbols-outlined" style="font-size:13px;">delete</span>
-                                    </button>
-                                </form>
+                                <button type="button" title="Hapus ulasan" @click="$dispatch('confirm-delete', {
+                                    action: '{{ route('admin.reviews.destroy', $review->id) }}?status={{ $filter }}',
+                                    title: 'Hapus Ulasan?',
+                                    message: 'Apakah Anda yakin ingin menghapus ulasan ini secara permanen? Tindakan ini tidak dapat dibatalkan.'
+                                })" style="display:inline-flex; align-items:center; gap:4px; background:transparent; color:#A39994; border:1px solid #EDE8E4; border-radius:8px; padding:5px 9px; font-size:0.72rem; font-weight:600; cursor:pointer; transition:all 0.15s;"
+                                        onmouseover="this.style.color='#ef4444'; this.style.borderColor='#fecaca';"
+                                        onmouseout="this.style.color='#A39994'; this.style.borderColor='#EDE8E4';">
+                                    <span class="material-symbols-outlined" style="font-size:13px;">delete</span>
+                                </button>
 
                             </div>
                         </td>

@@ -12,9 +12,15 @@
     {{-- Flash Messages --}}
     @if(session('error'))
         <div class="max-w-[1280px] mx-auto px-5 md:px-8 lg:px-16 pt-6">
-            <div class="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-card flex items-center space-x-3">
-                <span class="material-symbols-outlined !text-[18px]">error</span>
-                <span>{{ session('error') }}</span>
+            <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition.duration.300ms
+                 class="bg-red-50 border border-red-200 text-red-800 text-xs sm:text-sm px-4 py-3 rounded-card flex items-center justify-between gap-3 shadow-2xs" role="alert">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="material-symbols-outlined !text-[20px] text-red-600 shrink-0">error</span>
+                    <span class="font-medium">{{ session('error') }}</span>
+                </div>
+                <button type="button" @click="show = false" class="text-red-600/70 hover:text-red-800 p-0.5 rounded cursor-pointer shrink-0" title="Tutup">
+                    <span class="material-symbols-outlined !text-[18px]">close</span>
+                </button>
             </div>
         </div>
     @endif

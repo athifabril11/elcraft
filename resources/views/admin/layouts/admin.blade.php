@@ -658,15 +658,27 @@
 
             <!-- Flash messages -->
             @if(session('success'))
-                <div class="mx-8 mt-6 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center gap-3 text-xs text-emerald-800 shadow-2xs">
-                    <span class="material-symbols-outlined text-emerald-600" style="font-size:20px;">check_circle</span>
-                    <span class="font-medium flex-1">{{ session('success') }}</span>
+                <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition.duration.300ms
+                     class="mx-8 mt-6 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between gap-3 text-xs text-emerald-800 shadow-2xs">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <span class="material-symbols-outlined text-emerald-600 shrink-0" style="font-size:20px;">check_circle</span>
+                        <span class="font-medium flex-1">{{ session('success') }}</span>
+                    </div>
+                    <button type="button" @click="show = false" class="text-emerald-600/70 hover:text-emerald-800 p-0.5 rounded cursor-pointer shrink-0" title="Tutup">
+                        <span class="material-symbols-outlined" style="font-size:18px;">close</span>
+                    </button>
                 </div>
             @endif
             @if(session('error'))
-                <div class="mx-8 mt-6 bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center gap-3 text-xs text-rose-800 shadow-2xs">
-                    <span class="material-symbols-outlined text-rose-600" style="font-size:20px;">error</span>
-                    <span class="font-medium flex-1">{{ session('error') }}</span>
+                <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition.duration.300ms
+                     class="mx-8 mt-6 bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center justify-between gap-3 text-xs text-rose-800 shadow-2xs">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <span class="material-symbols-outlined text-rose-600 shrink-0" style="font-size:20px;">error</span>
+                        <span class="font-medium flex-1">{{ session('error') }}</span>
+                    </div>
+                    <button type="button" @click="show = false" class="text-rose-600/70 hover:text-rose-800 p-0.5 rounded cursor-pointer shrink-0" title="Tutup">
+                        <span class="material-symbols-outlined" style="font-size:18px;">close</span>
+                    </button>
                 </div>
             @endif
 

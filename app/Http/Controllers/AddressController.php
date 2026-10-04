@@ -75,9 +75,23 @@ class AddressController extends Controller
             'district'       => 'nullable|string|max:100',
             'postal_code'    => 'required|string|max:10',
             'full_address'   => 'required|string',
+            'is_default'     => 'boolean',
         ]);
 
-        $address->update($data);
+        $user = Auth::user();
+
+        DB::transaction(function () use ($user, $address, $data) {
+            if (!empty($data['is_default'])) {
+                $user->addresses()->where('id', '!=', $address->id)->update(['is_default' => false]);
+                $data['is_default'] = true;
+            } else {
+                // Jika tidak dicentang dan alamat ini tadinya default, jangan biarkan tanpa default jika punya alamat lain
+                // Tapi jika user tidak mengirim is_default, pertahankan nilai sebelumnya
+                unset($data['is_default']);
+            }
+
+            $address->update($data);
+        });
 
         return redirect()->route('profile.addresses')
             ->with('success', 'Alamat berhasil diperbarui.');

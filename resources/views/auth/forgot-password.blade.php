@@ -44,7 +44,7 @@
 
 {{-- ─── Success Status Banner ───────────────────────────────────────────────── --}}
 @if (session('status'))
-    <div style="
+    <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition.duration.300ms style="
         margin-bottom: 14px;
         padding: 8px 12px;
         border-radius: 10px;

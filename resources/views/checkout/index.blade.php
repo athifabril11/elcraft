@@ -13,27 +13,45 @@
     {{-- ─── NOTIFIKASI SESI ────────────────────────────────── --}}
     @if(session('success'))
         <div class="max-w-[1280px] mx-auto px-5 md:px-8 lg:px-16 pt-6">
-            <div class="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-card flex items-center space-x-3" role="alert">
-                <span class="material-symbols-outlined !text-[18px]">check_circle</span>
-                <span>{{ session('success') }}</span>
+            <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition.duration.300ms
+                 class="bg-green-50 border border-green-200 text-green-800 text-xs sm:text-sm px-4 py-3 rounded-card flex items-center justify-between gap-3 shadow-2xs" role="alert">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="material-symbols-outlined !text-[20px] text-green-600 shrink-0">check_circle</span>
+                    <span class="font-medium">{{ session('success') }}</span>
+                </div>
+                <button type="button" @click="show = false" class="text-green-600/70 hover:text-green-800 p-0.5 rounded cursor-pointer shrink-0" title="Tutup">
+                    <span class="material-symbols-outlined !text-[18px]">close</span>
+                </button>
             </div>
         </div>
     @endif
 
     @if(session('info'))
         <div class="max-w-[1280px] mx-auto px-5 md:px-8 lg:px-16 pt-6">
-            <div class="bg-blue-50 border border-blue-200 text-blue-700 text-sm px-4 py-3 rounded-card flex items-center space-x-3" role="alert">
-                <span class="material-symbols-outlined !text-[18px]">info</span>
-                <span>{{ session('info') }}</span>
+            <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition.duration.300ms
+                 class="bg-blue-50 border border-blue-200 text-blue-800 text-xs sm:text-sm px-4 py-3 rounded-card flex items-center justify-between gap-3 shadow-2xs" role="alert">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="material-symbols-outlined !text-[20px] text-blue-600 shrink-0">info</span>
+                    <span class="font-medium">{{ session('info') }}</span>
+                </div>
+                <button type="button" @click="show = false" class="text-blue-600/70 hover:text-blue-800 p-0.5 rounded cursor-pointer shrink-0" title="Tutup">
+                    <span class="material-symbols-outlined !text-[18px]">close</span>
+                </button>
             </div>
         </div>
     @endif
 
     @if(session('error'))
         <div class="max-w-[1280px] mx-auto px-5 md:px-8 lg:px-16 pt-6">
-            <div class="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-card flex items-center space-x-3" role="alert">
-                <span class="material-symbols-outlined !text-[18px]">error</span>
-                <span>{{ session('error') }}</span>
+            <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition.duration.300ms
+                 class="bg-red-50 border border-red-200 text-red-800 text-xs sm:text-sm px-4 py-3 rounded-card flex items-center justify-between gap-3 shadow-2xs" role="alert">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="material-symbols-outlined !text-[20px] text-red-600 shrink-0">error</span>
+                    <span class="font-medium">{{ session('error') }}</span>
+                </div>
+                <button type="button" @click="show = false" class="text-red-600/70 hover:text-red-800 p-0.5 rounded cursor-pointer shrink-0" title="Tutup">
+                    <span class="material-symbols-outlined !text-[18px]">close</span>
+                </button>
             </div>
         </div>
     @endif
@@ -59,7 +77,16 @@
                         <label class="flex items-start gap-3 cursor-pointer p-3 rounded-card border border-warmLightGrey hover:border-brand/50 transition-colors has-[:checked]:border-brand has-[:checked]:bg-brand/5">
                             <input type="radio" name="saved_address" value="{{ $addr->id }}"
                                 class="mt-0.5 text-brand focus:ring-brand border-warmGrey/40"
-                                x-on:change="fillAddress({{ json_encode(['name' => $addr->recipient_name, 'phone' => $addr->phone, 'address' => $addr->full_address, 'city' => $addr->city, 'postal' => $addr->postal_code]) }})"
+                                x-on:change="fillAddress({{ json_encode([
+                                    'id'          => $addr->id,
+                                    'name'        => $addr->recipient_name,
+                                    'phone'       => $addr->phone,
+                                    'address'     => $addr->full_address,
+                                    'city'        => $addr->city,
+                                    'postal'      => $addr->postal_code,
+                                    'province_id' => $addr->province_id,
+                                    'city_id'     => $addr->city_id,
+                                ]) }})"
                                 {{ $addr->is_default ? 'checked' : '' }}>
                             <div class="flex-1 min-w-0">
                                 {{-- Label is always the user-typed field; badge is separate and only shown when is_default --}}
@@ -424,6 +451,7 @@
             provincesError: '',
             citiesLoading: false,
             costLoading: false,
+            selectedAddressId: {{ $addresses->firstWhere('is_default', true)?->id ?? ($addresses->first()?->id ?? 'null') }},
             selectedProvinceId: null,
             selectedCityId: null,
             selectedCityName: '',
@@ -455,12 +483,24 @@
                 return 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.round(amount));
             },
 
-            fillAddress(data) {
+            async fillAddress(data) {
+                this.selectedAddressId = data.id || null;
                 document.getElementById('recipient-name').value    = data.name   || '';
                 document.getElementById('recipient-phone').value   = data.phone  || '';
                 document.getElementById('recipient-address').value = data.address || '';
                 this.postalCode = data.postal || '';
                 if (data.city) this.selectedCityName = data.city;
+
+                if (data.province_id) {
+                    this.selectedProvinceId = data.province_id;
+                    await this.loadCities(data.province_id);
+                    if (data.city_id) {
+                        this.selectedCityId = data.city_id;
+                        const cityOpt = this.cities.find(c => c.id == data.city_id);
+                        if (cityOpt) this.selectedCityName = cityOpt.name;
+                        await this.fetchShippingCost();
+                    }
+                }
             },
 
             async loadProvinces() {
@@ -644,6 +684,7 @@
         const cityId       = alpine?.selectedCityId  ?? null;
         const cityName     = alpine?.selectedCityName ?? '';
         const provinceId   = alpine?.selectedProvinceId ?? null;
+        const addressId    = alpine?.selectedAddressId ?? null;
         const shippingCost = alpine?.selectedShipping?.cost ?? 0;
         const courier      = alpine?.selectedCourier ?? 'jne';
         const service      = alpine?.selectedShipping?.service ?? '';
@@ -681,6 +722,7 @@
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                 },
                 body: JSON.stringify({
+                    address_id:      addressId,
                     recipient_name:  name,
                     recipient_phone: phone,
                     full_address:    address,

@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ReturnRequest;
+use App\Traits\HasDateRangeFilter;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
+    use HasDateRangeFilter;
+
     /**
      * Tampilkan halaman Laporan & Analitik Penjualan el Craft.
      */
@@ -180,46 +183,5 @@ class ReportController extends Controller
             fclose($handle);
         }, 200, $headers);
     }
-
-    /**
-     * Hitung start_date dan end_date berdasarkan pilihan filter.
-     */
-    private function resolveDateRange(Request $request): array
-    {
-        $period = $request->query('period', 'this_month');
-
-        switch ($period) {
-            case 'today':
-                $startDate = Carbon::today()->startOfDay();
-                $endDate = Carbon::today()->endOfDay();
-                break;
-
-            case '7days':
-                $startDate = Carbon::now()->subDays(6)->startOfDay();
-                $endDate = Carbon::now()->endOfDay();
-                break;
-
-            case '30days':
-                $startDate = Carbon::now()->subDays(29)->startOfDay();
-                $endDate = Carbon::now()->endOfDay();
-                break;
-
-            case 'custom':
-                $startInput = $request->query('start_date');
-                $endInput = $request->query('end_date');
-
-                $startDate = $startInput ? Carbon::parse($startInput)->startOfDay() : Carbon::now()->startOfMonth();
-                $endDate = $endInput ? Carbon::parse($endInput)->endOfDay() : Carbon::now()->endOfDay();
-                break;
-
-            case 'this_month':
-            default:
-                $period = 'this_month';
-                $startDate = Carbon::now()->startOfMonth();
-                $endDate = Carbon::now()->endOfDay();
-                break;
-        }
-
-        return [$startDate, $endDate, $period];
-    }
 }
+

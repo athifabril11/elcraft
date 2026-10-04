@@ -55,6 +55,13 @@ class MidtransService
                 'gross_amount' => (int) $order['total'], // Harus integer (tidak ada desimal)
             ],
 
+            // ── Batas Waktu Pembayaran (Sinkron dengan Sistem) ───────
+            'expiry' => [
+                'start_time' => now()->setTimezone('Asia/Jakarta')->format('Y-m-d H:i:s O'),
+                'duration'   => 24,
+                'unit'       => 'hour',
+            ],
+
             // ── Detail Pelanggan ────────────────────────────────────
             'customer_details' => [
                 'first_name' => $customer['name'],

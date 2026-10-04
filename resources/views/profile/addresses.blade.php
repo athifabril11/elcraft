@@ -13,15 +13,27 @@
 
         {{-- Flash messages --}}
         @if(session('success'))
-            <div class="mb-6 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-card flex items-center space-x-3" role="alert">
-                <span class="material-symbols-outlined !text-[18px]">check_circle</span>
-                <span>{{ session('success') }}</span>
+            <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition.duration.300ms
+                 class="mb-6 bg-green-50 border border-green-200 text-green-800 text-xs sm:text-sm px-4 py-3 rounded-card flex items-center justify-between gap-3 shadow-2xs" role="alert">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="material-symbols-outlined !text-[20px] text-green-600 shrink-0">check_circle</span>
+                    <span class="font-medium">{{ session('success') }}</span>
+                </div>
+                <button type="button" @click="show = false" class="text-green-600/70 hover:text-green-800 p-0.5 rounded cursor-pointer shrink-0" title="Tutup">
+                    <span class="material-symbols-outlined !text-[18px]">close</span>
+                </button>
             </div>
         @endif
         @if(session('error'))
-            <div class="mb-6 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-card flex items-center space-x-3" role="alert">
-                <span class="material-symbols-outlined !text-[18px]">error</span>
-                <span>{{ session('error') }}</span>
+            <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition.duration.300ms
+                 class="mb-6 bg-red-50 border border-red-200 text-red-800 text-xs sm:text-sm px-4 py-3 rounded-card flex items-center justify-between gap-3 shadow-2xs" role="alert">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="material-symbols-outlined !text-[20px] text-red-600 shrink-0">error</span>
+                    <span class="font-medium">{{ session('error') }}</span>
+                </div>
+                <button type="button" @click="show = false" class="text-red-600/70 hover:text-red-800 p-0.5 rounded cursor-pointer shrink-0" title="Tutup">
+                    <span class="material-symbols-outlined !text-[18px]">close</span>
+                </button>
             </div>
         @endif
 
@@ -100,6 +112,12 @@
                 <form x-show="editId === {{ $addr->id }}" method="POST" action="{{ route('profile.addresses.update', $addr) }}" class="space-y-4">
                     @csrf @method('PUT')
                     @include('profile.partials.address-form', ['address' => $addr])
+                    @unless($addr->is_default)
+                    <div class="flex items-center gap-2 mt-1">
+                        <input type="checkbox" id="is_default_{{ $addr->id }}" name="is_default" value="1" class="rounded text-brand focus:ring-brand border-warmGrey/40">
+                        <label for="is_default_{{ $addr->id }}" class="text-xs text-warmGrey">Jadikan alamat utama</label>
+                    </div>
+                    @endunless
                     <button type="submit" class="w-full py-3 bg-brand hover:bg-brandDark text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors">
                         Simpan Perubahan
                     </button>

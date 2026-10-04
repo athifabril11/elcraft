@@ -34,3 +34,9 @@ h1, h2, h3, h4, h5, h6 {
         margin-top: 0;
     }
 }
+
+/* ─── Apple Glass & Neutral Form Focus Reset ─── */
+/* Mencegah default blue ring dari plugin tailwind forms */
+input:focus, select:focus, textarea:focus {
+    --tw-ring-color: transparent;
+}

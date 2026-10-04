@@ -67,7 +67,7 @@ class MidtransWebhookController extends Controller
             $transactionStatus === 'settlement' => $this->markAsPaid($orderId, $notification),
 
             // Pembayaran dalam proses / menunggu
-            in_array($transactionStatus, ['pending']) => $this->markAsPending($orderId),
+            in_array($transactionStatus, ['pending']) => $this->markAsPending($orderId, $notification),
 
             // Pembayaran ditolak atau kedaluwarsa
             in_array($transactionStatus, ['deny', 'expire', 'cancel']) => $this->markAsFailed($orderId, $transactionStatus),
@@ -148,17 +148,27 @@ class MidtransWebhookController extends Controller
             }
 
             // Decrement product variant/product stock
+            $variantProductIds = [];
             foreach ($order->items as $item) {
                 if ($item->variant_id) {
                     $variant = ProductVariant::find($item->variant_id);
                     if ($variant) {
                         $variant->decrement('stock', $item->quantity);
+                        $variantProductIds[$item->product_id ?? $variant->product_id] = true;
                     }
                 } else {
                     $product = Product::find($item->product_id);
                     if ($product) {
                         $product->decrement('stock', $item->quantity);
                     }
+                }
+            }
+
+            // Sinkronkan parent product stock untuk setiap produk yang variannya berkurang
+            foreach (array_keys($variantProductIds) as $productId) {
+                if ($productId) {
+                    $totalVariantStock = (int) ProductVariant::where('product_id', $productId)->sum('stock');
+                    Product::where('id', $productId)->update(['stock' => $totalVariantStock]);
                 }
             }
 
@@ -194,15 +204,36 @@ class MidtransWebhookController extends Controller
         });
     }
 
-    private function markAsPending(string $orderId): void
+    private function markAsPending(string $orderId, array $notification = []): void
     {
-        Log::info("Pesanan {$orderId} menunggu pembayaran");
+        Log::info("Pesanan {$orderId} menunggu pembayaran", $notification);
         
         $order = Order::where('order_number', $orderId)->first();
         if ($order) {
             $order->update(['status' => 'pending']);
             if ($order->payment) {
-                $order->payment->update(['status' => 'pending']);
+                $paymentUpdates = [
+                    'status' => 'pending',
+                ];
+
+                if (!empty($notification['payment_type'])) {
+                    $paymentUpdates['payment_method'] = $notification['payment_type'];
+                    $paymentUpdates['payment_type']   = $notification['payment_type'];
+                }
+
+                if (!empty($notification)) {
+                    $paymentUpdates['response_data'] = json_encode($notification);
+                }
+
+                if (!empty($notification['expiry_time'])) {
+                    try {
+                        $paymentUpdates['expired_at'] = \Carbon\Carbon::parse($notification['expiry_time']);
+                    } catch (\Exception $e) {
+                        Log::warning("Gagal parse expiry_time dari webhook: {$notification['expiry_time']}");
+                    }
+                }
+
+                $order->payment->update($paymentUpdates);
             }
         }
     }

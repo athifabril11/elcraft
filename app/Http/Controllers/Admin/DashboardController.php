@@ -6,10 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Courier;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\ReturnRequest;
+use App\Models\Review;
 use App\Models\ShippingDiscountRule;
 use App\Models\ShopSetting;
 use App\Models\User;
+use App\Traits\HasDateRangeFilter;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 /**
@@ -17,8 +21,12 @@ use Illuminate\Support\Carbon;
  */
 class DashboardController extends Controller
 {
-    public function index()
+    use HasDateRangeFilter;
+
+    public function index(Request $request)
     {
+        [$startDate, $endDate, $period] = $this->resolveDateRange($request, 'this_month');
+
         // 1. Revenue & Transactions
         $totalRevenue = (float) Order::where('status', 'selesai')->sum('total_amount');
         $thisMonthRevenue = (float) Order::where('status', 'selesai')
@@ -36,7 +44,34 @@ class DashboardController extends Controller
         $pendingReturnsCount = ReturnRequest::where('status', 'diajukan')->count();
         $inProgressReturnsCount = ReturnRequest::whereIn('status', ['disetujui', 'diproses'])->count();
 
-        // 4. Critical Stock (<= 3 pcs)
+        // 4. Critical Stock (<= 3 pcs) — Variant-aware ranking for Hero Card 3
+        $nonVariantLowStock = Product::where('is_active', true)
+            ->doesntHave('variants')
+            ->where('stock', '<=', 3)
+            ->get(['id', 'name', 'stock'])
+            ->map(fn($p) => [
+                'name'         => $p->name,
+                'stock'        => (int) $p->stock,
+                'product_id'   => $p->id,
+                'variant_name' => null,
+            ]);
+
+        $variantLowStock = ProductVariant::where('is_active', true)
+            ->where('stock', '<=', 3)
+            ->whereHas('product', fn($q) => $q->where('is_active', true))
+            ->with('product:id,name')
+            ->get()
+            ->map(fn($v) => [
+                'name'         => $v->product?->name ?? 'Produk',
+                'stock'        => (int) $v->stock,
+                'product_id'   => $v->product_id,
+                'variant_name' => $v->variant_name,
+            ]);
+
+        $allCriticalItems = $nonVariantLowStock->concat($variantLowStock)->sortBy('stock')->values();
+        $lowStockCriticalCount = $allCriticalItems->count();
+        $lowStockRanking = $allCriticalItems->take(5);
+
         $lowStockCount = Product::where('stock', '<=', 3)->where('is_active', true)->count();
         $lowStockProducts = Product::with('category')
             ->where('stock', '<=', 3)
@@ -51,19 +86,15 @@ class DashboardController extends Controller
         $newCustomersThisWeek = User::where('role', 'customer')
             ->where('created_at', '>=', Carbon::now()->subDays(7))
             ->count();
-        $recentCustomers = User::where('role', 'customer')
-            ->latest()
-            ->take(3)
-            ->get();
 
         // 6. Order Status Distribution Breakdown
         $orderCountsByStatus = [
-            'pending'    => Order::where('status', 'pending')->count(),
-            'paid'       => Order::where('status', 'paid')->count(),
-            'diproses'   => Order::where('status', 'diproses')->count(),
-            'dikirim'    => Order::where('status', 'dikirim')->count(),
-            'selesai'    => Order::where('status', 'selesai')->count(),
-            'dibatalkan' => Order::where('status', 'dibatalkan')->count(),
+            'pending'    => Order::where('status', 'pending')->whereBetween('created_at', [$startDate, $endDate])->count(),
+            'paid'       => Order::where('status', 'paid')->whereBetween('created_at', [$startDate, $endDate])->count(),
+            'diproses'   => Order::where('status', 'diproses')->whereBetween('created_at', [$startDate, $endDate])->count(),
+            'dikirim'    => Order::where('status', 'dikirim')->whereBetween('created_at', [$startDate, $endDate])->count(),
+            'selesai'    => Order::where('status', 'selesai')->whereBetween('created_at', [$startDate, $endDate])->count(),
+            'dibatalkan' => Order::where('status', 'dibatalkan')->whereBetween('created_at', [$startDate, $endDate])->count(),
         ];
         $totalOrders = array_sum($orderCountsByStatus);
 
@@ -107,17 +138,57 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        // 12. Weekly chart data (last 7 days revenue)
-        $weeklyRevenue = [];
+        // 12. Hero sparkline data (fixed to last 7 days revenue for real-time indicator)
+        $heroSparkline = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::today()->subDays($i);
-            $weeklyRevenue[] = [
+            $heroSparkline[] = [
                 'label' => $date->isoFormat('ddd'),
                 'revenue' => (float) Order::where('status', 'selesai')
                     ->whereDate('updated_at', $date)
                     ->sum('total_amount'),
             ];
         }
+
+        // 13. Range-aware chart data (filtered by selected period)
+        $daySpan = $startDate->diffInDays($endDate) + 1;
+
+        if ($daySpan <= 31) {
+            // Bucket by day
+            $chartRevenue = [];
+            for ($d = $startDate->copy(); $d->lte($endDate); $d->addDay()) {
+                $chartRevenue[] = [
+                    'label' => $d->isoFormat('D/M'),
+                    'revenue' => (float) Order::where('status', 'selesai')
+                        ->whereDate('updated_at', $d->format('Y-m-d'))
+                        ->sum('total_amount'),
+                ];
+            }
+        } else {
+            // Bucket by week for longer ranges (e.g. "Semua")
+            $chartRevenue = [];
+            $weekStart = $startDate->copy()->startOfWeek();
+            while ($weekStart->lte($endDate)) {
+                $weekEnd = $weekStart->copy()->endOfWeek();
+                $chartRevenue[] = [
+                    'label' => $weekStart->isoFormat('D/M'),
+                    'revenue' => (float) Order::where('status', 'selesai')
+                        ->whereBetween('updated_at', [$weekStart, $weekEnd->min($endDate)])
+                        ->sum('total_amount'),
+                ];
+                $weekStart->addWeek();
+            }
+        }
+
+        // 14. Customer Reviews & Ratings
+        $totalReviewsCount = Review::count();
+        $averageRating = (float) (Review::avg('rating') ?: 5.0);
+        $positiveReviewsCount = Review::where('rating', '>=', 4)->count();
+        $satisfactionRate = $totalReviewsCount > 0 ? round(($positiveReviewsCount / $totalReviewsCount) * 100) : 100;
+        $recentReviews = Review::with(['user', 'product'])
+            ->latest('created_at')
+            ->take(5)
+            ->get();
 
         return view('admin.dashboard', compact(
             'totalRevenue',
@@ -130,10 +201,11 @@ class DashboardController extends Controller
             'inProgressReturnsCount',
             'lowStockCount',
             'lowStockProducts',
+            'lowStockRanking',
+            'lowStockCriticalCount',
             'totalActiveProducts',
             'totalCustomers',
             'newCustomersThisWeek',
-            'recentCustomers',
             'orderCountsByStatus',
             'totalOrders',
             'originCity',
@@ -147,7 +219,15 @@ class DashboardController extends Controller
             'todayTransactionCount',
             'topProducts',
             'recentCustomersFull',
-            'weeklyRevenue'
+            'heroSparkline',
+            'chartRevenue',
+            'period',
+            'startDate',
+            'endDate',
+            'totalReviewsCount',
+            'averageRating',
+            'satisfactionRate',
+            'recentReviews'
         ));
     }
 }

@@ -59,7 +59,7 @@ class OrderController extends Controller
 
         // Hanya izinkan pembatalan untuk pesanan yang belum diproses
         if (!in_array($order->status, ['pending'])) {
-            return redirect()->route('orders.show', $orderNumber)
+            return redirect()->back()
                 ->with('error', 'Pesanan tidak dapat dibatalkan pada status saat ini.');
         }
 
@@ -70,17 +70,17 @@ class OrderController extends Controller
             $order->payment->update(['status' => 'failed']);
         }
 
-        return redirect()->route('orders.show', $orderNumber)
-            ->with('success', 'Pesanan berhasil dibatalkan.');
+        return redirect()->back()
+            ->with('success', 'Pesanan #' . $order->order_number . ' berhasil dibatalkan.');
     }
 
     /**
      * Kembalikan snap_token untuk melanjutkan pembayaran pesanan yang tertunda.
      *
-     * Dipanggil via fetch() dari halaman detail pesanan saat tombol
-     * "Lanjutkan Pembayaran" diklik. Response JSON:
-     *   { "expired": false, "snap_token": "..." }  — token masih valid
-     *   { "expired": true }                        — token habis, arahkan ke checkout
+     * Dipanggil via fetch() dari halaman pesanan saat tombol
+     * "Bayar Sekarang" / "Ganti Metode Bayar" diklik. Response JSON:
+     *   { "expired": false, "snap_token": "..." }  — token masih valid / berhasil digenerate
+     *   { "expired": true, "message": "..." }      — token kedaluwarsa / pesanan tidak valid
      *
      * @param  string  $orderNumber
      * @return \Illuminate\Http\JsonResponse
@@ -91,26 +91,177 @@ class OrderController extends Controller
         // firstOrFail() akan 404 jika pesanan bukan milik user ini.
         $order = Auth::user()
             ->orders()
-            ->with('payment')
+            ->with(['payment', 'items.product', 'items.variant', 'address'])
             ->where('order_number', $orderNumber)
             ->firstOrFail();
 
         // Hanya pesanan berstatus 'pending' yang dapat dilanjutkan
         if ($order->status !== 'pending') {
-            return response()->json(['expired' => true], 200);
+            return response()->json([
+                'expired' => true,
+                'message' => 'Pesanan ini sudah tidak berstatus menunggu pembayaran.'
+            ], 200);
         }
 
         $payment = $order->payment;
 
-        // Tidak ada data pembayaran, atau token sudah melewati 24 jam TTL-nya
-        if (!$payment || $payment->isExpired()) {
-            return response()->json(['expired' => true], 200);
+        // Jika payment ada dan belum expired serta memiliki snap_token
+        if ($payment && !$payment->isExpired() && !empty($payment->snap_token)) {
+            return response()->json([
+                'expired'    => false,
+                'snap_token' => $payment->snap_token,
+            ], 200);
         }
 
-        return response()->json([
-            'expired'    => false,
-            'snap_token' => $payment->snap_token,
-        ], 200);
+        // Jika token sudah kedaluwarsa atau belum ada, generate Snap token baru
+        try {
+            $midtrans = app(\App\Services\MidtransService::class);
+            $user = Auth::user();
+
+            $items = [];
+            foreach ($order->items as $item) {
+                $items[] = [
+                    'id'       => $item->variant_id ? $item->product_id . '-' . $item->variant_id : (string) $item->product_id,
+                    'price'    => (int) $item->price,
+                    'quantity' => $item->quantity,
+                    'name'     => $item->variant_name 
+                        ? substr($item->product_name . ' (' . $item->variant_name . ')', 0, 50) 
+                        : substr($item->product_name, 0, 50),
+                ];
+            }
+
+            if ($order->shipping_cost > 0) {
+                $items[] = [
+                    'id'       => 'SHIPPING',
+                    'price'    => (int) $order->shipping_cost,
+                    'quantity' => 1,
+                    'name'     => 'Ongkos Kirim',
+                ];
+            }
+
+            if ($order->voucher_discount > 0) {
+                $items[] = [
+                    'id'       => 'DISCOUNT',
+                    'price'    => -(int) $order->voucher_discount,
+                    'quantity' => 1,
+                    'name'     => 'Diskon Voucher',
+                ];
+            }
+
+            $snapData = $midtrans->createSnapToken([
+                'id'    => $order->order_number,
+                'total' => (int) $order->total_amount,
+                'items' => $items,
+            ], [
+                'name'  => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone ?? ($order->address?->phone ?? ''),
+            ]);
+
+            if ($payment) {
+                $payment->update([
+                    'snap_token' => $snapData['token'],
+                    'expired_at' => now()->addHours(24),
+                    'status'     => 'pending',
+                ]);
+            } else {
+                $order->payment()->create([
+                    'midtrans_order_id' => $order->order_number,
+                    'amount'            => $order->total_amount,
+                    'status'            => 'pending',
+                    'snap_token'        => $snapData['token'],
+                    'expired_at'        => now()->addHours(24),
+                ]);
+            }
+
+            return response()->json([
+                'expired'    => false,
+                'snap_token' => $snapData['token'],
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json(['expired' => true, 'message' => 'Sesi pembayaran kedaluwarsa.'], 200);
+        }
+    }
+
+    /**
+     * Beli lagi (re-order) produk dari pesanan yang dibatalkan atau selesai.
+     * Memasukkan produk ke keranjang belanja dan mengarahkan ke halaman checkout.
+     *
+     * @param  string  $orderNumber
+     */
+    public function reorder(string $orderNumber)
+    {
+        $order = Auth::user()
+            ->orders()
+            ->with(['items.product', 'items.variant'])
+            ->where('order_number', $orderNumber)
+            ->firstOrFail();
+
+        $user = Auth::user();
+        if ($user->role === 'admin') {
+            return redirect()->route('admin.dashboard')
+                ->with('error', 'Akun Administrator tidak dapat berbelanja.');
+        }
+
+        $cart = $user->cart;
+        $addedCount = 0;
+        $outOfStockCount = 0;
+
+        foreach ($order->items as $item) {
+            $product = $item->product;
+            $variant = $item->variant;
+
+            // Periksa ketersediaan produk & varian
+            if (!$product || !$product->is_active) {
+                $outOfStockCount++;
+                continue;
+            }
+
+            if ($item->variant_id && (!$variant || !$variant->is_active)) {
+                $outOfStockCount++;
+                continue;
+            }
+
+            $currentStock = $variant ? (int) $variant->stock : (int) $product->stock;
+            if ($currentStock <= 0) {
+                $outOfStockCount++;
+                continue;
+            }
+
+            $qtyToAdd = min($item->quantity, $currentStock);
+
+            $cart ??= $user->getOrCreateCart();
+
+            $existingCartItem = $cart->items()
+                ->where('product_id', $item->product_id)
+                ->where('variant_id', $item->variant_id)
+                ->first();
+
+            if ($existingCartItem) {
+                $newQty = min($existingCartItem->quantity + $qtyToAdd, $currentStock);
+                $existingCartItem->update(['quantity' => $newQty]);
+            } else {
+                $cart->items()->create([
+                    'product_id' => $item->product_id,
+                    'variant_id' => $item->variant_id,
+                    'quantity'   => $qtyToAdd,
+                ]);
+            }
+
+            $addedCount++;
+        }
+
+        if ($addedCount === 0) {
+            return redirect()->back()
+                ->with('error', 'Produk pada pesanan ini sedang habis atau tidak tersedia.');
+        }
+
+        $message = 'Produk dari pesanan #' . $order->order_number . ' telah dimasukkan ke keranjang belanja.';
+        if ($outOfStockCount > 0) {
+            $message .= ' Beberapa item mungkin dilewati karena stok habis.';
+        }
+
+        return redirect()->route('checkout.index')->with('success', $message);
     }
 
     /**

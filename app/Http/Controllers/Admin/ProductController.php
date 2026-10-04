@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -117,6 +118,7 @@ class ProductController extends Controller
             'variants.*.sku' => 'nullable|string|max:50',
             'variants.*.additional_price' => 'nullable|numeric|min:0',
             'variants.*.stock' => 'nullable|integer|min:0',
+            'variants.*.is_active' => 'nullable',
         ]);
 
         DB::transaction(function () use ($request, $validated) {
@@ -178,6 +180,8 @@ class ProductController extends Controller
                     if (empty($var['variant_name'])) continue;
 
                     $vStock = isset($var['stock']) && $var['stock'] !== '' ? (int) $var['stock'] : 0;
+                    $isActive = !array_key_exists('is_active', $var) ? true : (!empty($var['is_active']) && ($var['is_active'] == '1' || $var['is_active'] === true || $var['is_active'] === 'true' || $var['is_active'] === 'on'));
+
                     ProductVariant::create([
                         'product_id' => $product->id,
                         'variant_name' => $var['variant_name'],
@@ -185,7 +189,7 @@ class ProductController extends Controller
                         'additional_price' => $var['additional_price'] ?? 0,
                         'stock' => $vStock,
                         'sku' => !empty($var['sku']) ? strtoupper(trim($var['sku'])) : null,
-                        'is_active' => true,
+                        'is_active' => $isActive,
                     ]);
 
                     $totalVariantStock += $vStock;
@@ -230,6 +234,7 @@ class ProductController extends Controller
             'variants.*.sku' => 'nullable|string|max:50',
             'variants.*.additional_price' => 'nullable|numeric|min:0',
             'variants.*.stock' => 'nullable|integer|min:0',
+            'variants.*.is_active' => 'nullable',
         ]);
 
         DB::transaction(function () use ($request, $validated, $product) {
@@ -287,13 +292,15 @@ class ProductController extends Controller
                     if (empty($var['variant_name'])) continue;
 
                     $vStock = isset($var['stock']) && $var['stock'] !== '' ? (int) $var['stock'] : 0;
+                    $isActive = !array_key_exists('is_active', $var) ? true : (!empty($var['is_active']) && ($var['is_active'] == '1' || $var['is_active'] === true || $var['is_active'] === 'true' || $var['is_active'] === 'on'));
+
                     $varData = [
                         'variant_name' => $var['variant_name'],
                         'variant_type' => 'Opsi',
                         'additional_price' => $var['additional_price'] ?? 0,
                         'stock' => $vStock,
                         'sku' => !empty($var['sku']) ? strtoupper(trim($var['sku'])) : null,
-                        'is_active' => true,
+                        'is_active' => $isActive,
                     ];
 
                     if (!empty($var['id'])) {
@@ -324,6 +331,23 @@ class ProductController extends Controller
 
         return redirect()->route('admin.products.index')
             ->with('success', "Produk \"{$product->name}\" berhasil diperbarui.");
+    }
+
+    /**
+     * Toggle status aktif/nonaktif varian produk (AJAX).
+     */
+    public function toggleVariant(Product $product, ProductVariant $variant): JsonResponse
+    {
+        if ($variant->product_id !== $product->id) {
+            abort(404, 'Varian tidak ditemukan untuk produk ini.');
+        }
+
+        $variant->update(['is_active' => !$variant->is_active]);
+
+        return response()->json([
+            'success' => true,
+            'is_active' => (bool) $variant->is_active,
+        ]);
     }
 
     /**

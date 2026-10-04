@@ -114,5 +114,108 @@ class DashboardAdminTest extends TestCase
         $response->assertSee('Ringkasan Toko el Craft');
         $response->assertSee('Kalung Mutiara');
         $response->assertSee('ORD-TEST-1');
+        $response->assertViewHas('chartRevenue');
+        $response->assertViewHas('heroSparkline');
+        $response->assertViewHas('period', 'this_month');
+    }
+
+    public function test_admin_can_filter_dashboard_by_period(): void
+    {
+        $admin = $this->admin();
+        $customer = $this->customer();
+
+        $addr = $customer->addresses()->create([
+            'label' => 'Rumah',
+            'recipient_name' => $customer->name,
+            'phone' => '081234567890',
+            'province' => 'Jawa Timur',
+            'city' => 'Jember',
+            'district' => 'Sumbersari',
+            'postal_code' => '68121',
+            'full_address' => 'Jl. Mutiara No. 5',
+        ]);
+
+        // Order today
+        Order::create([
+            'order_number' => 'ORD-TODAY',
+            'user_id' => $customer->id,
+            'address_id' => $addr->id,
+            'subtotal' => 100000,
+            'total_amount' => 100000,
+            'status' => 'paid',
+            'created_at' => now(),
+        ]);
+
+        // Order 45 days ago
+        $oldOrder = Order::create([
+            'order_number' => 'ORD-OLD',
+            'user_id' => $customer->id,
+            'address_id' => $addr->id,
+            'subtotal' => 200000,
+            'total_amount' => 200000,
+            'status' => 'paid',
+        ]);
+        $oldOrder->timestamps = false;
+        $oldOrder->created_at = now()->subDays(45);
+        $oldOrder->save();
+
+        // 1. Period = today
+        $responseToday = $this->actingAs($admin)->get('/admin/dashboard?period=today');
+        $responseToday->assertOk();
+        $responseToday->assertViewHas('period', 'today');
+        $orderCountsToday = $responseToday->viewData('orderCountsByStatus');
+        $this->assertEquals(1, $orderCountsToday['paid']);
+        $this->assertCount(7, $responseToday->viewData('heroSparkline'));
+
+        // 2. Period = all
+        $responseAll = $this->actingAs($admin)->get('/admin/dashboard?period=all');
+        $responseAll->assertOk();
+        $responseAll->assertViewHas('period', 'all');
+        $orderCountsAll = $responseAll->viewData('orderCountsByStatus');
+        $this->assertEquals(2, $orderCountsAll['paid']);
+        $this->assertCount(7, $responseAll->viewData('heroSparkline'));
+
+        // Check filter pill renders
+        $responseAll->assertSee('Semua');
+        $responseAll->assertSee('Tren Penjualan');
+        $responseAll->assertSee('(Semua Waktu)');
+    }
+
+    public function test_dashboard_deduplication_of_stock_and_customer_cards(): void
+    {
+        $admin = $this->admin();
+        $customer = $this->customer();
+
+        $cat = Category::create(['name' => 'Kalung', 'slug' => 'kalung', 'is_active' => true]);
+        Product::create([
+            'category_id' => $cat->id,
+            'name' => 'Produk Kritis Test',
+            'slug' => 'produk-kritis-test',
+            'price' => 50000,
+            'stock' => 1,
+            'weight' => 100,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($admin)->get('/admin/dashboard');
+        $response->assertOk();
+
+        // Top dismissible alert banner shows low stock product details and close button
+        $response->assertSee('Peringatan Stok Menipis');
+        $response->assertSee('Produk Kritis Test');
+        $response->assertSee('Sisa 1');
+        $response->assertSee('Tutup Notifikasi');
+
+        // Row 1 Card 3 shows Stok Kritis card
+        $response->assertSee('Stok Kritis');
+        $response->assertSee('Produk Stok Menipis');
+
+        // Row 5 shows Recent Reviews widget alongside Top Products
+        $response->assertSee('Ulasan Terbaru');
+
+        // Row 2 Pelanggan Terdaftar card does not show avatar preview row
+        $response->assertDontSee('Pelanggan terbaru');
     }
 }
+
+

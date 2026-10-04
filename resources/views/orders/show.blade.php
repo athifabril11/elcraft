@@ -9,28 +9,37 @@
     {{-- ─── HEADER ────────────────────────────────── --}}
     <x-page-header title="Detail Pesanan" :back-url="route('orders.index')">
         @if($order->status === 'pending')
-            <div class="flex items-center gap-2">
-                {{-- Lanjutkan Pembayaran --}}
+            <div class="flex items-center gap-2 flex-wrap">
+                {{-- Bayar Sekarang --}}
                 <button id="btn-resume-payment"
                     data-order="{{ $order->order_number }}"
                     data-resume-url="{{ route('orders.resume-payment', $order->order_number) }}"
                     onclick="resumeOrderPayment(this)"
-                    class="flex items-center gap-2 px-4 py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200">
+                    class="flex items-center gap-2 px-4 py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200 shadow-2xs cursor-pointer">
                     <span class="material-symbols-outlined !text-[16px]">payments</span>
-                    <span id="btn-resume-text">Lanjutkan Pembayaran</span>
+                    <span id="btn-resume-text">Bayar Sekarang</span>
                 </button>
 
                 {{-- Batalkan Pesanan --}}
                 <form method="POST" action="{{ route('orders.cancel', $order->order_number) }}"
-                    onsubmit="return confirm('Batalkan pesanan ini? Tindakan ini tidak dapat dibatalkan.')">
+                    onsubmit="return confirm('Batalkan pesanan #{{ $order->order_number }}? Tindakan ini tidak dapat dibatalkan.')">
                     @csrf
                     <button type="submit"
-                        class="flex items-center gap-2 px-4 py-2.5 border border-red-300 text-red-500 hover:bg-red-50 font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200">
+                        class="flex items-center gap-2 px-4 py-2.5 border border-red-300 text-red-500 hover:bg-red-50 font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200 cursor-pointer">
                         <span class="material-symbols-outlined !text-[16px]">cancel</span>
                         Batalkan Pesanan
                     </button>
                 </form>
             </div>
+        @elseif(in_array($order->status, ['dibatalkan', 'selesai']))
+            <form method="POST" action="{{ route('orders.reorder', $order->order_number) }}">
+                @csrf
+                <button type="submit"
+                    class="flex items-center gap-2 px-4 py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200 shadow-2xs cursor-pointer">
+                    <span class="material-symbols-outlined !text-[16px]">shopping_cart</span>
+                    Beli Lagi
+                </button>
+            </form>
         @endif
     </x-page-header>
 
@@ -50,15 +59,27 @@
     @if(session('success') || session('error'))
         <div class="max-w-[1280px] mx-auto px-5 md:px-8 lg:px-16 pt-6">
             @if(session('success'))
-                <div class="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-card flex items-center space-x-3">
-                    <span class="material-symbols-outlined !text-[18px]">check_circle</span>
-                    <span>{{ session('success') }}</span>
+                <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition.duration.300ms
+                     class="bg-green-50 border border-green-200 text-green-800 text-xs sm:text-sm px-4 py-3 rounded-card flex items-center justify-between gap-3 shadow-2xs" role="alert">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="material-symbols-outlined !text-[20px] text-green-600 shrink-0">check_circle</span>
+                        <span class="font-medium">{{ session('success') }}</span>
+                    </div>
+                    <button type="button" @click="show = false" class="text-green-600/70 hover:text-green-800 p-0.5 rounded cursor-pointer shrink-0" title="Tutup">
+                        <span class="material-symbols-outlined !text-[18px]">close</span>
+                    </button>
                 </div>
             @endif
             @if(session('error'))
-                <div class="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-card flex items-center space-x-3">
-                    <span class="material-symbols-outlined !text-[18px]">error</span>
-                    <span>{{ session('error') }}</span>
+                <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" x-transition.duration.300ms
+                     class="bg-red-50 border border-red-200 text-red-800 text-xs sm:text-sm px-4 py-3 rounded-card flex items-center justify-between gap-3 shadow-2xs" role="alert">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="material-symbols-outlined !text-[20px] text-red-600 shrink-0">error</span>
+                        <span class="font-medium">{{ session('error') }}</span>
+                    </div>
+                    <button type="button" @click="show = false" class="text-red-600/70 hover:text-red-800 p-0.5 rounded cursor-pointer shrink-0" title="Tutup">
+                        <span class="material-symbols-outlined !text-[18px]">close</span>
+                    </button>
                 </div>
             @endif
         </div>
@@ -98,6 +119,39 @@
                             </div>
                         </div>
                     </div>
+
+                    @if($order->status === 'pending' && $order->payment_expires_at)
+                        {{-- Expiry Alert Box with Live Countdown --}}
+                        <div x-data="orderTimer('{{ $order->payment_expires_at->toISOString() }}')" x-init="initTimer()"
+                             class="p-4 rounded-xl bg-amber-50 border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0">
+                                    <span class="material-symbols-outlined !text-[22px] animate-pulse">timer</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-xs font-bold text-amber-900 uppercase tracking-wider">Menunggu Pembayaran</h3>
+                                    <p class="text-xs text-amber-800 mt-0.5">
+                                        Batas waktu: <span class="font-bold">{{ $order->payment_expires_at->format('d M Y, H:i') }} WIB</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2 self-start sm:self-auto">
+                                <div class="px-3.5 py-1.5 rounded-lg bg-white border border-amber-300 shadow-2xs text-center">
+                                    <span class="text-[9px] uppercase font-sans text-amber-600 font-bold block leading-tight">Sisa Waktu</span>
+                                    <span x-text="timeLeft" class="text-sm font-mono font-bold text-amber-950 tracking-wider">--:--:--</span>
+                                </div>
+                                <button type="button"
+                                    data-order="{{ $order->order_number }}"
+                                    data-resume-url="{{ route('orders.resume-payment', $order->order_number) }}"
+                                    onclick="resumeOrderPayment(this)"
+                                    class="px-3.5 py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors shadow-2xs cursor-pointer inline-flex items-center gap-1.5">
+                                    <span class="material-symbols-outlined !text-[15px]">payments</span>
+                                    <span>Bayar</span>
+                                </button>
+                            </div>
+                        </div>
+                    @endif
                 </div>
 
                 {{-- Order Items Card --}}
@@ -257,7 +311,7 @@
                                     {{ match($order->payment->status) {
                                         'success' => 'Berhasil',
                                         'failed'  => 'Gagal',
-                                        default   => 'Menunggu'
+                                        default   => 'Menunggu Pembayaran'
                                     } }}
                                 </span>
                             </div>
@@ -265,6 +319,11 @@
                                 <div class="flex justify-between">
                                     <span class="text-warmGrey">Dibayar pada</span>
                                     <span class="text-warmBlack">{{ \Carbon\Carbon::parse($order->payment->paid_at)->format('d M Y, H:i') }}</span>
+                                </div>
+                            @elseif($order->status === 'pending' && $order->payment_expires_at)
+                                <div class="flex justify-between text-amber-800">
+                                    <span>Batas Waktu</span>
+                                    <span class="font-medium font-mono">{{ $order->payment_expires_at->format('d M Y, H:i') }} WIB</span>
                                 </div>
                             @endif
                         </div>
@@ -299,8 +358,39 @@
 
                 {{-- Actions --}}
                 <div class="space-y-3">
+                    @if($order->status === 'pending')
+                        <button type="button"
+                            data-order="{{ $order->order_number }}"
+                            data-resume-url="{{ route('orders.resume-payment', $order->order_number) }}"
+                            onclick="resumeOrderPayment(this)"
+                            class="w-full flex items-center justify-center gap-2 py-3 bg-brand hover:bg-brandDark text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200 shadow-2xs cursor-pointer">
+                            <span class="material-symbols-outlined !text-[18px]">payments</span>
+                            <span>Bayar Sekarang</span>
+                        </button>
+
+                        <form method="POST" action="{{ route('orders.cancel', $order->order_number) }}"
+                            onsubmit="return confirm('Apakah Anda yakin ingin membatalkan pesanan ini?')">
+                            @csrf
+                            <button type="submit"
+                                class="w-full flex items-center justify-center gap-2 py-2.5 border border-rose-300 text-rose-600 hover:bg-rose-50 font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200 cursor-pointer">
+                                <span class="material-symbols-outlined !text-[16px]">cancel</span>
+                                <span>Batalkan Pesanan</span>
+                            </button>
+                        </form>
+                    @endif
+
+                    @if(in_array($order->status, ['dibatalkan', 'selesai']))
+                        <form method="POST" action="{{ route('orders.reorder', $order->order_number) }}">
+                            @csrf
+                            <button type="submit"
+                                class="w-full flex items-center justify-center gap-2 py-3 bg-brand hover:bg-brandDark text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200 shadow-2xs cursor-pointer">
+                                <span class="material-symbols-outlined !text-[18px]">shopping_cart</span>
+                                <span>Beli Lagi</span>
+                            </button>
+                        </form>
+                    @endif
+
                     @if($order->status === 'dikirim')
-                        {{-- Konfirmasi Pesanan Diterima --}}
                         <form method="POST" action="{{ route('orders.confirm-received', $order->order_number) }}"
                             onsubmit="return confirm('Konfirmasi bahwa pesanan sudah Anda terima?')">
                             @csrf
@@ -332,12 +422,6 @@
                         class="block w-full text-center py-3 border border-brand text-brand hover:bg-warmCream font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200">
                         Kembali ke Pesanan
                     </a>
-                    @if($order->status === 'selesai')
-                        <a href="/products"
-                            class="block w-full text-center py-3 bg-brand hover:bg-brandDark text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200">
-                            Belanja Lagi
-                        </a>
-                    @endif
                 </div>
 
             </div>
@@ -476,6 +560,32 @@
         </div>
     </div>
 </div>
+
+{{-- Popup Notifikasi: Menunggu Pembayaran --}}
+<div id="pending-payment-modal"
+     class="fixed inset-0 z-[200] hidden items-center justify-center px-5 bg-warmBlack/50 backdrop-blur-sm">
+    <div class="bg-white rounded-card border border-warmLightGrey p-8 max-w-sm w-full text-center shadow-lg relative">
+        <button type="button" onclick="closePendingPaymentModal()"
+                aria-label="Tutup"
+                class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full text-warmGrey hover:bg-warmCream hover:text-warmBlack transition-colors cursor-pointer">
+            <span class="material-symbols-outlined !text-[20px]">close</span>
+        </button>
+
+        <div class="w-16 h-16 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto mb-5">
+            <span class="material-symbols-outlined text-amber-600 !text-[34px]">schedule</span>
+        </div>
+        <h3 class="text-lg font-semibold text-warmBlack mb-2">Menunggu Pembayaran</h3>
+        <p class="text-sm text-warmGrey leading-relaxed mb-6">
+            Pesanan Anda sudah dibuat dan masih menunggu pembayaran.
+            Silakan selesaikan pembayaran agar pesanan segera diproses.
+        </p>
+
+        <button type="button" onclick="closePendingPaymentModal()"
+                class="w-full py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-sm rounded-btn transition-colors duration-200 cursor-pointer">
+            Kembali ke Beranda
+        </button>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -487,8 +597,64 @@
 @endif
 
 <script>
+function orderTimer(expiryIsoString) {
+    return {
+        expiry: expiryIsoString ? new Date(expiryIsoString).getTime() : null,
+        timeLeft: '24:00:00',
+        isExpired: false,
+        interval: null,
+
+        initTimer() {
+            if (!this.expiry) {
+                this.timeLeft = '-';
+                return;
+            }
+            this.update();
+            this.interval = setInterval(() => this.update(), 1000);
+        },
+
+        update() {
+            const now = new Date().getTime();
+            const diff = this.expiry - now;
+
+            if (diff <= 0) {
+                this.timeLeft = 'Kedaluwarsa';
+                this.isExpired = true;
+                if (this.interval) clearInterval(this.interval);
+                return;
+            }
+
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            const hh = String(hours).padStart(2, '0');
+            const mm = String(minutes).padStart(2, '0');
+            const ss = String(seconds).padStart(2, '0');
+
+            this.timeLeft = `${hh}:${mm}:${ss}`;
+        }
+    };
+}
+
 /**
- * resumeOrderPayment — dipanggil saat tombol "Lanjutkan Pembayaran" diklik.
+ * Popup notifikasi "Menunggu Pembayaran" — menggantikan redirect ke halaman
+ * "Menunggu Pembayaran" yang sebelumnya terjadi saat Snap ditutup/di-pending
+ * dari halaman detail pesanan. Tombol X / close membawa user kembali ke beranda.
+ */
+function showPendingPaymentModal() {
+    const modal = document.getElementById('pending-payment-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closePendingPaymentModal() {
+    window.location.href = '{{ url('/') }}';
+}
+
+/**
+ * resumeOrderPayment — dipanggil saat tombol "Bayar Sekarang" diklik.
  *
  * 1. Fetch endpoint resume-payment untuk mendapatkan snap_token.
  * 2. Jika expired, tampilkan pesan dan redirect ke /checkout setelah 1.5 detik.
@@ -497,10 +663,10 @@
  */
 async function resumeOrderPayment(btn) {
     const resumeUrl = btn.dataset.resumeUrl;
-    const defaultBtnHtml = `<span class="material-symbols-outlined !text-[16px]">payments</span><span id="btn-resume-text">Lanjutkan Pembayaran</span>`;
+    const defaultBtnHtml = btn.innerHTML;
 
     btn.disabled = true;
-    btn.innerHTML = `<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span><span id="btn-resume-text">Memproses...</span>`;
+    btn.innerHTML = `<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span><span>Memproses...</span>`;
 
     try {
         const response = await fetch(resumeUrl, {
@@ -518,14 +684,10 @@ async function resumeOrderPayment(btn) {
         const data = await response.json();
 
         if (data.expired) {
-            // Token sudah kedaluwarsa — arahkan pengguna kembali ke checkout
-            // (createSnapToken akan otomatis membatalkan pesanan pending lama ini)
-            btn.innerHTML = `<span id="btn-resume-text">Sesi kedaluwarsa...</span>`;
-            const notice = document.createElement('p');
-            notice.className = 'text-xs text-yellow-700 mt-2 text-center';
-            notice.textContent = 'Sesi pembayaran sudah kedaluwarsa, mengarahkan ke checkout...';
-            btn.parentElement.insertAdjacentElement('afterend', notice);
-            setTimeout(() => { window.location.href = '/checkout'; }, 1500);
+            btn.innerHTML = `<span>Kedaluwarsa</span>`;
+            alert('Sesi pembayaran ini telah kedaluwarsa.');
+            btn.disabled = false;
+            btn.innerHTML = defaultBtnHtml;
             return;
         }
 
@@ -539,15 +701,20 @@ async function resumeOrderPayment(btn) {
                 window.location.href = `{{ route('checkout.finish') }}?order_id=${result.order_id}&transaction_status=${result.transaction_status}`;
             },
             onPending: (result) => {
-                window.location.href = `{{ route('checkout.finish') }}?order_id=${result.order_id}&transaction_status=pending`;
+                // Dari halaman detail: tampilkan popup notifikasi, jangan redirect
+                // ke halaman "Menunggu Pembayaran" (halaman itu hanya untuk alur checkout).
+                showPendingPaymentModal();
             },
             onError: (result) => {
                 console.error('Midtrans error:', result);
                 window.location.href = '{{ route("checkout.error") }}';
             },
             onClose: () => {
+                // Popup Snap ditutup tanpa pembayaran sukses — tampilkan notifikasi
+                // "Menunggu Pembayaran" dengan tombol close yang kembali ke beranda.
                 btn.disabled = false;
                 btn.innerHTML = defaultBtnHtml;
+                showPendingPaymentModal();
             },
         });
 
