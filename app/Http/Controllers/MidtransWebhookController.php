@@ -9,9 +9,11 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Voucher;
 use App\Models\VoucherUsage;
+use App\Mail\PaymentSuccessMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * MidtransWebhookController — Penanganan notifikasi pembayaran asinkron
@@ -85,7 +87,9 @@ class MidtransWebhookController extends Controller
     {
         Log::info("Pesanan {$orderId} telah lunas", ['payment_type' => $notification['payment_type']]);
 
-        DB::transaction(function () use ($orderId, $notification) {
+        $shouldSendEmail = false;
+
+        DB::transaction(function () use ($orderId, $notification, &$shouldSendEmail) {
             // ── Idempotency lock ────────────────────────────────────────────
             // lockForUpdate() acquires a row-level exclusive lock (SELECT ... FOR UPDATE).
             // If two webhook deliveries arrive simultaneously, the second one blocks here
@@ -114,6 +118,7 @@ class MidtransWebhookController extends Controller
 
             // Update order status
             $order->update(['status' => 'paid']);
+            $shouldSendEmail = true;
 
             // Kosongkan keranjang belanja pelanggan setelah pembayaran terkonfirmasi.
             // Ini server-side (bukan bergantung pada redirect browser) supaya reliable
@@ -202,6 +207,22 @@ class MidtransWebhookController extends Controller
                 }
             }
         });
+
+        // ── 4. Kirim email konfirmasi pembayaran sukses / invoice kepada pelanggan ──
+        if ($shouldSendEmail) {
+            $paidOrder = Order::where('order_number', $orderId)
+                ->with(['items', 'address', 'payment', 'shipment', 'user'])
+                ->first();
+
+            if ($paidOrder && $paidOrder->user?->email) {
+                try {
+                    Mail::to($paidOrder->user->email)->send(new PaymentSuccessMail($paidOrder));
+                    Log::info("Email konfirmasi pembayaran berhasil dikirim ke {$paidOrder->user->email} untuk pesanan {$orderId}");
+                } catch (\Throwable $e) {
+                    Log::error("Midtrans webhook: Gagal mengirim email konfirmasi pembayaran untuk pesanan {$orderId}: " . $e->getMessage());
+                }
+            }
+        }
     }
 
     private function markAsPending(string $orderId, array $notification = []): void
