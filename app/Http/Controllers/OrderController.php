@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Services\MidtransService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * OrderController — Riwayat & Detail Pesanan Pelanggan.
@@ -48,30 +50,66 @@ class OrderController extends Controller
      * Batalkan pesanan jika statusnya masih memungkinkan.
      * Hanya pesanan berstatus 'pending' yang dapat dibatalkan oleh pelanggan.
      *
+     * Menggunakan DB transaction + lockForUpdate untuk mencegah race condition
+     * dengan webhook Midtrans yang bisa saja memproses pembayaran secara bersamaan.
+     *
      * @param  string  $orderNumber
      */
     public function cancel(string $orderNumber)
     {
+        // Ownership check — another user's order stays 404
         $order = Auth::user()
             ->orders()
             ->where('order_number', $orderNumber)
             ->firstOrFail();
 
-        // Hanya izinkan pembatalan untuk pesanan yang belum diproses
-        if (!in_array($order->status, ['pending'])) {
+        $result = DB::transaction(function () use ($order) {
+            // Re-fetch with a row lock to prevent concurrent writes
+            $locked = Order::lockForUpdate()->findOrFail($order->id);
+
+            // Hanya izinkan pembatalan untuk pesanan yang belum diproses
+            if ($locked->status !== 'pending') {
+                return ['action' => 'not_pending'];
+            }
+
+            // Batalkan di sisi Midtrans sebelum mengubah database lokal
+            $midtrans = app(MidtransService::class);
+            $cancel   = $midtrans->cancelTransaction($locked->order_number);
+
+            if (in_array($cancel['outcome'], ['cancelled', 'not_found'])) {
+                $locked->update(['status' => 'dibatalkan']);
+
+                if ($locked->payment) {
+                    $locked->payment->update(['status' => 'failed']);
+                }
+
+                return ['action' => 'cancelled'];
+            }
+
+            // 'cannot_modify' or 'error' — do not change local data
+            Log::warning('OrderController::cancel — Midtrans cancellation blocked', [
+                'order_number' => $locked->order_number,
+                'outcome'      => $cancel['outcome'],
+                'status_code'  => $cancel['status_code'] ?? null,
+                'message'      => $cancel['message'] ?? '',
+            ]);
+
+            return ['action' => 'blocked', 'outcome' => $cancel['outcome']];
+        });
+
+        if ($result['action'] === 'not_pending') {
             return redirect()->back()
                 ->with('error', 'Pesanan tidak dapat dibatalkan pada status saat ini.');
         }
 
-        $order->update(['status' => 'dibatalkan']);
-
-        // Tandai pembayaran sebagai gagal jika ada
-        if ($order->payment) {
-            $order->payment->update(['status' => 'failed']);
+        if ($result['action'] === 'cancelled') {
+            return redirect()->back()
+                ->with('success', 'Pesanan #' . $order->order_number . ' berhasil dibatalkan.');
         }
 
+        // blocked
         return redirect()->back()
-            ->with('success', 'Pesanan #' . $order->order_number . ' berhasil dibatalkan.');
+            ->with('error', 'Pesanan belum bisa dibatalkan karena pembayaran sedang diproses. Muat ulang halaman beberapa saat lagi atau hubungi kami.');
     }
 
     /**

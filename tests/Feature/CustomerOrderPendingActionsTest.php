@@ -110,6 +110,13 @@ class CustomerOrderPendingActionsTest extends TestCase
         $user = User::factory()->create();
         $order = $this->createOrderForUser($user, 'pending');
 
+        \Illuminate\Support\Facades\Http::fake([
+            '*/v2/*/cancel' => \Illuminate\Support\Facades\Http::response(
+                ['status_code' => '200', 'status_message' => 'Success, transaction is canceled'],
+                200
+            ),
+        ]);
+
         $response = $this->actingAs($user)->post(route('orders.cancel', $order->order_number));
 
         $response->assertRedirect();

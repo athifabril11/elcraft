@@ -162,4 +162,60 @@ class MidtransService
 
         return hash_equals($expectedSignature, $notification['signature_key'] ?? '');
     }
+
+    /**
+     * Batalkan transaksi di sisi Midtrans melalui Core API.
+     *
+     * Mengirim POST ke {coreApiBase}/v2/{orderId}/cancel dan mengembalikan
+     * array ternormalisasi tanpa pernah melempar exception.
+     *
+     * @param  string  $orderId  Nomor pesanan yang dikirim ke Midtrans
+     * @return array  ['outcome' => string, 'status_code' => int|null, 'message' => string]
+     *                outcome: 'cancelled' | 'not_found' | 'cannot_modify' | 'error'
+     */
+    public function cancelTransaction(string $orderId): array
+    {
+        $coreApiBase = $this->isProduction
+            ? 'https://api.midtrans.com'
+            : 'https://api.sandbox.midtrans.com';
+
+        $url = $coreApiBase . '/v2/' . $orderId . '/cancel';
+
+        try {
+            $response = Http::withBasicAuth($this->serverKey, '')
+                ->timeout(8)
+                ->post($url);
+
+            $body       = $response->json() ?? [];
+            $statusCode = isset($body['status_code'])
+                ? (int) $body['status_code']
+                : $response->status();
+
+            $message = $body['status_message'] ?? $body['message'] ?? '';
+
+            $outcome = match ($statusCode) {
+                200     => 'cancelled',
+                404     => 'not_found',
+                412     => 'cannot_modify',
+                default => 'error',
+            };
+
+            return [
+                'outcome'     => $outcome,
+                'status_code' => $statusCode,
+                'message'     => $message,
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('MidtransService::cancelTransaction exception', [
+                'order_id'  => $orderId,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return [
+                'outcome'     => 'error',
+                'status_code' => null,
+                'message'     => $e->getMessage(),
+            ];
+        }
+    }
 }
