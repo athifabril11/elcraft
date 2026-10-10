@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\ReturnStatusMail;
 use App\Models\ReturnRequest;
 use App\Services\RefundService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * Admin\ReturnController - Pengelolaan pengajuan retur pelanggan.
@@ -107,6 +110,8 @@ class ReturnController extends Controller
                 ->with('error', 'Retur ini tidak dalam status Diajukan dan tidak dapat disetujui.');
         }
 
+        $this->sendReturnStatusEmail($return, 'approved');
+
         return redirect()->route('admin.returns.index')
             ->with('success', 'Retur #' . $return->return_number . ' telah disetujui.');
     }
@@ -141,6 +146,8 @@ class ReturnController extends Controller
             return redirect()->route('admin.returns.index')
                 ->with('error', 'Retur ini tidak dalam status Diajukan dan tidak dapat ditolak.');
         }
+
+        $this->sendReturnStatusEmail($return, 'rejected');
 
         return redirect()->route('admin.returns.index')
             ->with('success', 'Retur #' . $return->return_number . ' telah ditolak.');
@@ -204,6 +211,10 @@ class ReturnController extends Controller
     {
         $result = $refunds->processApiRefund($return);
 
+        if ($result['success']) {
+            $this->sendReturnStatusEmail($return, 'refund_completed');
+        }
+
         return redirect()->route('admin.returns.index')->with(
             $result['success'] ? 'success' : 'error',
             'Retur #' . $return->return_number . ': ' . $result['message']
@@ -222,9 +233,37 @@ class ReturnController extends Controller
 
         $result = $refunds->markManual($return, $request->input('manual_notes'));
 
+        if ($result['success']) {
+            $this->sendReturnStatusEmail($return, 'refund_completed');
+        }
+
         return redirect()->route('admin.returns.index')->with(
             $result['success'] ? 'success' : 'error',
             'Retur #' . $return->return_number . ': ' . $result['message']
         );
+    }
+
+    /**
+     * Kirim email notifikasi status retur ke pelanggan.
+     * Kegagalan SMTP tidak boleh merusak alur admin — dicatat sebagai error log.
+     */
+    private function sendReturnStatusEmail(ReturnRequest $return, string $event): void
+    {
+        $return->loadMissing('user');
+
+        if (!$return->user?->email) {
+            return;
+        }
+
+        try {
+            Mail::to($return->user->email)->send(new ReturnStatusMail($return, $event));
+        } catch (\Throwable $e) {
+            Log::error('ReturnStatusMail gagal terkirim', [
+                'return_number' => $return->return_number,
+                'event'         => $event,
+                'to_email'      => $return->user->email,
+                'error'         => $e->getMessage(),
+            ]);
+        }
     }
 }

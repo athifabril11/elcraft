@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\OrderCancelledMail;
 use App\Mail\OrderCompletedMail;
 use App\Models\Order;
 use App\Services\MidtransService;
@@ -112,6 +113,8 @@ class OrderController extends Controller
                     ->with('error', 'Pesanan tidak dapat dibatalkan pada status saat ini.');
             }
 
+            $this->sendCancelledEmail($order, 'customer_cancel');
+
             return redirect()->back()
                 ->with('success', 'Pesanan #' . $order->order_number . ' berhasil dibatalkan.');
         }
@@ -126,6 +129,31 @@ class OrderController extends Controller
 
         return redirect()->back()
             ->with('error', 'Pesanan belum bisa dibatalkan karena pembayaran sedang diproses. Muat ulang halaman beberapa saat lagi atau hubungi kami.');
+    }
+
+    /**
+     * Kirim email notifikasi pembatalan pesanan ke pelanggan.
+     * Kegagalan SMTP tidak boleh merusak alur pembatalan — dicatat sebagai error log.
+     */
+    private function sendCancelledEmail(Order $order, string $event, ?string $reason = null): void
+    {
+        $order->loadMissing('user');
+
+        if (!$order->user?->email) {
+            return;
+        }
+
+        try {
+            Mail::to($order->user->email)->send(new OrderCancelledMail($order, $event, $reason));
+        } catch (\Throwable $e) {
+            Log::error('OrderCancelledMail gagal terkirim', [
+                'order_number' => $order->order_number,
+                'event'        => $event,
+                'reason'       => $reason,
+                'to_email'     => $order->user->email,
+                'error'        => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

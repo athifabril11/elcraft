@@ -10,6 +10,7 @@ use App\Models\ProductVariant;
 use App\Models\ReturnRequest;
 use App\Models\Voucher;
 use App\Models\VoucherUsage;
+use App\Mail\OrderCancelledMail;
 use App\Mail\PaymentSuccessMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -378,7 +379,7 @@ class MidtransWebhookController extends Controller
 
     private function markAsFailed(string $orderId, string $reason): void
     {
-        DB::transaction(function () use ($orderId, $reason) {
+        $cancelled = DB::transaction(function () use ($orderId, $reason) {
             // Guard whitelist + idempotency lock: baca status di dalam transaksi
             // dengan lockForUpdate agar keputusan pembatalan tidak balapan dengan
             // webhook lain. Pesanan 'pending' menerima semua alasan (deny/expire/
@@ -392,7 +393,7 @@ class MidtransWebhookController extends Controller
 
             if (!$order) {
                 Log::warning("Midtrans webhook: order {$orderId} not found for markAsFailed");
-                return;
+                return null;
             }
 
             $allowed = $order->status === 'pending'
@@ -404,7 +405,7 @@ class MidtransWebhookController extends Controller
                     'status'       => $order->status,
                     'reason'       => $reason,
                 ]);
-                return;
+                return null;
             }
 
             Log::warning("Pesanan {$orderId} gagal/dibatalkan", ['reason' => $reason]);
@@ -450,6 +451,37 @@ class MidtransWebhookController extends Controller
                     }
                 }
             }
+
+            return $order;
         });
+
+        if ($cancelled) {
+            $this->sendCancelledEmail($cancelled, 'payment_failed', $reason);
+        }
+    }
+
+    /**
+     * Kirim email notifikasi pembatalan ke pelanggan (DI LUAR transaksi DB).
+     * Kegagalan SMTP tidak boleh menggagalkan webhook — dicatat sebagai error log.
+     */
+    private function sendCancelledEmail(Order $order, string $event, ?string $reason = null): void
+    {
+        $order->loadMissing('user');
+
+        if (!$order->user?->email) {
+            return;
+        }
+
+        try {
+            Mail::to($order->user->email)->send(new OrderCancelledMail($order, $event, $reason));
+        } catch (\Throwable $e) {
+            Log::error('OrderCancelledMail gagal terkirim (webhook)', [
+                'order_number' => $order->order_number,
+                'event'        => $event,
+                'reason'       => $reason,
+                'to_email'     => $order->user->email,
+                'error'        => $e->getMessage(),
+            ]);
+        }
     }
 }
