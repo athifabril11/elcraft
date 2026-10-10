@@ -9,8 +9,8 @@
     <!-- Header Section -->
     <x-page-header title="Koleksi Aksesoris">
         @if(request()->anyFilled(['search', 'category', 'min_price', 'max_price', 'sort_by']))
-            <a href="/products" class="inline-flex items-center space-x-1.5 text-xs text-brand hover:text-brandDark font-semibold uppercase tracking-wider transition-colors duration-200">
-                <span class="material-symbols-outlined !text-[16px]">close</span>
+            <a href="/products" class="inline-flex items-center space-x-1.5 -mx-2 px-2 min-h-11 text-xs text-brandDark hover:text-warmBlack font-semibold uppercase tracking-wider whitespace-nowrap transition-colors duration-200">
+                <span class="material-symbols-outlined !text-[16px]" aria-hidden="true">close</span>
                 <span>Hapus Semua Filter</span>
             </a>
         @endif

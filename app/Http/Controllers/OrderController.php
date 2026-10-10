@@ -188,6 +188,15 @@ class OrderController extends Controller
             ], 200);
         }
 
+        // Batas waktu pembayaran sudah lewat — jangan generate token baru.
+        // Pesanan ini menunggu auto-cancel (orders:auto-cancel-expired).
+        if ($order->isPaymentExpired()) {
+            return response()->json([
+                'expired' => true,
+                'message' => 'Batas waktu pembayaran telah habis.'
+            ], 200);
+        }
+
         $payment = $order->payment;
 
         // Jika payment ada dan belum expired serta memiliki snap_token

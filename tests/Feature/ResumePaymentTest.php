@@ -109,6 +109,32 @@ class ResumePaymentTest extends TestCase
     }
 
     /**
+     * 2b. An expired pending order must NOT get a fresh Snap token regenerated.
+     *     The order is awaiting auto-cancel (orders:auto-cancel-expired), so
+     *     the endpoint returns { "expired": true } without calling Midtrans.
+     */
+    public function test_resume_payment_does_not_regenerate_token_for_expired_order(): void
+    {
+        \Illuminate\Support\Facades\Http::fake();
+
+        $user = User::factory()->create();
+        [$order, $payment] = $this->makePendingOrderWithPayment($user, [
+            'snap_token' => 'old_token_xyz',
+            'expired_at' => now()->subMinutes(1),
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->getJson(route('orders.resume-payment', $order->order_number));
+
+        $response->assertOk()
+            ->assertJson(['expired' => true])
+            ->assertJsonMissing(['snap_token']);
+
+        \Illuminate\Support\Facades\Http::assertNothingSent();
+    }
+
+    /**
      * 3. A user attempts to resume payment for another user's order.
      *    The user-scoped query (firstOrFail) should return 404, never 403,
      *    to avoid leaking order existence.

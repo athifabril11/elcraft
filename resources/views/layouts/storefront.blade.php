@@ -671,12 +671,6 @@
             <!-- Contact -->
             <div class="flex flex-col space-y-4">
                 <h4 class="text-sm font-semibold tracking-wider uppercase text-brand mb-5">Hubungi Kami</h4>
-                @if(!empty($footerWaLink))
-                <div class="flex items-center space-x-3 text-xs text-warmGrey">
-                    <span class="material-symbols-outlined text-brand !text-[18px]">phone</span>
-                    <a href="{{ $footerWaLink }}" target="_blank" rel="noopener noreferrer" class="hover:text-white transition-colors duration-200">{{ $footerWaDisplay }}</a>
-                </div>
-                @endif
                 <div class="flex items-center space-x-3 text-xs text-warmGrey">
                     <span class="material-symbols-outlined text-brand !text-[18px]">call</span>
                     <a href="tel:+6283854410513" class="hover:text-white transition-colors duration-200">+62 838-5441-0513</a>

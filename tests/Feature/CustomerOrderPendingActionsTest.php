@@ -91,6 +91,20 @@ class CustomerOrderPendingActionsTest extends TestCase
         $response->assertSee($order->order_number);
     }
 
+    public function test_expired_pending_order_hides_payment_and_cancel_buttons_on_orders_index(): void
+    {
+        $user = User::factory()->create();
+        $order = $this->createOrderForUser($user, 'pending', now()->subMinutes(5));
+
+        $response = $this->actingAs($user)->get(route('orders.index'));
+
+        $response->assertOk();
+        $response->assertSee('Pembayaran Kedaluwarsa');
+        $response->assertDontSee('Bayar Sekarang');
+        $response->assertDontSee('Batalkan');
+        $response->assertDontSee('Sisa Waktu');
+    }
+
     public function test_customer_can_see_pending_order_countdown_and_action_buttons_on_order_show(): void
     {
         $user = User::factory()->create();
@@ -103,6 +117,20 @@ class CustomerOrderPendingActionsTest extends TestCase
         $response->assertSee('Sisa Waktu');
         $response->assertSee('Bayar Sekarang');
         $response->assertSee('Batalkan Pesanan');
+    }
+
+    public function test_expired_pending_order_hides_payment_and_cancel_buttons_on_order_show(): void
+    {
+        $user = User::factory()->create();
+        $order = $this->createOrderForUser($user, 'pending', now()->subMinutes(5));
+
+        $response = $this->actingAs($user)->get(route('orders.show', $order->order_number));
+
+        $response->assertOk();
+        $response->assertSee('Pembayaran Kedaluwarsa');
+        $response->assertDontSee('Bayar Sekarang');
+        $response->assertDontSee('Batalkan Pesanan');
+        $response->assertDontSee('Sisa Waktu');
     }
 
     public function test_customer_can_cancel_pending_order(): void

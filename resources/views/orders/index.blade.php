@@ -75,12 +75,17 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 flex-wrap">
-                                @if($order->status === 'pending' && $order->payment_expires_at)
+                                @if($order->status === 'pending' && $order->payment_expires_at && !$order->isPaymentExpired())
                                     <div x-data="orderTimer('{{ $order->payment_expires_at->toISOString() }}')" x-init="initTimer()"
                                          class="inline-flex items-center gap-1.5 text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
                                         <span class="material-symbols-outlined !text-[14px] text-amber-600 animate-pulse">timer</span>
                                         <span>Sisa Waktu: <strong x-text="timeLeft" class="font-mono font-bold">{{ $order->payment_expires_at->diffForHumans(['parts' => 2]) }}</strong></span>
                                     </div>
+                                @elseif($order->status === 'pending' && $order->isPaymentExpired())
+                                    <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
+                                        <span class="material-symbols-outlined !text-[14px] text-red-500">timer_off</span>
+                                        Pembayaran Kedaluwarsa
+                                    </span>
                                 @endif
                                 <span class="inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full border {{ $status['color'] }}">
                                     {{ $status['label'] }}
@@ -144,13 +149,13 @@
                             </div>
 
                             <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end">
-                                @if($order->status === 'pending')
+                                @if($order->status === 'pending' && !$order->isPaymentExpired())
                                     {{-- Bayar Sekarang --}}
                                     <button type="button"
                                         data-order="{{ $order->order_number }}"
                                         data-resume-url="{{ route('orders.resume-payment', $order->order_number) }}"
                                         onclick="resumeOrderPayment(this)"
-                                        class="px-3.5 py-2 bg-brand hover:bg-brandDark text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200 flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
+                                        class="inline-flex items-center justify-center gap-1.5 min-h-10 px-4 bg-brand hover:bg-brandDark text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200 shadow-2xs cursor-pointer">
                                         <span class="material-symbols-outlined !text-[16px]">payments</span>
                                         <span class="btn-text">Bayar Sekarang</span>
                                     </button>
@@ -160,8 +165,8 @@
                                         onsubmit="return confirm('Apakah Anda yakin ingin membatalkan pesanan #{{ $order->order_number }}?')">
                                         @csrf
                                         <button type="submit"
-                                            class="px-3 py-2 border border-rose-200 text-rose-600 hover:bg-rose-50 font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200 flex items-center justify-center gap-1 cursor-pointer">
-                                            <span class="material-symbols-outlined !text-[15px]">cancel</span>
+                                            class="inline-flex items-center justify-center gap-1.5 min-h-10 px-4 border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200 cursor-pointer">
+                                            <span class="material-symbols-outlined !text-[16px]">cancel</span>
                                             <span>Batalkan</span>
                                         </button>
                                     </form>
@@ -172,7 +177,7 @@
                                     <form method="POST" action="{{ route('orders.reorder', $order->order_number) }}">
                                         @csrf
                                         <button type="submit"
-                                            class="px-3.5 py-2 bg-brand hover:bg-brandDark text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200 flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
+                                            class="inline-flex items-center justify-center gap-1.5 min-h-10 px-4 bg-brand hover:bg-brandDark text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200 shadow-2xs cursor-pointer">
                                             <span class="material-symbols-outlined !text-[16px]">shopping_cart</span>
                                             <span>Beli Lagi</span>
                                         </button>
@@ -180,7 +185,7 @@
                                 @endif
 
                                 <a href="{{ route('orders.show', $order->order_number) }}"
-                                    class="px-3.5 py-2 border border-brand text-brand hover:bg-brand hover:text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200 text-center">
+                                    class="inline-flex items-center justify-center min-h-10 px-4 border border-brand text-brand hover:bg-brand hover:text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200 text-center">
                                     Lihat Detail
                                 </a>
                             </div>

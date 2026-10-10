@@ -31,6 +31,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // Runs once per day. Threshold is configurable via the admin
         // Pengaturan → Auto-Selesai page (shop_setting key: order_auto_complete_days).
         $schedule->command('orders:auto-complete')->daily();
+
+        // Auto-cancel pending orders whose payment deadline has passed.
+        // Releases the checkout stock reservation, cancels the Midtrans
+        // transaction, and emails the customer. Hourly keeps the gap
+        // between expiry and cancellation small without hammering Midtrans.
+        $schedule->command('orders:auto-cancel-expired')->hourly();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Kembalikan JSON untuk semua request yang menginginkan JSON (AJAX, API, test postJson)

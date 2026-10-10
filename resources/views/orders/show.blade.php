@@ -8,30 +8,7 @@
 
     {{-- ─── HEADER ────────────────────────────────── --}}
     <x-page-header title="Detail Pesanan" :back-url="route('orders.index')">
-        @if($order->status === 'pending')
-            <div class="flex items-center gap-2 flex-wrap">
-                {{-- Bayar Sekarang --}}
-                <button id="btn-resume-payment"
-                    data-order="{{ $order->order_number }}"
-                    data-resume-url="{{ route('orders.resume-payment', $order->order_number) }}"
-                    onclick="resumeOrderPayment(this)"
-                    class="flex items-center gap-2 px-4 py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200 shadow-2xs cursor-pointer">
-                    <span class="material-symbols-outlined !text-[16px]">payments</span>
-                    <span id="btn-resume-text">Bayar Sekarang</span>
-                </button>
-
-                {{-- Batalkan Pesanan --}}
-                <form method="POST" action="{{ route('orders.cancel', $order->order_number) }}"
-                    onsubmit="return confirm('Batalkan pesanan #{{ $order->order_number }}? Tindakan ini tidak dapat dibatalkan.')">
-                    @csrf
-                    <button type="submit"
-                        class="flex items-center gap-2 px-4 py-2.5 border border-red-300 text-red-500 hover:bg-red-50 font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors duration-200 cursor-pointer">
-                        <span class="material-symbols-outlined !text-[16px]">cancel</span>
-                        Batalkan Pesanan
-                    </button>
-                </form>
-            </div>
-        @elseif(in_array($order->status, ['dibatalkan', 'selesai']))
+        @if(in_array($order->status, ['dibatalkan', 'selesai']))
             <form method="POST" action="{{ route('orders.reorder', $order->order_number) }}">
                 @csrf
                 <button type="submit"
@@ -109,7 +86,9 @@
                         </div>
                     </div>
 
-                    {{-- Status Banner --}}
+                    {{-- Status Banner — disembunyikan untuk status pending, karena sudah
+                         ditampilkan oleh kotak countdown "Menunggu Pembayaran" di bawah --}}
+                    @if($order->status !== 'pending' || !$order->payment_expires_at)
                     <div class="flex items-center gap-3 p-3.5 rounded-card border {{ $status['color'] }}">
                         <span class="material-symbols-outlined !text-[20px]">{{ $status['icon'] }}</span>
                         <div class="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
@@ -119,36 +98,46 @@
                             </div>
                         </div>
                     </div>
+                    @endif
 
-                    @if($order->status === 'pending' && $order->payment_expires_at)
-                        {{-- Expiry Alert Box with Live Countdown --}}
+                    @if($order->status === 'pending' && $order->payment_expires_at && !$order->isPaymentExpired())
+                        {{-- Strip batas waktu — satu-satunya tampilan status pending, dengan hitungan mundur --}}
                         <div x-data="orderTimer('{{ $order->payment_expires_at->toISOString() }}')" x-init="initTimer()"
-                             class="p-4 rounded-xl bg-amber-50 border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-700 shrink-0">
-                                    <span class="material-symbols-outlined !text-[22px] animate-pulse">timer</span>
-                                </div>
-                                <div>
-                                    <h3 class="text-xs font-bold text-amber-900 uppercase tracking-wider">Menunggu Pembayaran</h3>
-                                    <p class="text-xs text-amber-800 mt-0.5">
-                                        Batas waktu: <span class="font-bold">{{ $order->payment_expires_at->format('d M Y, H:i') }} WIB</span>
+                             class="rounded-card bg-amber-50 border border-amber-200 px-4 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+
+                            <div class="flex items-center gap-3 flex-1 min-w-0">
+                                <span class="material-symbols-outlined !text-[26px] shrink-0"
+                                      :class="isExpired ? 'text-red-500' : 'text-amber-500'" aria-hidden="true">schedule</span>
+                                <div class="min-w-0">
+                                    <p class="text-sm font-semibold leading-snug"
+                                       :class="isExpired ? 'text-red-700' : 'text-amber-950'"
+                                       x-text="isExpired ? 'Pembayaran Kedaluwarsa' : 'Menunggu Pembayaran'">Menunggu Pembayaran</p>
+                                    <p class="text-xs leading-snug mt-0.5"
+                                       :class="isExpired ? 'text-red-600/90' : 'text-amber-700'">
+                                        Batas waktu {{ $order->payment_expires_at->format('d M Y, H:i') }} WIB
                                     </p>
                                 </div>
                             </div>
 
-                            <div class="flex items-center gap-2 self-start sm:self-auto">
-                                <div class="px-3.5 py-1.5 rounded-lg bg-white border border-amber-300 shadow-2xs text-center">
-                                    <span class="text-[9px] uppercase font-sans text-amber-600 font-bold block leading-tight">Sisa Waktu</span>
-                                    <span x-text="timeLeft" class="text-sm font-mono font-bold text-amber-950 tracking-wider">--:--:--</span>
-                                </div>
-                                <button type="button"
-                                    data-order="{{ $order->order_number }}"
-                                    data-resume-url="{{ route('orders.resume-payment', $order->order_number) }}"
-                                    onclick="resumeOrderPayment(this)"
-                                    class="px-3.5 py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-xs uppercase tracking-wider rounded-btn transition-colors shadow-2xs cursor-pointer inline-flex items-center gap-1.5">
-                                    <span class="material-symbols-outlined !text-[15px]">payments</span>
-                                    <span>Bayar</span>
-                                </button>
+                            <div class="flex items-center justify-between gap-3 pt-3 border-t border-amber-200/70
+                                        sm:justify-end sm:pt-0 sm:pl-6 sm:gap-4 sm:border-t-0 sm:border-l sm:border-amber-300/70">
+                                <span class="text-[11px] font-semibold uppercase tracking-wide leading-none"
+                                      :class="isExpired ? 'text-red-500' : 'text-amber-600'"
+                                      x-text="isExpired ? 'Status' : 'Sisa Waktu'">Sisa Waktu</span>
+                                <span x-text="timeLeft"
+                                      class="font-mono font-bold leading-none tabular-nums"
+                                      :class="isExpired ? 'text-sm text-red-700' : 'text-2xl text-amber-950'">--:--:--</span>
+                            </div>
+                        </div>
+                    @elseif($order->status === 'pending' && $order->isPaymentExpired())
+                        {{-- Batas waktu pembayaran sudah lewat --}}
+                        <div class="rounded-card bg-red-50 border border-red-200 px-4 py-4 flex items-center gap-3">
+                            <span class="material-symbols-outlined !text-[26px] text-red-500 shrink-0" aria-hidden="true">timer_off</span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-semibold leading-snug text-red-800">Pembayaran Kedaluwarsa</p>
+                                <p class="text-xs leading-snug mt-0.5 text-red-700">
+                                    Batas waktu pada <span class="font-semibold">{{ $order->payment_expires_at->format('d M Y, H:i') }} WIB</span> sudah berakhir. Pesanan ini akan dibatalkan otomatis.
+                                </p>
                             </div>
                         </div>
                     @endif
@@ -358,7 +347,8 @@
 
                 {{-- Actions --}}
                 <div class="space-y-3">
-                    @if($order->status === 'pending')
+                    @if($order->status === 'pending' && !$order->isPaymentExpired())
+                        {{-- Bayar Sekarang --}}
                         <button type="button"
                             data-order="{{ $order->order_number }}"
                             data-resume-url="{{ route('orders.resume-payment', $order->order_number) }}"
@@ -368,6 +358,7 @@
                             <span>Bayar Sekarang</span>
                         </button>
 
+                        {{-- Batalkan Pesanan --}}
                         <form method="POST" action="{{ route('orders.cancel', $order->order_number) }}"
                             onsubmit="return confirm('Apakah Anda yakin ingin membatalkan pesanan ini?')">
                             @csrf
@@ -654,7 +645,7 @@ function closePendingPaymentModal() {
 }
 
 /**
- * resumeOrderPayment — dipanggil saat tombol "Bayar Sekarang" diklik.
+ * resumeOrderPayment — dipanggil saat tombol pembayaran diklik.
  *
  * 1. Fetch endpoint resume-payment untuk mendapatkan snap_token.
  * 2. Jika expired, tampilkan pesan dan redirect ke /checkout setelah 1.5 detik.
