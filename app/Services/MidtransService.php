@@ -218,4 +218,71 @@ class MidtransService
             ];
         }
     }
+
+    /**
+     * Minta pengembalian dana (refund) transaksi yang sudah Settlement
+     * melalui Core API: POST /v2/{orderId}/refund.
+     *
+     * refund_key bersifat idempoten — permintaan ulang dengan key yang sama
+     * dibalas 406 (Duplicate refund ID), sehingga retry aman tanpa risiko
+     * refund ganda.
+     *
+     * @param  string  $orderId   Nomor pesanan di Midtrans
+     * @param  int|float  $amount  Nominal yang dikembalikan (≤ gross amount)
+     * @param  string  $reason    Alasan refund (wajib untuk beberapa acquirer)
+     * @param  string  $refundKey Kunci unik idempoten (mis. return_number)
+     * @return array  ['outcome' => string, 'status_code' => int|null, 'message' => string]
+     *                outcome: 'refunded' | 'duplicate' | 'rejected' | 'not_found' | 'error'
+     */
+    public function refundTransaction(string $orderId, int|float $amount, string $reason, string $refundKey): array
+    {
+        $coreApiBase = $this->isProduction
+            ? 'https://api.midtrans.com'
+            : 'https://api.sandbox.midtrans.com';
+
+        $url = $coreApiBase . '/v2/' . $orderId . '/refund';
+
+        try {
+            $response = Http::withBasicAuth($this->serverKey, '')
+                ->timeout(15)
+                ->post($url, [
+                    'refund_key' => $refundKey,
+                    'amount'     => (int) round($amount),
+                    'reason'     => $reason,
+                ]);
+
+            $body       = $response->json() ?? [];
+            $statusCode = isset($body['status_code'])
+                ? (int) $body['status_code']
+                : $response->status();
+
+            $message = $body['status_message'] ?? $body['message'] ?? '';
+
+            $outcome = match ($statusCode) {
+                200     => 'refunded',
+                404     => 'not_found',
+                406     => 'duplicate',
+                414     => 'rejected',
+                default => 'error',
+            };
+
+            return [
+                'outcome'     => $outcome,
+                'status_code' => $statusCode,
+                'message'     => $message,
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('MidtransService::refundTransaction exception', [
+                'order_id'  => $orderId,
+                'refund_key' => $refundKey,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return [
+                'outcome'     => 'error',
+                'status_code' => null,
+                'message'     => $e->getMessage(),
+            ];
+        }
+    }
 }

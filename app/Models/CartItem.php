@@ -33,11 +33,29 @@ class CartItem extends Model
         'product_id',
         'variant_id',
         'quantity',
+        'is_selected',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
+        'is_selected' => 'boolean',
     ];
+
+    /**
+     * Pastikan is_selected bernilai true secara default jika kolom belum terisi atau null.
+     */
+    public function getIsSelectedAttribute($value): bool
+    {
+        if ($value !== null) {
+            return (bool) $value;
+        }
+
+        if (session()->has('selected_cart_item_ids')) {
+            return in_array($this->id, session('selected_cart_item_ids', []));
+        }
+
+        return true;
+    }
 
     /**
      * Relasi default yang akan selalu dimuat (eager load).

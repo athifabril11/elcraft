@@ -89,6 +89,46 @@
     </a>
 </div>
 
+{{-- NOTIFIKASI DANA TERTANGKAP (PESANAN BATAL DENGAN PEMBAYARAN SUKSES) --}}
+@if(($capturedStuckCount ?? 0) > 0)
+<div x-data="{ dismissed: false }" x-show="!dismissed" x-cloak class="mb-6 rounded-2xl bg-gradient-to-r from-amber-50 via-rose-50/40 to-amber-50 border border-amber-300/90 p-4 md:p-5 shadow-sm transition-all duration-300">
+    <div class="flex items-start justify-between gap-3">
+        <div class="flex items-start gap-3.5 min-w-0 flex-1">
+            <div class="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                <svg class="w-5 h-5 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+            </div>
+            <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                    <h2 class="text-sm font-bold text-amber-900 font-sans">Perhatian: Dana Tertangkap</h2>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-600 text-white shadow-xs">{{ $capturedStuckCount }} Pesanan</span>
+                </div>
+                <p class="text-xs text-amber-900/80 mt-0.5 leading-relaxed">
+                    Pesanan batal dengan dana tertangkap menunggu refund manual. Terdapat {{ $capturedStuckCount }} pesanan dibatalkan yang pembayarannya telah sukses.
+                </p>
+                <div class="mt-3">
+                    <a href="{{ route('admin.orders.index', ['payment_captured' => 1]) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs transition">
+                        <span>Lihat Pesanan Dana Tertangkap</span>
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tombol X (Tutup Notif) -->
+        <button type="button" @click="dismissed = true" class="w-8 h-8 rounded-xl bg-white/80 hover:bg-white text-stone-400 hover:text-stone-700 border border-amber-200/70 flex items-center justify-center shrink-0 transition-colors shadow-xs" title="Tutup Notifikasi">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+</div>
+@endif
+
 {{-- NOTIFIKASI STOK MENIPIS (DISMISSIBLE ALERT BANNER, NO AUTO-TIMER, DETAIL PRODUK) --}}
 @if($lowStockCount > 0)
 <div x-data="{ dismissed: false }" x-show="!dismissed" x-cloak class="mb-6 rounded-2xl bg-gradient-to-r from-rose-50 via-amber-50/40 to-rose-50 border border-rose-200/90 p-4 md:p-5 shadow-sm transition-all duration-300">

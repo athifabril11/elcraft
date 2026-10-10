@@ -20,6 +20,10 @@
     ];
     $s   = $statusMap[$return->status] ?? ['label' => ucfirst($return->status), 'style' => 'background:#f5f5f5; color:#78716C;'];
     $res = $resMap[$return->resolution_type] ?? ['label' => ucfirst($return->resolution_type), 'style' => 'background:#f5f5f5; color:#78716C;'];
+
+    $canRefund = $return->resolution_type === 'refund'
+        && $return->refund_status === null
+        && in_array($return->status, ['disetujui', 'diproses'], true);
 @endphp
 
 <div class="space-y-6">
@@ -40,6 +44,11 @@
             <span style="display:inline-block; padding:2px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; {{ $res['style'] }}">
                 {{ $res['label'] }}
             </span>
+            @if($return->refund_status)
+                <span style="display:inline-block; padding:2px 10px; border-radius:20px; font-size:0.75rem; font-weight:700; background:#dcfce7; color:#166534; border:1px solid #bbf7d0;">
+                    {{ $return->refund_status === 'api' ? 'Refund API' : 'Refund Manual' }}
+                </span>
+            @endif
         </div>
 
         {{-- Action Buttons --}}
@@ -115,6 +124,43 @@
                         Tandai Selesai
                     </button>
                 </form>
+            @endif
+
+            @if($canRefund)
+                {{-- Proses Refund via Midtrans Refund API --}}
+                <form method="POST" action="{{ route('admin.returns.refund', $return->id) }}"
+                      onsubmit="return confirm('Kirim refund Rp {{ number_format((int) ($return->refund_amount ?? 0), 0, ',', '.') }} via Midtrans Refund API untuk retur ini?')">
+                    @csrf
+                    @method('PATCH')
+                    <button type="submit" class="text-xs py-2 px-3.5 inline-flex items-center gap-1.5 font-bold text-white rounded-xl transition shadow-xs"
+                            style="background:#059669;">
+                        <span class="material-symbols-outlined !text-[16px]">payments</span>
+                        Proses Refund
+                    </button>
+                </form>
+
+                {{-- Tandai Refund Manual (di luar Midtrans, wajib catatan) --}}
+                <details class="relative inline-block">
+                    <summary class="list-none inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl cursor-pointer transition">
+                        <span class="material-symbols-outlined !text-[16px]">account_balance_wallet</span>
+                        Refund Manual
+                    </summary>
+                    <div class="absolute right-0 mt-2 z-20 bg-white border border-stone-200 rounded-2xl shadow-xl p-4 min-w-[300px]">
+                        <form method="POST" action="{{ route('admin.returns.refund_manual', $return->id) }}">
+                            @csrf
+                            @method('PATCH')
+                            <div class="mb-3">
+                                <label class="admin-label text-xs">Bukti Refund Manual *</label>
+                                <textarea name="manual_notes" rows="3" class="admin-input text-xs w-full mt-1"
+                                          required minlength="5"
+                                          placeholder="Contoh: transfer bank BCA 08 Oct 16:40, ref TRX-123456..."></textarea>
+                            </div>
+                            <button type="submit" class="admin-btn-primary w-full justify-center text-xs py-2">
+                                Tandai Refund Manual
+                            </button>
+                        </form>
+                    </div>
+                </details>
             @endif
         </div>
     </div>

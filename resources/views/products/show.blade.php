@@ -11,7 +11,7 @@
 @endif
 
 @section('content')
-<div x-data="productDetail('{{ $product->id }}', {{ $product->final_price }}, {{ $product->stock }}, '{{ $product->primary_image ?? 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop' }}', {{ $product->variants->where('is_active', true)->groupBy('variant_type')->count() }})" class="pb-24 md:pb-0">
+<div x-data="productDetail('{{ $product->id }}', {{ $product->final_price }}, {{ $product->display_stock }}, '{{ $product->primary_image ?? 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop' }}', {{ $product->variants->where('is_active', true)->groupBy('variant_type')->count() }})" class="pb-24 md:pb-0">
 
     {{-- ─── PRODUCT MAIN SECTION ───────────────── --}}
     <section class="bg-white py-6 md:py-10 px-5 md:px-8 lg:px-16">
@@ -111,7 +111,7 @@
                         class="text-xs font-semibold uppercase tracking-widest text-brand hover:text-brandDark transition-colors">
                         {{ $product->category->name }}
                     </a>
-                    @if($product->stock > 0)
+                    @if($product->display_stock > 0)
                         <span class="inline-flex items-center space-x-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                             <span>Stok Tersedia</span>
@@ -251,10 +251,7 @@
                         <span class="material-symbols-outlined !text-[16px] text-brand">inventory_2</span>
                         <span>Stok: <span class="text-warmBlack font-medium" x-text="maxStock"></span></span>
                     </div>
-                    <div class="flex items-center space-x-2 text-xs text-warmGrey">
-                        <span class="material-symbols-outlined !text-[16px] text-brand">local_shipping</span>
-                        <span class="text-warmBlack font-medium">Gratis Ongkir</span>
-                    </div>
+
                 </div>
             </div>
         </div>
@@ -790,7 +787,7 @@
                 const variantId = requiredVariantsCount > 0 ? Object.values(this.selectedVariants)[0]?.id : null;
                 this.isAdding = true;
 
-                fetch('/cart/add', {
+                fetch('/cart/buy-now', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -817,7 +814,7 @@
                 })
                 .then(data => {
                     if (data && data.success) {
-                        window.location.href = '/checkout';
+                        window.location.href = data.redirect || '/checkout';
                     }
                 })
                 .catch(err => {

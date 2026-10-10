@@ -155,4 +155,54 @@ class Product extends Model
     {
         return $query->where('stock', '>', 0);
     }
+
+    // ─── Accessor: effective display stock ────
+    /**
+     * Returns the effective stock for display purposes.
+     *
+     * - Products WITH at least one variant: sum of stock of ACTIVE variants.
+     *   If the variants relation is already loaded, uses the loaded collection;
+     *   otherwise queries the database.
+     * - Products WITHOUT variants: returns the products.stock column value.
+     *
+     * @return int
+     */
+    public function getDisplayStockAttribute(): int
+    {
+        if ($this->relationLoaded('variants')) {
+            // If ANY variant rows exist (active or not) this is a variant product
+            if ($this->variants->isNotEmpty()) {
+                return (int) $this->variants->where('is_active', true)->sum('stock');
+            }
+        } else {
+            // Relation not loaded — query the DB once
+            if ($this->variants()->exists()) {
+                return (int) $this->variants()->where('is_active', true)->sum('stock');
+            }
+        }
+
+        return (int) $this->stock;
+    }
+
+    // ─── Method: sync stock column from variants ──
+    /**
+     * Recomputes products.stock as the sum of stock of active variants and
+     * persists it using a direct query (no model events fired).
+     *
+     * For products without any variant, this is a no-op.
+     */
+    public function recalculateStockFromVariants(): void
+    {
+        $hasVariants = $this->variants()->exists();
+        if (!$hasVariants) {
+            return;
+        }
+
+        $computed = (int) $this->variants()->where('is_active', true)->sum('stock');
+
+        Product::where('id', $this->id)->update(['stock' => $computed]);
+
+        // Sync in-memory attribute so the model reflects the new value
+        $this->attributes['stock'] = $computed;
+    }
 }

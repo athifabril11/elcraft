@@ -126,6 +126,12 @@ class ConcurrencyRaceConditionAuditTest extends TestCase
         // Mocking Midtrans signature verification
         $mock = Mockery::mock(MidtransService::class);
         $mock->shouldReceive('verifySignature')->andReturn(true);
+        // Settlement telat memicu auto-refund (refund_key AUTO-*)
+        $mock->shouldReceive('refundTransaction')->once()->andReturn([
+            'outcome'     => 'refunded',
+            'status_code' => 200,
+            'message'     => '',
+        ]);
         $this->app->instance(MidtransService::class, $mock);
 
         // 1. Buat produk dengan stok awal 10

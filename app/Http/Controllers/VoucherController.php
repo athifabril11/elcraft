@@ -57,6 +57,14 @@ class VoucherController extends Controller
             ], 422);
         }
 
+        $user = $request->user();
+        if ($user && $voucher->isUsedBy($user->id)) {
+            return response()->json([
+                'valid'   => false,
+                'message' => 'Voucher ini sudah pernah Anda gunakan.',
+            ], 422);
+        }
+
         $discount = $voucher->calculateDiscount((float) $request->subtotal);
 
         return response()->json([

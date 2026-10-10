@@ -36,11 +36,14 @@ class ReturnRequest extends Model
         'status',
         'admin_notes',
         'resolved_at',
+        'refund_status',
+        'refunded_at',
     ];
 
     protected $casts = [
         'refund_amount' => 'decimal:2',
         'resolved_at'   => 'datetime',
+        'refunded_at'   => 'datetime',
     ];
 
     // ── Relationships ─────────────────────────────────────────────────────────

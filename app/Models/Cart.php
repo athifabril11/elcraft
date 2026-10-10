@@ -49,17 +49,34 @@ class Cart extends Model
     }
 
     /**
-     * Mendapatkan semua item di dalam keranjang belanja ini.
+     * Mendapatkan item yang dipilih (checklist) di dalam keranjang belanja.
+     * Digunakan secara default untuk checkout dan perhitungan aktif.
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function items(): HasMany
     {
+        $relation = $this->hasMany(CartItem::class);
+        if (\Illuminate\Support\Facades\Schema::hasColumn('cart_items', 'is_selected')) {
+            $relation->where('is_selected', true);
+        } elseif (session()->has('selected_cart_item_ids')) {
+            $relation->whereIn('id', session('selected_cart_item_ids', []));
+        }
+        return $relation;
+    }
+
+    /**
+     * Mendapatkan seluruh item di dalam keranjang belanja (termasuk yang tidak diceklis).
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function allItems(): HasMany
+    {
         return $this->hasMany(CartItem::class);
     }
 
     /**
-     * Menghitung total harga dari seluruh item di dalam keranjang.
+     * Menghitung total harga dari item yang dipilih (checklist) di dalam keranjang.
      *
      * @return float
      */
@@ -79,7 +96,7 @@ class Cart extends Model
      */
     public function getTotalItems(): int
     {
-        return (int) $this->items->sum('quantity');
+        return (int) $this->allItems()->sum('quantity');
     }
 
     /**
@@ -89,6 +106,16 @@ class Cart extends Model
      */
     public function getItemCount(): int
     {
-        return $this->items->count();
+        return $this->allItems()->count();
+    }
+
+    /**
+     * Menghitung jumlah baris item yang dipilih di dalam keranjang.
+     *
+     * @return int
+     */
+    public function getSelectedCount(): int
+    {
+        return $this->items()->count();
     }
 }

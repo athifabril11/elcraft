@@ -55,8 +55,11 @@ Route::middleware(['guest.modal', 'verified'])->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+    Route::post('/cart/buy-now', [CartController::class, 'buyNow'])->name('cart.buy-now');
     Route::post('/cart/update', [CartController::class, 'update'])->name('cart.update');
     Route::post('/cart/remove', [CartController::class, 'remove'])->name('cart.remove');
+    Route::post('/cart/toggle-select', [CartController::class, 'toggleSelect'])->name('cart.toggle-select');
+    Route::post('/cart/toggle-select-all', [CartController::class, 'toggleSelectAll'])->name('cart.toggle-select-all');
 
     Route::middleware('verified')->group(function () {
         Route::post('/checkout/snap-token', [CheckoutController::class, 'createSnapToken'])->name('checkout.token');
@@ -76,7 +79,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/orders/{orderNumber}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::post('/orders/{orderNumber}/reorder', [OrderController::class, 'reorder'])->name('orders.reorder');
     Route::patch('/orders/{orderNumber}/confirm-received', [OrderController::class, 'confirmReceived'])->name('orders.confirm-received');
-    Route::get('/orders/{orderNumber}/resume-payment', [OrderController::class, 'resumePayment'])->name('orders.resume-payment');
     Route::get('/orders/{orderNumber}/resume-payment', [OrderController::class, 'resumePayment'])->name('orders.resume-payment');
 
     // Return submission routes
@@ -127,6 +129,8 @@ Route::middleware('auth')->group(function () {
         Route::patch('/returns/{return}/approve', [AdminReturnController::class, 'approve'])->name('returns.approve');
         Route::patch('/returns/{return}/reject', [AdminReturnController::class, 'reject'])->name('returns.reject');
         Route::patch('/returns/{return}/advance', [AdminReturnController::class, 'advanceStatus'])->name('returns.advance');
+        Route::patch('/returns/{return}/refund', [AdminReturnController::class, 'refund'])->name('returns.refund');
+        Route::patch('/returns/{return}/refund-manual', [AdminReturnController::class, 'refundManual'])->name('returns.refund_manual');
 
         // Reviews Moderation
         Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews.index');

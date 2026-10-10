@@ -2,11 +2,13 @@
 
 namespace App\Console\Commands;
 
+use App\Mail\OrderCompletedMail;
 use App\Models\Order;
 use App\Models\ShopSetting;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * AutoCompleteDeliveredOrders
@@ -78,6 +80,21 @@ class AutoCompleteDeliveredOrders extends Command
 
             if ($advanced) {
                 $completed++;
+
+                $candidate->load(['address', 'items', 'user']);
+
+                if ($candidate->user?->email) {
+                    try {
+                        Mail::to($candidate->user->email)->send(new OrderCompletedMail($candidate));
+                    } catch (\Throwable $e) {
+                        Log::error('OrderCompletedMail gagal terkirim (AutoCompleteDeliveredOrders)', [
+                            'order_id'     => $candidate->id,
+                            'order_number' => $candidate->order_number,
+                            'to_email'     => $candidate->user->email,
+                            'error'        => $e->getMessage(),
+                        ]);
+                    }
+                }
             }
         }
 

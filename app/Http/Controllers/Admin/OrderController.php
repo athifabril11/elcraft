@@ -33,10 +33,14 @@ class OrderController extends Controller
     {
         $filter = $request->query('status');
         $search = trim((string) $request->query('q', ''));
+        $paymentCaptured = $request->query('payment_captured') == '1';
 
         $query = Order::with(['user', 'items', 'address', 'payment'])->latest();
 
-        if ($filter && in_array($filter, self::STATUSES, true)) {
+        if ($paymentCaptured) {
+            $query->where('status', 'dibatalkan')
+                  ->whereHas('payment', fn ($q) => $q->where('status', 'success'));
+        } elseif ($filter && in_array($filter, self::STATUSES, true)) {
             $query->where('status', $filter);
         }
 
@@ -57,7 +61,11 @@ class OrderController extends Controller
             ->groupBy('status')
             ->pluck('total', 'status');
 
-        return view('admin.orders.index', compact('orders', 'counts', 'filter', 'search'));
+        $capturedCount = Order::where('status', 'dibatalkan')
+            ->whereHas('payment', fn ($q) => $q->where('status', 'success'))
+            ->count();
+
+        return view('admin.orders.index', compact('orders', 'counts', 'filter', 'search', 'paymentCaptured', 'capturedCount'));
     }
 
     /**

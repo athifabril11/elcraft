@@ -107,6 +107,126 @@ class CheckoutTest extends TestCase
         ]);
     }
 
+    public function test_cart_is_emptied_when_snap_token_is_created(): void
+    {
+        $user = User::factory()->create();
+        $category = Category::create(['name' => 'Gelang', 'slug' => 'gelang', 'is_active' => true]);
+        $product = Product::create([
+            'category_id' => $category->id,
+            'name' => 'Gelang Perak',
+            'slug' => 'gelang-perak',
+            'price' => 75000,
+            'stock' => 5,
+            'weight' => 100,
+            'is_active' => true,
+        ]);
+
+        $cart = $user->getOrCreateCart();
+        $cart->items()->create([
+            'product_id' => $product->id,
+            'quantity'   => 1,
+        ]);
+
+        $shippingMock = Mockery::mock(ShippingService::class);
+        $shippingMock->shouldReceive('calculateCost')
+            ->once()
+            ->andReturn([
+                ['code' => 'jne', 'service' => 'REG', 'description' => 'Layanan Reguler', 'cost' => 10000, 'etd' => '2'],
+            ]);
+        $this->app->instance(ShippingService::class, $shippingMock);
+
+        $midtransMock = Mockery::mock(MidtransService::class);
+        $midtransMock->shouldReceive('createSnapToken')
+            ->once()
+            ->andReturn(['token' => 'dummy_snap_token', 'redirect_url' => 'https://dummy.url']);
+        $this->app->instance(MidtransService::class, $midtransMock);
+
+        $response = $this
+            ->actingAs($user)
+            ->postJson(route('checkout.token'), [
+                'recipient_name'  => 'John Doe',
+                'recipient_phone' => '081234567890',
+                'full_address'    => 'Jl. Merdeka No. 10',
+                'city'            => 'Bandung',
+                'city_id'         => 23,
+                'postal_code'     => '40115',
+                'courier'         => 'jne',
+                'courier_service' => 'jne-REG',
+                'payment_method'  => 'snap',
+            ]);
+
+        $response->assertOk()->assertJsonStructure(['snap_token', 'order_id']);
+
+        // Order pending tetap ada (untuk dibayar lagi via Pesanan Saya)
+        $this->assertDatabaseHas('orders', [
+            'user_id' => $user->id,
+            'status'  => 'pending',
+        ]);
+
+        // Keranjang harus KOSONG sekarang — item sudah menjadi order
+        $this->assertSame(0, $cart->items()->count(), 'Cart should be emptied after snap token creation');
+    }
+
+    public function test_snap_http_failure_cancels_order_and_keeps_cart(): void
+    {
+        $user = User::factory()->create();
+        $category = Category::create(['name' => 'Cincin', 'slug' => 'cincin', 'is_active' => true]);
+        $product = Product::create([
+            'category_id' => $category->id,
+            'name' => 'Cincin Emas',
+            'slug' => 'cincin-emas',
+            'price' => 100000,
+            'stock' => 3,
+            'weight' => 50,
+            'is_active' => true,
+        ]);
+
+        $cart = $user->getOrCreateCart();
+        $cart->items()->create([
+            'product_id' => $product->id,
+            'quantity'   => 1,
+        ]);
+
+        $shippingMock = Mockery::mock(ShippingService::class);
+        $shippingMock->shouldReceive('calculateCost')
+            ->once()
+            ->andReturn([
+                ['code' => 'jne', 'service' => 'REG', 'description' => 'Layanan Reguler', 'cost' => 10000, 'etd' => '2'],
+            ]);
+        $this->app->instance(ShippingService::class, $shippingMock);
+
+        $midtransMock = Mockery::mock(MidtransService::class);
+        $midtransMock->shouldReceive('createSnapToken')
+            ->once()
+            ->andThrow(new \Exception('Midtrans down'));
+        $this->app->instance(MidtransService::class, $midtransMock);
+
+        $response = $this
+            ->actingAs($user)
+            ->postJson(route('checkout.token'), [
+                'recipient_name'  => 'John Doe',
+                'recipient_phone' => '081234567890',
+                'full_address'    => 'Jl. Merdeka No. 10',
+                'city'            => 'Bandung',
+                'city_id'         => 23,
+                'postal_code'     => '40115',
+                'courier'         => 'jne',
+                'courier_service' => 'jne-REG',
+                'payment_method'  => 'snap',
+            ]);
+
+        $response->assertStatus(500);
+
+        // Keranjang harus tetap utuh
+        $this->assertSame(1, $cart->items()->count(), 'Cart must be preserved when Midtrans fails');
+        // Order dibuat di Txn A lalu dibatalkan karena Snap gagal
+        $this->assertSame(1, Order::where('user_id', $user->id)->count());
+        $order = Order::where('user_id', $user->id)->first();
+        $this->assertSame('dibatalkan', $order->status);
+        // Baris Payment TIDAK dibuat
+        $this->assertSame(0, Payment::where('order_id', $order->id)->count());
+    }
+
     public function test_checkout_validates_stock(): void
     {
         $user = User::factory()->create();
@@ -504,6 +624,10 @@ class CheckoutTest extends TestCase
         $midtransMock->shouldReceive('createSnapToken')
             ->once()
             ->andReturn(['token' => 'new_snap_token_after_cancel', 'redirect_url' => 'https://dummy.url']);
+        $midtransMock->shouldReceive('cancelTransaction')
+            ->once()
+            ->with('ELCRAFT-OLDABANDONED')
+            ->andReturn(['outcome' => 'cancelled', 'status_code' => 200, 'message' => '']);
         $this->app->instance(MidtransService::class, $midtransMock);
 
         // ── Act: second checkout attempt ──────────────────────────────────────

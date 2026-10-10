@@ -409,6 +409,10 @@
                         <span>Bayar Sekarang</span>
                     </button>
 
+                    <p x-show="!selectedShipping" x-cloak class="mt-2 text-center text-[11px] text-warmGrey">
+                        Pilih layanan kurir terlebih dahulu untuk melanjutkan pembayaran.
+                    </p>
+
                     {{-- Label keamanan --}}
                     <p class="text-center text-[10px] text-warmGrey mt-3 flex items-center justify-center space-x-1">
                         <span class="material-symbols-outlined !text-[13px]">verified_user</span>
@@ -419,6 +423,32 @@
             </div>
         </div>
     </section>
+</div>
+
+{{-- Popup Notifikasi: Menunggu Pembayaran --}}
+<div id="pending-payment-modal"
+     class="fixed inset-0 z-[200] hidden items-center justify-center px-5 bg-warmBlack/50 backdrop-blur-sm">
+    <div class="bg-white rounded-card border border-warmLightGrey p-8 max-w-sm w-full text-center shadow-lg relative">
+        <button type="button" onclick="closePendingPaymentModal()"
+                aria-label="Tutup"
+                class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full text-warmGrey hover:bg-warmCream hover:text-warmBlack transition-colors cursor-pointer">
+            <span class="material-symbols-outlined !text-[20px]">close</span>
+        </button>
+
+        <div class="w-16 h-16 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto mb-5">
+            <span class="material-symbols-outlined text-amber-600 !text-[34px]">schedule</span>
+        </div>
+        <h3 class="text-lg font-semibold text-warmBlack mb-2">Menunggu Pembayaran</h3>
+        <p class="text-sm text-warmGrey leading-relaxed mb-6">
+            Pesanan Anda sudah dibuat dan masih menunggu pembayaran.
+            Silakan selesaikan pembayaran agar pesanan segera diproses.
+        </p>
+
+        <button type="button" onclick="closePendingPaymentModal()"
+                class="w-full py-2.5 bg-brand hover:bg-brandDark text-white font-semibold text-sm rounded-btn transition-colors duration-200 cursor-pointer">
+            Kembali ke Beranda
+        </button>
+    </div>
 </div>
 @endsection
 
@@ -667,8 +697,17 @@
 
         const form = document.getElementById('shipping-form');
         if (!form.reportValidity()) {
+            const missing = [...form.elements]
+                .filter(el => el.willValidate && !el.checkValidity())
+                .map(el => (el.labels?.[0]?.textContent || el.id || el.name || 'Field').replace('*', '').trim());
             btn.disabled = false;
             btn.innerHTML = defaultBtnHtml;
+            const msg = missing.length
+                ? 'Lengkapi data pengiriman terlebih dahulu: ' + missing.join(', ') + '.'
+                : 'Lengkapi data pengiriman terlebih dahulu.';
+            if (typeof showToast === 'function') showToast(msg, 'error');
+            else alert(msg);
+            form.querySelector(':invalid')?.focus();
             return;
         }
 
@@ -691,14 +730,16 @@
         const postalCode   = alpine?.postalCode ?? '';
 
         if (!cityId) {
-            alert('Silakan pilih kota tujuan pengiriman terlebih dahulu.');
+            const msgCity = 'Silakan pilih kota tujuan pengiriman terlebih dahulu.';
+            if (typeof showToast === 'function') showToast(msgCity, 'error'); else alert(msgCity);
             btn.disabled = false;
             btn.innerHTML = defaultBtnHtml;
             return;
         }
 
         if (!alpine?.selectedShipping) {
-            alert('Silakan pilih layanan kurir pengiriman terlebih dahulu.');
+            const msgShip = 'Silakan pilih layanan kurir pengiriman terlebih dahulu.';
+            if (typeof showToast === 'function') showToast(msgShip, 'error'); else alert(msgShip);
             btn.disabled = false;
             btn.innerHTML = defaultBtnHtml;
             return;
@@ -756,7 +797,9 @@
                     window.location.href = `{{ route('checkout.finish') }}?order_id=${result.order_id}&transaction_status=${result.transaction_status}`;
                 },
                 onPending: (result) => {
-                    window.location.href = `{{ route('checkout.finish') }}?order_id=${result.order_id}&transaction_status=pending`;
+                    // Tidak diarahkan ke halaman "Menunggu Pembayaran" —
+                    // cukup tampilkan notif popup.
+                    showPendingPaymentModal();
                 },
                 onError: (result) => {
                     console.error('Midtrans error:', result);
@@ -765,15 +808,35 @@
                 onClose: () => {
                     btn.disabled = false;
                     btn.innerHTML = defaultBtnHtml;
+                    // Popup Snap ditutup tanpa pembayaran sukses —
+                    // tampilkan notif "Menunggu Pembayaran", jangan redirect.
+                    showPendingPaymentModal();
                 },
             });
 
         } catch (error) {
             console.error('Payment initiation error:', error);
-            alert('Terjadi kesalahan: ' + error.message + '\nSilakan coba lagi atau hubungi kami.');
+            const msgErr = 'Terjadi kesalahan: ' + error.message + '\nSilakan coba lagi atau hubungi kami.';
+            if (typeof showToast === 'function') showToast(msgErr, 'error'); else alert(msgErr);
             btn.disabled = false;
             btn.innerHTML = defaultBtnHtml;
         }
+    }
+
+    /**
+     * Popup notifikasi "Menunggu Pembayaran" — menggantikan redirect ke halaman
+     * "Menunggu Pembayaran" (hanya untuk alur checkout). Tombol X / close
+     * membawa user kembali ke beranda.
+     */
+    function showPendingPaymentModal() {
+        const modal = document.getElementById('pending-payment-modal');
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closePendingPaymentModal() {
+        window.location.href = '{{ url('/') }}';
     }
 </script>
 @endpush

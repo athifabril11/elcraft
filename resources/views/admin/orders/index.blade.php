@@ -34,7 +34,7 @@
     <div class="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
         @foreach($tabStatuses as $key => $label)
             @php
-                $isActive = ($filter ?? '') === $key;
+                $isActive = empty($paymentCaptured) && ($filter ?? '') === $key;
                 $count = $key === '' ? $counts->sum() : ($counts[$key] ?? 0);
             @endphp
             <a href="{{ route('admin.orders.index', array_filter(['status' => $key, 'q' => $search])) }}"
@@ -45,11 +45,27 @@
                 </span>
             </a>
         @endforeach
+
+        @if(($capturedCount ?? 0) > 0 || !empty($paymentCaptured))
+            @php
+                $isCapturedActive = !empty($paymentCaptured);
+            @endphp
+            <a href="{{ route('admin.orders.index', array_filter(['payment_captured' => 1, 'q' => $search])) }}"
+               class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all text-decoration-none {{ $isCapturedActive ? 'bg-rose-600 text-white shadow-xs font-bold' : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 hover:text-rose-900' }}">
+                <span class="material-symbols-outlined" style="font-size:14px;">warning</span>
+                <span>Dana Tertangkap</span>
+                <span class="px-1.5 py-0.2 rounded-full text-[10px] font-bold {{ $isCapturedActive ? 'bg-white/25 text-white' : 'bg-rose-200 text-rose-800' }}">
+                    {{ $capturedCount ?? 0 }}
+                </span>
+            </a>
+        @endif
     </div>
 
     <!-- Search Box -->
     <form method="GET" action="{{ route('admin.orders.index') }}" class="flex items-center gap-2 m-0 shrink-0">
-        @if($filter)
+        @if(!empty($paymentCaptured))
+            <input type="hidden" name="payment_captured" value="1">
+        @elseif($filter)
             <input type="hidden" name="status" value="{{ $filter }}">
         @endif
         <div class="relative">
@@ -64,7 +80,7 @@
             Cari
         </button>
         @if($search !== '')
-            <a href="{{ route('admin.orders.index', array_filter(['status' => $filter])) }}"
+            <a href="{{ route('admin.orders.index', array_filter(['status' => $filter, 'payment_captured' => !empty($paymentCaptured) ? 1 : null])) }}"
                class="admin-btn-ghost" style="font-size:0.75rem; padding:0.4rem 0.6rem;" title="Reset pencarian">
                 Reset
             </a>
@@ -208,7 +224,7 @@
                     <tr>
                         <td colspan="8" class="p-12 text-center text-stone-500 text-xs">
                             <span class="material-symbols-outlined text-stone-300 block mb-2" style="font-size:36px;">receipt_long</span>
-                            Belum ada pesanan{{ $filter ? ' dengan status "' . ($tabStatuses[$filter] ?? $filter) . '"' : '' }}{{ $search ? ' untuk pencarian "' . $search . '"' : '' }}.
+                            Belum ada pesanan{{ !empty($paymentCaptured) ? ' dengan status dana tertangkap' : ($filter ? ' dengan status "' . ($tabStatuses[$filter] ?? $filter) . '"' : '') }}{{ $search ? ' untuk pencarian "' . $search . '"' : '' }}.
                         </td>
                     </tr>
                 @endforelse

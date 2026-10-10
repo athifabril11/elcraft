@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\View;
 use App\Models\Address;
 use App\Policies\AddressPolicy;
 use App\View\Composers\StorefrontFooterComposer;
+use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Notifications\Messages\MailMessage;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -45,5 +47,15 @@ class AppServiceProvider extends ServiceProvider
 
         // View Composer untuk layout storefront
         View::composer('layouts.storefront', StorefrontFooterComposer::class);
+
+        // Kustomisasi pesan email verifikasi akun pengguna
+        VerifyEmail::toMailUsing(function (object $notifiable, string $url) {
+            return (new MailMessage)
+                ->subject('Verifikasi Alamat Email Anda - Elcraft')
+                ->view('emails.verify-email', [
+                    'user' => $notifiable,
+                    'url'  => $url,
+                ]);
+        });
     }
 }

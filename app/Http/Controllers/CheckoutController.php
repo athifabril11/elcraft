@@ -177,8 +177,44 @@ class CheckoutController extends Controller
             ]);
         }
 
+        // 6a. Batalkan pesanan pending lama milik pengguna ini (jika ada).
+        //     Pesanan pending sebelumnya adalah sisa sesi Snap yang ditinggalkan
+        //     (popup ditutup, tab ditutup, dll). Stok TIDAK perlu dikembalikan
+        //     karena stok hanya dikurangi saat pembayaran berhasil (markAsPaid),
+        //     bukan saat pesanan dibuat.
+        //
+        //     Panggilan Midtrans Cancel API dilakukan DI LUAR transaksi DB agar
+        //     tidak menahan lock selama request eksternal. Pesanan hanya ditandai
+        //     'dibatalkan' secara lokal jika ditutup sukses di Midtrans
+        //     (cancelled/not_found) — outcome lain (cannot_modify/error) dibiarkan
+        //     'pending' supaya transaksi lama tidak berstatus dibatalkan tapi
+        //     tetap bisa dibayar pelanggan.
+        $abandonedIds = [];
+        $abandonedOrders = Order::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->with('payment')
+            ->get();
+
+        foreach ($abandonedOrders as $abandoned) {
+            $cancel = $this->midtrans->cancelTransaction($abandoned->order_number);
+
+            if (in_array($cancel['outcome'], ['cancelled', 'not_found'], true)) {
+                $abandonedIds[] = $abandoned->id;
+            } else {
+                Log::warning('Checkout: order abandoned gagal ditutup di Midtrans', [
+                    'order_number' => $abandoned->order_number,
+                    'outcome'      => $cancel['outcome'],
+                    'status_code'  => $cancel['status_code'],
+                    'message'      => $cancel['message'],
+                ]);
+            }
+        }
+
+        $order = null;
+
         try {
-            return DB::transaction(function () use ($request, $user, $cart, $verifiedShipping) {
+            // Txn A: Buat order dan order items di database, commit sebelum memanggil HTTP
+            [$order, $orderData, $customer, $total, $orderId] = DB::transaction(function () use ($request, $user, $cart, $verifiedShipping, $abandonedIds) {
                 // 5. Simpan atau perbarui alamat pengiriman
                 $address = null;
                 if ($request->filled('address_id')) {
@@ -232,7 +268,7 @@ class CheckoutController extends Controller
                 $voucherId       = null;
                 if ($request->filled('voucher_code')) {
                     $voucher = Voucher::where('code', strtoupper(trim($request->voucher_code)))->first();
-                    if ($voucher && $voucher->isValid((float) $subtotal)) {
+                    if ($voucher && $voucher->isValid((float) $subtotal) && !$voucher->isUsedBy($user->id)) {
                         $voucherDiscount = $voucher->calculateDiscount((float) $subtotal);
                         $voucherId       = $voucher->id;
                     }
@@ -240,25 +276,18 @@ class CheckoutController extends Controller
 
                 $total = $subtotal + $shipping - $voucherDiscount;
 
-                // 6a. Batalkan pesanan pending lama milik pengguna ini (jika ada).
-                //     Pesanan pending sebelumnya adalah sisa sesi Snap yang ditinggalkan
-                //     (popup ditutup, tab ditutup, dll). Stok TIDAK perlu dikembalikan
-                //     karena stok hanya dikurangi saat pembayaran berhasil (markAsPaid),
-                //     bukan saat pesanan dibuat.
-                $abandonedOrders = Order::where('user_id', $user->id)
-                    ->where('status', 'pending')
-                    ->with('payment')
-                    ->get();
-
-                foreach ($abandonedOrders as $abandoned) {
-                    $abandoned->update(['status' => 'dibatalkan']);
-                    if ($abandoned->payment) {
-                        $abandoned->payment->update(['status' => 'failed']);
-                    }
+                // 6b. Tandai dibatalkan hanya pesanan yang berhasil ditutup di Midtrans.
+                //     Re-check status 'pending' di dalam transaksi agar tidak
+                //     menimpa pesanan yang baru saja berubah status.
+                if ($abandonedIds !== []) {
+                    Order::whereIn('id', $abandonedIds)
+                        ->where('status', 'pending')
+                        ->update(['status' => 'dibatalkan']);
+                    Payment::whereIn('order_id', $abandonedIds)->update(['status' => 'failed']);
                 }
 
                 // Simpan Order
-                $order = Order::create([
+                $createdOrder = Order::create([
                     'order_number'     => $orderId,
                     'user_id'          => $user->id,
                     'address_id'       => $address->id,
@@ -277,7 +306,7 @@ class CheckoutController extends Controller
                 // Simpan Order Items
                 $items = [];
                 foreach ($cart->items as $item) {
-                    $order->items()->create([
+                    $createdOrder->items()->create([
                         'product_id'      => $item->product_id,
                         'variant_id'      => $item->variant_id,
                         'product_name'    => $item->product->name,
@@ -333,11 +362,14 @@ class CheckoutController extends Controller
                     'phone' => $user->phone ?? $request->recipient_phone,
                 ];
 
-                // 7. Request token dari Midtrans
-                $snapData = $this->midtrans->createSnapToken($orderData, $customer);
+                return [$createdOrder, $orderData, $customer, $total, $orderId];
+            });
 
-                // Simpan data pembayaran
-                // expired_at = 24 jam dari sekarang (sesuai TTL default Midtrans Snap token)
+            // 7. Request token dari Midtrans (DI LUAR transaksi DB agar tidak menahan lock)
+            $snapData = $this->midtrans->createSnapToken($orderData, $customer);
+
+            // Txn B (short): Simpan data pembayaran & kosongkan keranjang
+            DB::transaction(function () use ($order, $orderId, $request, $total, $snapData, $cart) {
                 Payment::create([
                     'order_id'          => $order->id,
                     'midtrans_order_id' => $orderId,
@@ -348,12 +380,29 @@ class CheckoutController extends Controller
                     'expired_at'        => now()->addHours(24),
                 ]);
 
-                return response()->json([
-                    'snap_token' => $snapData['token'],
-                    'order_id'   => $orderId,
-                ]);
+                // Item sudah menjadi order pending & token berhasil dibuat — kosongkan keranjang
+                $cart->items()->delete();
             });
+
+            return response()->json([
+                'snap_token' => $snapData['token'],
+                'order_id'   => $orderId,
+            ]);
         } catch (\Exception $e) {
+            if ($order !== null) {
+                try {
+                    $order->update(['status' => 'dibatalkan']);
+                    if ($order->payment) {
+                        $order->payment->update(['status' => 'failed']);
+                    }
+                } catch (\Throwable $updateEx) {
+                    Log::warning('Checkout: gagal menandai order dibatalkan setelah snap error', [
+                        'order_id' => $order->id,
+                        'error'    => $updateEx->getMessage(),
+                    ]);
+                }
+            }
+
             Log::error('Checkout Snap Token Error: ' . $e->getMessage(), [
                 'user_id' => $user->id,
                 'trace'   => $e->getTraceAsString(),
@@ -432,18 +481,12 @@ class CheckoutController extends Controller
 
     /**
      * Halaman setelah pembayaran selesai.
-     * Membersihkan keranjang belanja setelah pembayaran terinisiasi.
      *
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Contracts\View\View
      */
     public function finish(Request $request)
     {
-        $cart = $request->user()->cart;
-        if ($cart) {
-            $cart->items()->delete();
-        }
-
         return view('checkout.finish', [
             'order_id' => $request->input('order_id'),
             'status'   => $request->input('transaction_status'),

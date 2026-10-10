@@ -74,10 +74,58 @@ class WebhookCartClearingTest extends TestCase
     }
 
     /**
-     * 1. When markAsPaid() successfully processes a webhook for an order,
-     * the customer's cart items (matching the order's user_id) are deleted.
+     * 1a. User has an order pending (cart cleared at token creation),
+     * customer adds a NEW item to cart, settlement webhook arrives -> new cart item STILL EXISTS.
      */
-    public function test_webhook_mark_as_paid_clears_customer_cart_items(): void
+    public function test_settlement_preserves_cart_items_added_after_checkout(): void
+    {
+        $user = User::factory()->create();
+        $category = Category::create(['name' => 'Anting', 'slug' => 'anting', 'is_active' => true]);
+        $newProduct = Product::create([
+            'category_id' => $category->id,
+            'name'        => 'Anting Mutiara Baru',
+            'slug'        => 'anting-mutiara-baru',
+            'price'       => 80000,
+            'stock'       => 10,
+            'weight'      => 5,
+            'is_active'   => true,
+        ]);
+
+        // Customer completed checkout previously: pending order exists, cart was emptied at Snap token creation
+        $order = $this->createOrderSetup($user, 'ELCRAFT-CART-POST-CHECKOUT');
+
+        // Customer adds a NEW item to cart while payment is pending
+        $cart = $user->getOrCreateCart();
+        $cart->items()->create([
+            'product_id' => $newProduct->id,
+            'quantity'   => 1,
+        ]);
+
+        $this->assertDatabaseHas('cart_items', [
+            'cart_id'    => $cart->id,
+            'product_id' => $newProduct->id,
+        ]);
+
+        // Webhook arrives for the earlier pending order
+        $response = $this->postSettlementWebhook($order->order_number);
+
+        $response->assertStatus(200);
+        $this->assertEquals('paid', $order->fresh()->status);
+
+        // Invariant: settlement MUST NOT touch the cart — newly added items remain intact
+        $this->assertDatabaseHas('cart_items', [
+            'cart_id'    => $cart->id,
+            'product_id' => $newProduct->id,
+        ]);
+        $this->assertEquals(1, CartItem::where('cart_id', $cart->id)->count());
+        $this->assertCount(1, $cart->fresh()->items);
+    }
+
+    /**
+     * 1b. When markAsPaid() successfully processes a webhook for an order,
+     * the customer's cart items are preserved (settlement does not touch cart).
+     */
+    public function test_webhook_mark_as_paid_does_not_clear_customer_cart_items(): void
     {
         $user = User::factory()->create();
         $category = Category::create(['name' => 'Cincin', 'slug' => 'cincin', 'is_active' => true]);
@@ -111,9 +159,13 @@ class WebhookCartClearingTest extends TestCase
         $response->assertStatus(200);
         $this->assertEquals('paid', $order->fresh()->status);
 
-        // Pastikan isi keranjang pelanggan sudah dikosongkan
-        $this->assertEquals(0, CartItem::where('cart_id', $cart->id)->count());
-        $this->assertCount(0, $cart->fresh()->items);
+        // Pastikan isi keranjang pelanggan TIDAK dikosongkan oleh webhook
+        $this->assertEquals(1, CartItem::where('cart_id', $cart->id)->count());
+        $this->assertCount(1, $cart->fresh()->items);
+        $this->assertDatabaseHas('cart_items', [
+            'cart_id'    => $cart->id,
+            'product_id' => $product->id,
+        ]);
     }
 
     /**
@@ -152,9 +204,9 @@ class WebhookCartClearingTest extends TestCase
     }
 
     /**
-     * 3. Duplicate webhook notifications do not throw or re-trigger unwanted side-effects.
+     * 3. Duplicate webhook notifications remain idempotent and preserve customer cart.
      */
-    public function test_duplicate_webhook_settlement_remains_idempotent_with_cart_clearing(): void
+    public function test_duplicate_webhook_settlement_remains_idempotent_and_preserves_cart(): void
     {
         $user = User::factory()->create();
         $category = Category::create(['name' => 'Kalung', 'slug' => 'kalung', 'is_active' => true]);
@@ -180,19 +232,19 @@ class WebhookCartClearingTest extends TestCase
         $resp1 = $this->postSettlementWebhook($order->order_number);
         $resp1->assertStatus(200);
         $this->assertEquals('paid', $order->fresh()->status);
-        $this->assertEquals(0, CartItem::where('cart_id', $cart->id)->count());
+        $this->assertEquals(1, CartItem::where('cart_id', $cart->id)->count());
 
         // Panggilan webhook kedua (duplikat)
         $resp2 = $this->postSettlementWebhook($order->order_number);
         $resp2->assertStatus(200);
         $this->assertEquals('paid', $order->fresh()->status);
-        $this->assertEquals(0, CartItem::where('cart_id', $cart->id)->count());
+        $this->assertEquals(1, CartItem::where('cart_id', $cart->id)->count());
     }
 
     /**
-     * 4. Verify the client-side finish() method also clears the cart when redirected.
+     * 4. Verify the client-side finish() method renders checkout.finish view and preserves cart.
      */
-    public function test_checkout_finish_client_side_redirect_clears_cart(): void
+    public function test_checkout_finish_client_side_redirect_preserves_cart(): void
     {
         $user = User::factory()->create();
         $category = Category::create(['name' => 'Gelang', 'slug' => 'gelang', 'is_active' => true]);
@@ -222,7 +274,8 @@ class WebhookCartClearingTest extends TestCase
         $response->assertStatus(200);
         $response->assertViewIs('checkout.finish');
 
-        // Pastikan keranjang kosong setelah finish() dipanggil
-        $this->assertEquals(0, CartItem::where('cart_id', $cart->id)->count());
+        // Pastikan keranjang TIDAK dihapus ketika finish() dipanggil
+        $this->assertEquals(1, CartItem::where('cart_id', $cart->id)->count());
+        $this->assertCount(1, $cart->fresh()->items);
     }
 }

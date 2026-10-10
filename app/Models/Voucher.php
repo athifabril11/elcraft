@@ -43,6 +43,24 @@ class Voucher extends Model
         return $this->hasMany(Order::class);
     }
 
+    /**
+     * Apakah voucher ini sudah pernah/sedang dipakai user tertentu?
+     * True jika ada riwayat pemakaian (settlement) ATAU ada order aktif
+     * (status selain 'dibatalkan') yang memakai voucher ini.
+     * Order dibatalkan dianggap belum pernah transaksi — boleh pakai ulang.
+     */
+    public function isUsedBy(int $userId): bool
+    {
+        if ($this->usages()->where('user_id', $userId)->exists()) {
+            return true;
+        }
+
+        return $this->orders()
+            ->where('user_id', $userId)
+            ->where('status', '!=', 'dibatalkan')
+            ->exists();
+    }
+
     // Cek apakah voucher valid
     public function isValid(float $totalPrice): bool
     {

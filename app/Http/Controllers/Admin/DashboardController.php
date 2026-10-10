@@ -39,6 +39,9 @@ class DashboardController extends Controller
         $paidOrdersCount = Order::where('status', 'paid')->count();
         $processingOrdersCount = Order::where('status', 'diproses')->count();
         $ordersNeedingAttention = $paidOrdersCount + $processingOrdersCount;
+        $capturedStuckCount = Order::where('status', 'dibatalkan')
+            ->whereHas('payment', fn($q) => $q->where('status', 'success'))
+            ->count();
 
         // 3. Returns Needing Attention (diajukan)
         $pendingReturnsCount = ReturnRequest::where('status', 'diajukan')->count();
@@ -227,7 +230,8 @@ class DashboardController extends Controller
             'totalReviewsCount',
             'averageRating',
             'satisfactionRate',
-            'recentReviews'
+            'recentReviews',
+            'capturedStuckCount'
         ));
     }
 }

@@ -250,4 +250,55 @@ class CancelPendingOrderMidtransTest extends TestCase
 
         Http::assertNothingSent();
     }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // (g) MidtransService::cancelTransaction throws exception → handled gracefully
+    // ────────────────────────────────────────────────────────────────────────
+
+    public function test_cancel_transaction_exception_leaves_order_pending_and_shows_error_flash(): void
+    {
+        $user  = User::factory()->create();
+        $order = $this->createOrderForUser($user, 'pending');
+
+        $midtransMock = \Mockery::mock(\App\Services\MidtransService::class);
+        $midtransMock->shouldReceive('cancelTransaction')
+            ->once()
+            ->with($order->order_number)
+            ->andThrow(new \RuntimeException('Midtrans service fatal error'));
+        $this->app->instance(\App\Services\MidtransService::class, $midtransMock);
+
+        $response = $this->actingAs($user)->post(route('orders.cancel', $order->order_number));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertEquals('pending', $order->fresh()->status);
+        $this->assertEquals('pending', $order->fresh()->payment->status);
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // (h) Concurrent status change between Txn A and Txn B
+    // ────────────────────────────────────────────────────────────────────────
+
+    public function test_cancel_when_order_status_changes_concurrently_shows_error_flash(): void
+    {
+        $user  = User::factory()->create();
+        $order = $this->createOrderForUser($user, 'pending');
+
+        $midtransMock = \Mockery::mock(\App\Services\MidtransService::class);
+        $midtransMock->shouldReceive('cancelTransaction')
+            ->once()
+            ->with($order->order_number)
+            ->andReturnUsing(function () use ($order) {
+                // Simulate race: status changes after Txn A / during HTTP call
+                Order::where('id', $order->id)->update(['status' => 'paid']);
+                return ['outcome' => 'cancelled', 'status_code' => 200, 'message' => 'Success'];
+            });
+        $this->app->instance(\App\Services\MidtransService::class, $midtransMock);
+
+        $response = $this->actingAs($user)->post(route('orders.cancel', $order->order_number));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error', 'Pesanan tidak dapat dibatalkan pada status saat ini.');
+        $this->assertEquals('paid', $order->fresh()->status);
+    }
 }

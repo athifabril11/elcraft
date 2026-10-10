@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\OrderCompletedMail;
 use App\Models\Order;
 use App\Services\MidtransService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * OrderController — Riwayat & Detail Pesanan Pelanggan.
@@ -63,51 +65,65 @@ class OrderController extends Controller
             ->where('order_number', $orderNumber)
             ->firstOrFail();
 
-        $result = DB::transaction(function () use ($order) {
-            // Re-fetch with a row lock to prevent concurrent writes
+        // 1. Txn A: Verifikasi status 'pending' dengan lock singkat dan langsung commit/lepas lock
+        $isPending = DB::transaction(function () use ($order) {
             $locked = Order::lockForUpdate()->findOrFail($order->id);
+            return $locked->status === 'pending';
+        });
 
-            // Hanya izinkan pembatalan untuk pesanan yang belum diproses
-            if ($locked->status !== 'pending') {
-                return ['action' => 'not_pending'];
-            }
+        if (!$isPending) {
+            return redirect()->back()
+                ->with('error', 'Pesanan tidak dapat dibatalkan pada status saat ini.');
+        }
 
-            // Batalkan di sisi Midtrans sebelum mengubah database lokal
-            $midtrans = app(MidtransService::class);
-            $cancel   = $midtrans->cancelTransaction($locked->order_number);
+        // 2. HTTP: Batalkan di sisi Midtrans DI LUAR transaksi DB
+        $midtrans = app(MidtransService::class);
+        try {
+            $cancel = $midtrans->cancelTransaction($order->order_number);
+        } catch (\Throwable $e) {
+            Log::warning('OrderController::cancel — exception during Midtrans cancel', [
+                'order_number' => $order->order_number,
+                'exception'    => $e->getMessage(),
+            ]);
+            $cancel = ['outcome' => 'error', 'status_code' => null, 'message' => $e->getMessage()];
+        }
 
-            if (in_array($cancel['outcome'], ['cancelled', 'not_found'])) {
+        // 3. Outcome handling
+        if (in_array($cancel['outcome'] ?? 'error', ['cancelled', 'not_found'], true)) {
+            // Txn B (short): Lock ulang, re-verifikasi status, dan update lokal
+            $result = DB::transaction(function () use ($order) {
+                $locked = Order::lockForUpdate()->findOrFail($order->id);
+
+                if ($locked->status !== 'pending') {
+                    return 'not_pending';
+                }
+
                 $locked->update(['status' => 'dibatalkan']);
 
                 if ($locked->payment) {
                     $locked->payment->update(['status' => 'failed']);
                 }
 
-                return ['action' => 'cancelled'];
+                return 'cancelled';
+            });
+
+            if ($result === 'not_pending') {
+                return redirect()->back()
+                    ->with('error', 'Pesanan tidak dapat dibatalkan pada status saat ini.');
             }
 
-            // 'cannot_modify' or 'error' — do not change local data
-            Log::warning('OrderController::cancel — Midtrans cancellation blocked', [
-                'order_number' => $locked->order_number,
-                'outcome'      => $cancel['outcome'],
-                'status_code'  => $cancel['status_code'] ?? null,
-                'message'      => $cancel['message'] ?? '',
-            ]);
-
-            return ['action' => 'blocked', 'outcome' => $cancel['outcome']];
-        });
-
-        if ($result['action'] === 'not_pending') {
-            return redirect()->back()
-                ->with('error', 'Pesanan tidak dapat dibatalkan pada status saat ini.');
-        }
-
-        if ($result['action'] === 'cancelled') {
             return redirect()->back()
                 ->with('success', 'Pesanan #' . $order->order_number . ' berhasil dibatalkan.');
         }
 
-        // blocked
+        // Outcome 'cannot_modify' or 'error' — do not change local data
+        Log::warning('OrderController::cancel — Midtrans cancellation blocked', [
+            'order_number' => $order->order_number,
+            'outcome'      => $cancel['outcome'] ?? 'error',
+            'status_code'  => $cancel['status_code'] ?? null,
+            'message'      => $cancel['message'] ?? '',
+        ]);
+
         return redirect()->back()
             ->with('error', 'Pesanan belum bisa dibatalkan karena pembayaran sedang diproses. Muat ulang halaman beberapa saat lagi atau hubungi kami.');
     }
@@ -270,20 +286,31 @@ class OrderController extends Controller
 
             $cart ??= $user->getOrCreateCart();
 
-            $existingCartItem = $cart->items()
-                ->where('product_id', $item->product_id)
-                ->where('variant_id', $item->variant_id)
-                ->first();
+            $query = $cart->allItems()->where('product_id', $item->product_id);
+            if ($item->variant_id) {
+                $query->where('variant_id', $item->variant_id);
+            } else {
+                $query->whereNull('variant_id');
+            }
+            $existingCartItem = $query->first();
 
             if ($existingCartItem) {
                 $newQty = min($existingCartItem->quantity + $qtyToAdd, $currentStock);
-                $existingCartItem->update(['quantity' => $newQty]);
+                $updateData = ['quantity' => $newQty];
+                if (\Illuminate\Support\Facades\Schema::hasColumn('cart_items', 'is_selected')) {
+                    $updateData['is_selected'] = true;
+                }
+                $existingCartItem->update($updateData);
             } else {
-                $cart->items()->create([
+                $createData = [
                     'product_id' => $item->product_id,
                     'variant_id' => $item->variant_id,
                     'quantity'   => $qtyToAdd,
-                ]);
+                ];
+                if (\Illuminate\Support\Facades\Schema::hasColumn('cart_items', 'is_selected')) {
+                    $createData['is_selected'] = true;
+                }
+                $cart->allItems()->create($createData);
             }
 
             $addedCount++;
@@ -333,6 +360,21 @@ class OrderController extends Controller
             return redirect()
                 ->route('orders.show', $orderNumber)
                 ->with('error', 'Pesanan ini tidak dapat dikonfirmasi saat ini.');
+        }
+
+        $order->load(['address', 'items', 'user']);
+
+        if ($order->user?->email) {
+            try {
+                Mail::to($order->user->email)->send(new OrderCompletedMail($order));
+            } catch (\Throwable $e) {
+                Log::error('OrderCompletedMail gagal terkirim (confirmReceived)', [
+                    'order_id'     => $order->id,
+                    'order_number' => $order->order_number,
+                    'to_email'     => $order->user->email,
+                    'error'        => $e->getMessage(),
+                ]);
+            }
         }
 
         return redirect()

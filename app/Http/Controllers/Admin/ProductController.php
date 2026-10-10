@@ -196,9 +196,9 @@ class ProductController extends Controller
                     $hasVariantStock = true;
                 }
 
-                // Jika varian diisi dengan stok, sinkronkan total stok produk
-                if ($hasVariantStock && $totalVariantStock > 0) {
-                    $product->update(['stock' => $totalVariantStock]);
+                // Jika varian diisi, sinkronkan total stok produk dari varian aktif
+                if ($hasVariantStock) {
+                    $product->recalculateStockFromVariants();
                 }
             }
         });
@@ -323,8 +323,8 @@ class ProductController extends Controller
                     ->whereNotIn('id', $keptIds)
                     ->delete();
 
-                if ($hasVar && $totalVarStock > 0) {
-                    $product->update(['stock' => $totalVarStock]);
+                if ($hasVar) {
+                    $product->recalculateStockFromVariants();
                 }
             }
         });
@@ -343,6 +343,7 @@ class ProductController extends Controller
         }
 
         $variant->update(['is_active' => !$variant->is_active]);
+        $product->recalculateStockFromVariants();
 
         return response()->json([
             'success' => true,

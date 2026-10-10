@@ -362,7 +362,7 @@ class ReturnAdminTest extends TestCase
 
     public function test_admin_can_advance_diproses_to_selesai(): void
     {
-        $ret = $this->makeReturn($this->customer(), 'diproses');
+        $ret = $this->makeReturn($this->customer(), 'diproses', 'tukar_barang');
 
         $this->actingAs($this->admin())
              ->patch("/admin/returns/{$ret->id}/advance")

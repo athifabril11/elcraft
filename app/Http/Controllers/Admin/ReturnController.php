@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ReturnRequest;
+use App\Services\RefundService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -167,9 +168,19 @@ class ReturnController extends Controller
             }
 
             $next = $map[$locked->status];
+
+            if ($locked->resolution_type === 'refund' && $locked->refund_status === null && $next === 'selesai') {
+                return 'refund_pending';
+            }
+
             $locked->update(['status' => $next]);
             return $next;
         });
+
+        if ($next === 'refund_pending') {
+            return redirect()->route('admin.returns.index')
+                ->with('error', 'Retur ini berjenis refund — proses refund (API atau manual) selebih dulu sebelum menandai selesai.');
+        }
 
         if ($next === null) {
             return redirect()->route('admin.returns.index')
@@ -181,5 +192,39 @@ class ReturnController extends Controller
 
         return redirect()->route('admin.returns.index')
             ->with('success', 'Retur #' . $return->return_number . ' diperbarui ke status "' . $label . '".');
+    }
+
+    /**
+     * Eksekusi refund via Midtrans Refund API untuk retur yang sudah disetujui.
+     *
+     * Alur: guard → panggil API (di luar transaksi DB) → persist singkat
+     * dengan lock. Gagal API tidak mengubah status retur sehingga bisa dicoba ulang.
+     */
+    public function refund(ReturnRequest $return, RefundService $refunds): RedirectResponse
+    {
+        $result = $refunds->processApiRefund($return);
+
+        return redirect()->route('admin.returns.index')->with(
+            $result['success'] ? 'success' : 'error',
+            'Retur #' . $return->return_number . ': ' . $result['message']
+        );
+    }
+
+    /**
+     * Tandai refund yang dieksekusi di luar API (dashboard Midtrans / transfer bank).
+     * Wajib mencantumkan catatan bukti pengembalian dana.
+     */
+    public function refundManual(Request $request, ReturnRequest $return, RefundService $refunds): RedirectResponse
+    {
+        $request->validate([
+            'manual_notes' => 'required|string|min:5|max:2000',
+        ]);
+
+        $result = $refunds->markManual($return, $request->input('manual_notes'));
+
+        return redirect()->route('admin.returns.index')->with(
+            $result['success'] ? 'success' : 'error',
+            'Retur #' . $return->return_number . ': ' . $result['message']
+        );
     }
 }

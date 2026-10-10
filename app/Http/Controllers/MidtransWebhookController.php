@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\ReturnRequest;
 use App\Models\Voucher;
 use App\Models\VoucherUsage;
 use App\Mail\PaymentSuccessMail;
@@ -74,6 +75,9 @@ class MidtransWebhookController extends Controller
             // Pembayaran ditolak atau kedaluwarsa
             in_array($transactionStatus, ['deny', 'expire', 'cancel']) => $this->markAsFailed($orderId, $transactionStatus),
 
+            // Pengembalian dana (refund API sukses / refund via Midtrans dashboard)
+            $transactionStatus === 'refund' => $this->markAsRefunded($orderId, $notification),
+
             // Status tidak dikenal — catat untuk investigasi
             default => Log::warning('Midtrans webhook: status tidak dikenal', $notification),
         };
@@ -85,6 +89,17 @@ class MidtransWebhookController extends Controller
 
     private function markAsPaid(string $orderId, array $notification): void
     {
+        // ── Bayar-telat (late settlement) ─────────────────────────────────────
+        // Settlement valid tiba setelah order 'dibatalkan' (race: pelanggan
+        // bayar di detik cancel). Dana sudah tertangkap di Midtrans — jangan
+        // bangkitkan order, tapi auto-refund uangnya. Panggilan API dilakukan
+        // DI LUAR transaksi DB.
+        $currentStatus = Order::where('order_number', $orderId)->value('status');
+        if ($currentStatus === 'dibatalkan') {
+            $this->refundLateSettlement($orderId, $notification);
+            return;
+        }
+
         Log::info("Pesanan {$orderId} telah lunas", ['payment_type' => $notification['payment_type']]);
 
         $shouldSendEmail = false;
@@ -119,18 +134,6 @@ class MidtransWebhookController extends Controller
             // Update order status
             $order->update(['status' => 'paid']);
             $shouldSendEmail = true;
-
-            // Kosongkan keranjang belanja pelanggan setelah pembayaran terkonfirmasi.
-            // Ini server-side (bukan bergantung pada redirect browser) supaya reliable
-            // meskipun customer menutup/refresh browser sebelum popup Midtrans Snap redirect.
-            //
-            // Catatan: Jika pelanggan menambahkan produk baru ke keranjang belanja saat pesanan
-            // ini masih 'pending' (sebelum pembayaran terkonfirmasi), item baru tersebut juga
-            // akan terhapus karena seluruh isi keranjang dikosongkan.
-            $cart = $order->user?->cart;
-            if ($cart) {
-                $cart->items()->delete();
-            }
 
             // Update payment details
             if ($order->payment) {
@@ -225,12 +228,129 @@ class MidtransWebhookController extends Controller
         }
     }
 
+    /**
+     * Settlement telat untuk order yang sudah 'dibatalkan'.
+     *
+     * Dana pelanggan sudah terpotong (settlement valid, signature lolos) tetapi
+     * order tidak boleh dibangkitkan. Kebijakan: catat dana sebagai tertangkap
+     * (payment → success), lalu auto-refund penuh dengan refund_key idempoten
+     * AUTO-{order_number}. Jika refund API gagal, payment dibiarkan 'success'
+     * supaya admin melihat ada dana tertangkap yang harus direfund manual.
+     */
+    private function refundLateSettlement(string $orderId, array $notification): void
+    {
+        Log::critical('Midtrans webhook: settlement diterima untuk order yang sudah dibatalkan — menjalankan auto-refund', [
+            'order_id'     => $orderId,
+            'gross_amount' => $notification['gross_amount'] ?? null,
+        ]);
+
+        $order = Order::where('order_number', $orderId)->first();
+        if (!$order) {
+            Log::warning("Midtrans webhook: order {$orderId} not found for refundLateSettlement");
+            return;
+        }
+
+        // Idempotensi: refund sudah tercatat dari pengiriman webhook sebelumnya.
+        $payment = Payment::where('order_id', $order->id)->first();
+        if ($payment && $payment->status === 'refunded') {
+            Log::info("Midtrans webhook: late settlement untuk order {$orderId} sudah direfund sebelumnya — skip");
+            return;
+        }
+
+        // Dana memang tertangkap — catat dulu sebelum meminta refund.
+        Payment::where('order_id', $order->id)->update(['status' => 'success']);
+
+        $outcome = $this->midtrans->refundTransaction(
+            $orderId,
+            (float) $order->total_amount,
+            'Settlement telat untuk order yang sudah dibatalkan',
+            'AUTO-' . $orderId
+        );
+
+        if (in_array($outcome['outcome'], ['refunded', 'duplicate'], true)) {
+            Payment::where('order_id', $order->id)->update(['status' => 'refunded']);
+            Log::critical('Auto-refund settlement telat BERHASIL', [
+                'order_id' => $orderId,
+                'outcome'  => $outcome['outcome'],
+            ]);
+        } else {
+            Log::critical('Auto-refund settlement telat GAGAL — ada dana tertangkap yang harus direfund manual oleh admin', [
+                'order_id'    => $orderId,
+                'outcome'     => $outcome['outcome'],
+                'status_code' => $outcome['status_code'],
+                'message'     => $outcome['message'],
+            ]);
+        }
+    }
+
+    /**
+     * Notifikasi refund dari Midtrans (hasil Refund API atau refund manual
+     * lewat Midtrans dashboard). Midtrans mengirim 2 notifikasi refund
+     * (tanpa dan dengan bank_confirmed_at) — method ini idempotent.
+     *
+     * Status order DAN stok TIDAK diubah — refund bukan pembatalan pesanan.
+     */
+    private function markAsRefunded(string $orderId, array $notification): void
+    {
+        DB::transaction(function () use ($orderId, $notification) {
+            $order = Order::where('order_number', $orderId)->lockForUpdate()->first();
+
+            if (!$order) {
+                Log::warning("Midtrans webhook: order {$orderId} not found for markAsRefunded");
+                return;
+            }
+
+            Payment::where('order_id', $order->id)->update(['status' => 'refunded']);
+
+            // Sinkronkan retur refund yang memenuhi syarat (disetujui/diproses, belum direfund).
+            // Retur 'tukar_barang' tidak punya kewajiban refund — jangan ditutup di sini.
+            // Retur yang masih 'diajukan' tidak disentuh — uang memang bergerak
+            // (mis. refund dari dashboard Midtrans), tapi keputusan retur tetap admin.
+            $return = ReturnRequest::where('order_id', $order->id)->lockForUpdate()->first();
+            if ($return
+                && $return->refund_status === null
+                && $return->resolution_type === 'refund'
+                && in_array($return->status, ['disetujui', 'diproses'], true)
+            ) {
+                $return->update([
+                    'status'        => 'selesai',
+                    'refund_status' => 'api',
+                    'refunded_at'   => now(),
+                ]);
+            }
+
+            Log::info("Midtrans webhook: refund dikonfirmasi untuk order {$orderId}", [
+                'refund_key' => $notification['refund_key'] ?? null,
+            ]);
+        });
+    }
+
     private function markAsPending(string $orderId, array $notification = []): void
     {
-        Log::info("Pesanan {$orderId} menunggu pembayaran", $notification);
-        
-        $order = Order::where('order_number', $orderId)->first();
-        if ($order) {
+        DB::transaction(function () use ($orderId, $notification) {
+            // Guard whitelist + idempotency lock: baca status di dalam transaksi
+            // dengan lockForUpdate agar tidak ada jendela TOCTOU — settlement yang
+            // commit di antara pembacaan dan penulisan tidak bisa tertimpa kembali
+            // ke 'pending'. Hanya pesanan dengan status 'pending' yang boleh menerima
+            // notifikasi pending; status lain ('paid', 'diproses', 'dikirim',
+            // 'selesai', 'dibatalkan') dilewati.
+            $order = Order::where('order_number', $orderId)->lockForUpdate()->first();
+
+            if (!$order) {
+                Log::warning("Midtrans webhook: order {$orderId} not found for markAsPending");
+                return;
+            }
+
+            if ($order->status !== 'pending') {
+                Log::warning("Midtrans webhook: order {$orderId} memiliki status '{$order->status}', notifikasi pending diabaikan", [
+                    'order_number' => $orderId,
+                    'status'       => $order->status,
+                ]);
+                return;
+            }
+
+            Log::info("Pesanan {$orderId} menunggu pembayaran", $notification);
+
             $order->update(['status' => 'pending']);
             if ($order->payment) {
                 $paymentUpdates = [
@@ -256,39 +376,83 @@ class MidtransWebhookController extends Controller
 
                 $order->payment->update($paymentUpdates);
             }
-        }
+        });
     }
 
     private function markAsFailed(string $orderId, string $reason): void
     {
-        Log::warning("Pesanan {$orderId} gagal/dibatalkan", ['reason' => $reason]);
-        
-        $order = Order::where('order_number', $orderId)->first();
-        if ($order) {
-            DB::transaction(function () use ($order) {
-                $oldStatus = $order->status;
-                $order->update(['status' => 'dibatalkan']);
-                if ($order->payment) {
-                    $order->payment->update(['status' => 'failed']);
-                }
+        DB::transaction(function () use ($orderId, $reason) {
+            // Guard whitelist + idempotency lock: baca status di dalam transaksi
+            // dengan lockForUpdate agar keputusan pembatalan tidak balapan dengan
+            // webhook lain. Pesanan 'pending' menerima semua alasan (deny/expire/
+            // cancel); pesanan 'paid' HANYA menerima 'cancel' (pembatalan merchant)
+            // — 'deny'/'expire' yang telat tiba setelah settlement tidak boleh
+            // membatalkan pembayaran yang sudah tertangkap dan memulihkan stok
+            // (selisih uang). Status lain ('diproses', 'dikirim', 'selesai',
+            // 'dibatalkan') dilewati — order DAN payment tidak tersentuh, karena
+            // stok tidak akan dipulihkan untuk status tersebut.
+            $order = Order::where('order_number', $orderId)->lockForUpdate()->first();
 
-                // If the order was already paid, restore stock
-                if ($oldStatus === 'paid') {
-                    foreach ($order->items as $item) {
-                        if ($item->variant_id) {
-                            $variant = ProductVariant::find($item->variant_id);
-                            if ($variant) {
-                                $variant->increment('stock', $item->quantity);
-                            }
-                        } else {
-                            $product = Product::find($item->product_id);
-                            if ($product) {
-                                $product->increment('stock', $item->quantity);
-                            }
+            if (!$order) {
+                Log::warning("Midtrans webhook: order {$orderId} not found for markAsFailed");
+                return;
+            }
+
+            $allowed = $order->status === 'pending'
+                || ($order->status === 'paid' && $reason === 'cancel');
+
+            if (!$allowed) {
+                Log::warning("Midtrans webhook: order {$orderId} memiliki status '{$order->status}' (alasan '{$reason}'), pembatalan ditolak", [
+                    'order_number' => $orderId,
+                    'status'       => $order->status,
+                    'reason'       => $reason,
+                ]);
+                return;
+            }
+
+            Log::warning("Pesanan {$orderId} gagal/dibatalkan", ['reason' => $reason]);
+
+            $oldStatus = $order->status;
+            $order->update(['status' => 'dibatalkan']);
+            if ($order->payment) {
+                $order->payment->update(['status' => 'failed']);
+            }
+
+            // If the order was already paid, restore stock
+            if ($oldStatus === 'paid') {
+                $variantProductIds = [];
+                foreach ($order->items as $item) {
+                    if ($item->variant_id) {
+                        $variant = ProductVariant::find($item->variant_id);
+                        if ($variant) {
+                            $variant->increment('stock', $item->quantity);
+                            $variantProductIds[$item->product_id ?? $variant->product_id] = true;
+                        }
+                    } else {
+                        $product = Product::find($item->product_id);
+                        if ($product) {
+                            $product->increment('stock', $item->quantity);
                         }
                     }
                 }
-            });
-        }
+
+                // Sinkronkan parent product stock untuk setiap produk yang variannya bertambah kembali
+                foreach (array_keys($variantProductIds) as $productId) {
+                    if ($productId) {
+                        $totalVariantStock = (int) ProductVariant::where('product_id', $productId)->sum('stock');
+                        Product::where('id', $productId)->update(['stock' => $totalVariantStock]);
+                    }
+                }
+
+                // Kembalikan kuota voucher jika sebelumnya dicatat
+                if ($order->voucher_id) {
+                    $usage = VoucherUsage::where('order_id', $order->id)->first();
+                    if ($usage) {
+                        $usage->delete();
+                        Voucher::where('id', $order->voucher_id)->decrement('used_count');
+                    }
+                }
+            }
+        });
     }
 }

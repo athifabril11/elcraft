@@ -119,6 +119,11 @@
                             <span style="display:inline-block; padding:2px 9px; border-radius:20px; font-size:0.7rem; font-weight:600; {{ $s['style'] }}">
                                 {{ $s['label'] }}
                             </span>
+                            @if($ret->refund_status)
+                                <span style="display:block; margin-top:4px; padding:2px 9px; border-radius:20px; font-size:0.7rem; font-weight:600; background:#dcfce7; color:#166534; border:1px solid #bbf7d0; width:fit-content;">
+                                    {{ $ret->refund_status === 'api' ? 'Refund API' : 'Refund Manual' }}
+                                </span>
+                            @endif
                         </td>
 
                         {{-- Tanggal --}}
