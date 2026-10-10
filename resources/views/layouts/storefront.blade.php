@@ -454,13 +454,13 @@
              role="status"
              aria-label="Mode Pratinjau Admin — Transaksi belanja dinonaktifkan untuk akun ini.">
             {{-- Colored dot --}}
-            <span class="mt-[3px] flex-shrink-0 w-2 h-2 rounded-full bg-[#C17B6F]"></span>
+            <span class="mt-[3px] flex-shrink-0 w-2 h-2 rounded-full bg-brand"></span>
             {{-- Text block — all assertSee() strings present in raw HTML --}}
             <div class="flex-1 min-w-0">
-                <p class="text-[11px] font-bold text-[#9E5A4E] leading-tight">Mode Pratinjau Admin</p>
+                <p class="text-[11px] font-bold text-brandDark leading-tight">Mode Pratinjau Admin</p>
                 <p class="text-[10px] text-warmGrey leading-snug mt-0.5">Transaksi belanja dinonaktifkan untuk akun ini.</p>
                 <a href="{{ route('admin.dashboard') }}"
-                   class="inline-flex items-center gap-1 mt-1.5 text-[10px] font-semibold text-[#C17B6F] hover:text-[#9E5A4E] transition-colors">
+                   class="inline-flex items-center gap-1 mt-1.5 text-[10px] font-semibold text-brand hover:text-brandDark transition-colors">
                     <span>Kembali ke Dashboard Admin</span>
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
                 </a>
@@ -478,13 +478,13 @@
     <header class="sticky top-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-warmLightGrey/60">
         <div class="max-w-[1280px] mx-auto px-6 md:px-12 lg:px-20 h-20 flex items-center justify-between">
             <!-- Left: Logo -->
-            <a href="/" class="text-[22px] font-bold text-[#C17B6F] tracking-tight font-sans">el Craft</a>
+            <a href="/" class="text-[22px] font-bold text-brand tracking-tight font-sans">el Craft</a>
             
             <!-- Center: Links (Desktop Only) -->
             <nav class="hidden md:flex space-x-9">
-                <a href="/" class="{{ request()->is('/') ? 'text-[#C17B6F]' : 'text-[#78716C] hover:text-[#C17B6F]' }} font-semibold text-[12px] transition-colors duration-200 uppercase tracking-[0.15em]">Home</a>
-                <a href="/products" class="{{ request()->is('products*') ? 'text-[#C17B6F]' : 'text-[#78716C] hover:text-[#C17B6F]' }} font-semibold text-[12px] transition-colors duration-200 uppercase tracking-[0.15em]">Produk</a>
-                <a href="/#categories" class="text-[#78716C] hover:text-[#C17B6F] font-semibold text-[12px] transition-colors duration-200 uppercase tracking-[0.15em]">Kategori</a>
+                <a href="/" class="{{ request()->is('/') ? 'text-brand' : 'text-warmGrey hover:text-brand' }} font-semibold text-[12px] transition-colors duration-200 uppercase tracking-[0.15em]">Home</a>
+                <a href="/products" class="{{ request()->is('products*') ? 'text-brand' : 'text-warmGrey hover:text-brand' }} font-semibold text-[12px] transition-colors duration-200 uppercase tracking-[0.15em]">Produk</a>
+                <a href="/#categories" class="text-warmGrey hover:text-brand font-semibold text-[12px] transition-colors duration-200 uppercase tracking-[0.15em]">Kategori</a>
             </nav>
             
             <!-- Right: Icons -->
@@ -636,8 +636,11 @@
                 <span class="text-2xl font-semibold text-brand tracking-wide font-sans">el Craft</span>
                 <p class="text-xs text-warmGrey leading-relaxed">Menyediakan berbagai aksesoris wanita berkualitas premium, dirancang dengan penuh ketelitian untuk memancarkan keanggunan abadi di setiap momen penting Anda.</p>
                 <div class="flex space-x-3 pt-2">
-                    <a href="#" class="w-8 h-8 rounded-full border border-warmGrey/30 flex items-center justify-center text-warmGrey hover:text-brand hover:border-brand transition-colors duration-200">
-                        <span class="material-symbols-outlined !text-[18px]">share</span>
+                    <a href="https://www.instagram.com/elcraft.id_" target="_blank" rel="noopener noreferrer" aria-label="Instagram" class="w-8 h-8 rounded-full border border-warmGrey/30 flex items-center justify-center text-warmGrey hover:text-brand hover:border-brand transition-colors duration-200">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                    </a>
+                    <a href="https://www.tiktok.com/@elcraft.id0" target="_blank" rel="noopener noreferrer" aria-label="TikTok" class="w-8 h-8 rounded-full border border-warmGrey/30 flex items-center justify-center text-warmGrey hover:text-brand hover:border-brand transition-colors duration-200">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
                     </a>
                 </div>
             </div>
@@ -667,11 +670,7 @@
             
             <!-- Contact -->
             <div class="flex flex-col space-y-4">
-                <h4 class="text-sm font-semibold tracking-wider uppercase text-brand mb-1">Hubungi Kami</h4>
-                <div class="flex items-start space-x-3 text-xs text-warmGrey">
-                    <span class="material-symbols-outlined text-brand !text-[18px] mt-0.5">location_on</span>
-                    <span>Jl. Craft No. 123, Jakarta Selatan, Indonesia</span>
-                </div>
+                <h4 class="text-sm font-semibold tracking-wider uppercase text-brand mb-5">Hubungi Kami</h4>
                 @if(!empty($footerWaLink))
                 <div class="flex items-center space-x-3 text-xs text-warmGrey">
                     <span class="material-symbols-outlined text-brand !text-[18px]">phone</span>
@@ -679,8 +678,12 @@
                 </div>
                 @endif
                 <div class="flex items-center space-x-3 text-xs text-warmGrey">
+                    <span class="material-symbols-outlined text-brand !text-[18px]">call</span>
+                    <a href="tel:+6283854410513" class="hover:text-white transition-colors duration-200">+62 838-5441-0513</a>
+                </div>
+                <div class="flex items-center space-x-3 text-xs text-warmGrey">
                     <span class="material-symbols-outlined text-brand !text-[18px]">mail</span>
-                    <span>support@elcraft.id</span>
+                    <a href="mailto:elcraftid1402@gmail.com" class="hover:text-white transition-colors duration-200">elcraftid1402@gmail.com</a>
                 </div>
             </div>
         </div>
@@ -730,15 +733,15 @@
                 <button
                     type="button"
                     @click="switchAuthTab('login')"
-                    class="flex-1 py-3 text-sm font-semibold transition-colors duration-200 border-b-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C17B6F]/40 select-none"
-                    :class="authTab === 'login' ? 'text-[#C17B6F] border-[#C17B6F]' : 'text-[#A98077] border-transparent hover:text-[#9E5A4E]'">
+                    class="flex-1 py-3 text-sm font-semibold transition-colors duration-200 border-b-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 select-none"
+                    :class="authTab === 'login' ? 'text-brand border-brand' : 'text-[#A98077] border-transparent hover:text-brandDark'">
                     Masuk
                 </button>
                 <button
                     type="button"
                     @click="switchAuthTab('register')"
-                    class="flex-1 py-3 text-sm font-semibold transition-colors duration-200 border-b-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C17B6F]/40 select-none"
-                    :class="authTab === 'register' ? 'text-[#C17B6F] border-[#C17B6F]' : 'text-[#A98077] border-transparent hover:text-[#9E5A4E]'">
+                    class="flex-1 py-3 text-sm font-semibold transition-colors duration-200 border-b-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 select-none"
+                    :class="authTab === 'register' ? 'text-brand border-brand' : 'text-[#A98077] border-transparent hover:text-brandDark'">
                     Daftar
                 </button>
                 <button
@@ -756,7 +759,7 @@
                 <!-- ─── LOGIN PANEL ─── -->
                 <div x-show="authTab === 'login'" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0">
                     <div class="text-center mb-5">
-                        <span class="text-xl font-bold text-[#C17B6F] tracking-tight font-sans inline-block">el Craft</span>
+                        <span class="text-xl font-bold text-brand tracking-tight font-sans inline-block">el Craft</span>
                         <p class="text-xs font-medium text-[#A98077] mt-0.5">Masuk ke akun Anda</p>
                     </div>
 
@@ -839,7 +842,7 @@
                                 <button
                                     type="button"
                                     @click="showPassword = !showPassword"
-                                    class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-[#A98077] hover:text-[#C17B6F] transition-colors focus:outline-none"
+                                    class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-[#A98077] hover:text-brand transition-colors focus:outline-none"
                                     style="position: absolute; top: 0; right: 0; bottom: 0; width: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; padding: 0;"
                                     tabindex="-1"
                                     :aria-label="showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'">
@@ -865,13 +868,13 @@
                                     id="modal-remember-me"
                                     type="checkbox"
                                     name="remember"
-                                    class="w-4 h-4 rounded border-[#E8B4AC] text-[#C17B6F] focus:ring-[#C17B6F]/30 cursor-pointer"
+                                    class="w-4 h-4 rounded border-[#E8B4AC] text-brand focus:ring-brand/30 cursor-pointer"
                                     style="accent-color: #C17B6F;"
                                 >
                                 <span class="text-xs text-[#A98077] font-medium">Ingat saya</span>
                             </label>
                             <a href="{{ route('password.request') }}"
-                               class="text-xs text-[#C17B6F] hover:text-[#9E5A4E] font-semibold transition-colors duration-200">
+                               class="text-xs text-brand hover:text-brandDark font-semibold transition-colors duration-200">
                                 Lupa kata sandi?
                             </a>
                         </div>
@@ -880,7 +883,7 @@
                         <button
                             type="submit"
                             :disabled="authLoading"
-                            class="w-full py-2.5 bg-[#C17B6F] hover:bg-[#9E5A4E] disabled:opacity-60 text-white font-semibold text-sm rounded-xl transition-colors duration-200 shadow-xs flex items-center justify-center gap-2">
+                            class="w-full py-2.5 bg-brand hover:bg-brandDark disabled:opacity-60 text-white font-semibold text-sm rounded-xl transition-colors duration-200 shadow-xs flex items-center justify-center gap-2">
                             <span x-text="authLoading ? 'Memproses...' : 'Masuk'"></span>
                         </button>
                     </form>
@@ -894,7 +897,7 @@
 
                     <!-- Google Button -->
                     <a href="{{ route('auth.google.redirect') }}"
-                       class="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl border border-[#E8B4AC] bg-white hover:bg-[#F5F0EE] text-[#9E5A4E] font-semibold text-sm transition-colors duration-200 shadow-xs">
+                       class="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl border border-[#E8B4AC] bg-white hover:bg-[#F5F0EE] text-brandDark font-semibold text-sm transition-colors duration-200 shadow-xs">
                         <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                             <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
                             <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
@@ -907,7 +910,7 @@
                     <!-- Switch to Register -->
                     <p class="mt-4 text-center text-xs text-[#A98077]">
                         Belum punya akun?
-                        <button type="button" @click="switchAuthTab('register')" class="text-[#C17B6F] hover:text-[#9E5A4E] font-semibold transition-colors">
+                        <button type="button" @click="switchAuthTab('register')" class="text-brand hover:text-brandDark font-semibold transition-colors">
                             Daftar
                         </button>
                     </p>
@@ -916,7 +919,7 @@
                 <!-- ─── REGISTER PANEL ─── -->
                 <div x-show="authTab === 'register'" x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0">
                     <div class="text-center mb-4" style="margin-bottom: 14px;">
-                        <span class="text-xl font-bold text-[#C17B6F] tracking-tight font-sans inline-block">el Craft</span>
+                        <span class="text-xl font-bold text-brand tracking-tight font-sans inline-block">el Craft</span>
                         <p class="text-xs font-medium text-[#A98077] mt-0.5">Daftarkan akun baru Anda</p>
                     </div>
 
@@ -1028,7 +1031,7 @@
                                 <button
                                     type="button"
                                     @click="showPassword = !showPassword"
-                                    class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-[#A98077] hover:text-[#C17B6F] transition-colors focus:outline-none"
+                                    class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-[#A98077] hover:text-brand transition-colors focus:outline-none"
                                     style="position: absolute; top: 0; right: 0; bottom: 0; width: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; padding: 0;"
                                     tabindex="-1"
                                     :aria-label="showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'">
@@ -1076,7 +1079,7 @@
                                 <button
                                     type="button"
                                     @click="showPasswordConfirm = !showPasswordConfirm"
-                                    class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-[#A98077] hover:text-[#C17B6F] transition-colors focus:outline-none"
+                                    class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-[#A98077] hover:text-brand transition-colors focus:outline-none"
                                     style="position: absolute; top: 0; right: 0; bottom: 0; width: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; padding: 0;"
                                     tabindex="-1"
                                     :aria-label="showPasswordConfirm ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'">
@@ -1096,7 +1099,7 @@
                         <button
                             type="submit"
                             :disabled="authLoading"
-                            class="w-full py-2.5 bg-[#C17B6F] hover:bg-[#9E5A4E] disabled:opacity-60 text-white font-semibold text-sm rounded-xl transition-colors duration-200 shadow-xs flex items-center justify-center gap-2">
+                            class="w-full py-2.5 bg-brand hover:bg-brandDark disabled:opacity-60 text-white font-semibold text-sm rounded-xl transition-colors duration-200 shadow-xs flex items-center justify-center gap-2">
                             <span x-text="authLoading ? 'Memproses...' : 'Daftar'"></span>
                         </button>
                     </form>
@@ -1110,7 +1113,7 @@
 
                     <!-- Google Button -->
                     <a href="{{ route('auth.google.redirect') }}"
-                       class="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl border border-[#E8B4AC] bg-white hover:bg-[#F5F0EE] text-[#9E5A4E] font-semibold text-sm transition-colors duration-200 shadow-xs">
+                       class="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl border border-[#E8B4AC] bg-white hover:bg-[#F5F0EE] text-brandDark font-semibold text-sm transition-colors duration-200 shadow-xs">
                         <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                             <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
                             <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
@@ -1123,7 +1126,7 @@
                     <!-- Switch to Login -->
                     <p class="mt-3 text-center text-xs text-[#A98077]" style="margin-top: 12px;">
                         Sudah punya akun?
-                        <button type="button" @click="switchAuthTab('login')" class="text-[#C17B6F] hover:text-[#9E5A4E] font-semibold transition-colors">
+                        <button type="button" @click="switchAuthTab('login')" class="text-brand hover:text-brandDark font-semibold transition-colors">
                             Masuk
                         </button>
                     </p>

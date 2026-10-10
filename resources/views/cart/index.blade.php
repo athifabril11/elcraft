@@ -63,9 +63,9 @@
                          class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-warmLightGrey/70 pb-6 last:border-b-0 space-y-4 sm:space-y-0 pt-2">
                         
                         <!-- Checkbox + Informasi Produk & Gambar -->
-                        <div class="flex items-center space-x-3.5 flex-1 min-w-0">
+                        <div class="flex items-center flex-1 min-w-0">
                             <!-- Checkbox Item -->
-                            <div class="flex-shrink-0">
+                            <div class="flex-shrink-0 self-center mr-4 sm:mr-5">
                                 <input type="checkbox"
                                        :checked="items.find(i => i.id === {{ $item->id }})?.is_selected"
                                        @change="toggleItemSelect({{ $item->id }}, $event.target.checked)"
@@ -79,7 +79,7 @@
                             </div>
 
                             <!-- Detail Produk -->
-                            <div class="min-w-0">
+                            <div class="min-w-0 ml-4 sm:ml-5">
                                 <span class="text-[10px] font-semibold text-warmGrey tracking-[0.05em] uppercase block mb-1">
                                     {{ $item->product->category->name }}
                                 </span>

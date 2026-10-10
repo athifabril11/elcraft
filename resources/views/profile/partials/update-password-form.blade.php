@@ -1,6 +1,6 @@
 <section>
     <header class="mb-5">
-        <h2 class="text-sm font-semibold text-[#9E5A4E]">
+        <h2 class="text-sm font-semibold text-brandDark">
             Ubah Kata Sandi
         </h2>
         <p class="text-xs text-[#A98077] mt-1">

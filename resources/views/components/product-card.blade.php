@@ -19,8 +19,8 @@
         @endif
 
         <!-- Wishlist Heart Icon -->
-        <button onclick="toggleWishlistItem(this, '{{ $product->id }}', '{{ $product->name }}')" data-product-id="{{ $product->id }}" class="wishlist-btn absolute top-2 right-2 md:top-3 md:right-3 w-7 h-7 md:w-8 md:h-8 rounded-full bg-white flex items-center justify-center text-warmGrey hover:text-brand hover:scale-110 shadow-xs border border-warmLightGrey/50 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300" aria-label="Add to Wishlist">
-            <span class="material-symbols-outlined !text-[16px] md:!text-[20px] transition-all">favorite</span>
+        <button onclick="toggleWishlistItem(this, '{{ $product->id }}', '{{ $product->name }}')" data-product-id="{{ $product->id }}" class="wishlist-btn absolute top-2 right-2 md:top-3 md:right-3 w-9 h-9 md:w-10 md:h-10 rounded-full bg-white flex items-center justify-center text-warmGrey hover:text-brand hover:scale-110 shadow-xs border border-warmLightGrey/50 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300" aria-label="Add to Wishlist">
+            <span class="material-symbols-outlined !text-[18px] md:!text-[20px] transition-all">favorite</span>
         </button>
 
         <!-- Add to Cart Full Width Button (appears on hover on desktop) -->

@@ -201,13 +201,13 @@
                 --}}
                 <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-2">
                     {{-- Qty Selector --}}
-                    <div class="w-32 h-10 flex items-center justify-between border border-warmLightGrey rounded-btn overflow-hidden bg-white shrink-0">
-                        <button @click="changeQty(-1)" type="button" aria-label="Kurangi jumlah" class="w-10 h-10 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-r border-warmLightGrey shrink-0">
+                    <div class="w-32 h-11 flex items-center justify-between border border-warmLightGrey rounded-btn overflow-hidden bg-white shrink-0">
+                        <button @click="changeQty(-1)" type="button" aria-label="Kurangi jumlah" class="w-11 h-11 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-r border-warmLightGrey shrink-0">
                             <span class="material-symbols-outlined !text-[18px]">remove</span>
                         </button>
                         <input type="number" x-model.number="qty" readonly min="1" :max="maxStock" aria-label="Jumlah beli"
-                            class="w-12 h-10 text-center text-sm font-semibold text-warmBlack border-none outline-none focus:ring-0 bg-white p-0">
-                        <button @click="changeQty(1)" type="button" aria-label="Tambah jumlah" class="w-10 h-10 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-l border-warmLightGrey shrink-0">
+                            class="w-12 h-11 text-center text-sm font-semibold text-warmBlack border-none outline-none focus:ring-0 bg-white p-0">
+                        <button @click="changeQty(1)" type="button" aria-label="Tambah jumlah" class="w-11 h-11 flex items-center justify-center text-warmGrey hover:text-brand hover:bg-warmCream transition-colors border-l border-warmLightGrey shrink-0">
                             <span class="material-symbols-outlined !text-[18px]">add</span>
                         </button>
                     </div>
