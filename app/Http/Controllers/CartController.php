@@ -59,6 +59,14 @@ class CartController extends Controller
         $product = Product::findOrFail($request->product_id);
         $variant = $request->variant_id ? ProductVariant::findOrFail($request->variant_id) : null;
 
+        // Validasi produk/varian harus aktif
+        if (!$product->is_active || ($variant && !$variant->is_active)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk tidak tersedia.',
+            ], 422);
+        }
+
         // Validasi stok yang tersedia
         $stock = $variant ? $variant->stock : $product->stock;
 
@@ -87,19 +95,15 @@ class CartController extends Controller
         // Simpan ke database
         if ($existingItem) {
             $existingItem->quantity = $totalQuantity;
-            if (\Illuminate\Support\Facades\Schema::hasColumn('cart_items', 'is_selected')) {
-                $existingItem->is_selected = true;
-            }
+            $existingItem->is_selected = true;
             $existingItem->save();
         } else {
             $createData = [
                 'product_id' => $product->id,
                 'variant_id' => $variant ? $variant->id : null,
                 'quantity' => $requestedQuantity,
+                'is_selected' => true,
             ];
-            if (\Illuminate\Support\Facades\Schema::hasColumn('cart_items', 'is_selected')) {
-                $createData['is_selected'] = true;
-            }
             $cart->allItems()->create($createData);
         }
 
@@ -144,6 +148,16 @@ class CartController extends Controller
                 'success' => false,
                 'message' => 'Akses tidak sah.',
             ], 403);
+        }
+
+        // Validasi produk/varian harus aktif
+        $product = $item->product;
+        $variant = $item->variant;
+        if (!$product->is_active || ($variant && !$variant->is_active)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk tidak tersedia.',
+            ], 422);
         }
 
         // Validasi ketersediaan stok
@@ -241,6 +255,14 @@ class CartController extends Controller
         $product = Product::findOrFail($request->product_id);
         $variant = $request->variant_id ? ProductVariant::findOrFail($request->variant_id) : null;
 
+        // Validasi produk/varian harus aktif
+        if (!$product->is_active || ($variant && !$variant->is_active)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk tidak tersedia.',
+            ], 422);
+        }
+
         // Validasi stok
         $stock = $variant ? $variant->stock : $product->stock;
         $requestedQuantity = (int) $request->input('quantity', 1);
@@ -255,9 +277,7 @@ class CartController extends Controller
         $cart = Auth::user()->getOrCreateCart();
 
         // 1. Matikan checklist untuk seluruh item yang sudah ada di keranjang (tetap tersimpan di database)
-        if (\Illuminate\Support\Facades\Schema::hasColumn('cart_items', 'is_selected')) {
-            $cart->allItems()->update(['is_selected' => false]);
-        }
+        $cart->allItems()->update(['is_selected' => false]);
 
         // 2. Tambahkan atau perbarui item Beli Sekarang dengan status terpilih (is_selected = true)
         $query = $cart->allItems()->where('product_id', $product->id);
@@ -271,9 +291,7 @@ class CartController extends Controller
         $targetItemId = null;
         if ($existingItem) {
             $existingItem->quantity = $requestedQuantity;
-            if (\Illuminate\Support\Facades\Schema::hasColumn('cart_items', 'is_selected')) {
-                $existingItem->is_selected = true;
-            }
+            $existingItem->is_selected = true;
             $existingItem->save();
             $targetItemId = $existingItem->id;
         } else {
@@ -281,16 +299,11 @@ class CartController extends Controller
                 'product_id' => $product->id,
                 'variant_id' => $variant ? $variant->id : null,
                 'quantity'   => $requestedQuantity,
+                'is_selected' => true,
             ];
-            if (\Illuminate\Support\Facades\Schema::hasColumn('cart_items', 'is_selected')) {
-                $createData['is_selected'] = true;
-            }
             $newItem = $cart->allItems()->create($createData);
             $targetItemId = $newItem->id;
         }
-
-        // Simpan status pilihan item tunggal di session sebagai fallback
-        session(['selected_cart_item_ids' => [$targetItemId]]);
 
         // Arahkan ke halaman keranjang terlebih dahulu agar pengguna dapat melihat checklist
         return response()->json([
@@ -322,23 +335,8 @@ class CartController extends Controller
         $cart = Auth::user()->getOrCreateCart();
         $item = $cart->allItems()->findOrFail($request->item_id);
 
-        if (\Illuminate\Support\Facades\Schema::hasColumn('cart_items', 'is_selected')) {
-            $item->is_selected = $request->boolean('is_selected');
-            $item->save();
-        }
-
-        // Sinkronisasi session fallback
-        $selectedIds = session('selected_cart_item_ids');
-        if ($selectedIds === null) {
-            $selectedIds = $cart->allItems()->pluck('id')->toArray();
-        }
-        if ($request->boolean('is_selected')) {
-            $selectedIds[] = $item->id;
-            $selectedIds = array_values(array_unique($selectedIds));
-        } else {
-            $selectedIds = array_values(array_diff($selectedIds, [$item->id]));
-        }
-        session(['selected_cart_item_ids' => $selectedIds]);
+        $item->is_selected = $request->boolean('is_selected');
+        $item->save();
 
         $cart->unsetRelation('items');
         $cart->load('items');
@@ -373,16 +371,7 @@ class CartController extends Controller
         $cart = Auth::user()->getOrCreateCart();
         $isSelected = $request->boolean('is_selected');
 
-        if (\Illuminate\Support\Facades\Schema::hasColumn('cart_items', 'is_selected')) {
-            $cart->allItems()->update(['is_selected' => $isSelected]);
-        }
-
-        // Sinkronisasi session fallback
-        if ($isSelected) {
-            session(['selected_cart_item_ids' => $cart->allItems()->pluck('id')->toArray()]);
-        } else {
-            session(['selected_cart_item_ids' => []]);
-        }
+        $cart->allItems()->update(['is_selected' => $isSelected]);
 
         $cart->unsetRelation('items');
         $cart->load('items');

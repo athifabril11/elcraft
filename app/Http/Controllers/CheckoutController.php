@@ -295,6 +295,15 @@ class CheckoutController extends Controller
                     }
                 }
 
+                // 6b. Validasi semua item cart harus produk/varian aktif sebelum reserve stok
+                foreach ($cart->items as $item) {
+                    if (!$item->product->is_active || ($item->variant && !$item->variant->is_active)) {
+                        throw ValidationException::withMessages([
+                            'cart' => 'Salah satu produk di keranjang tidak tersedia lagi.',
+                        ]);
+                    }
+                }
+
                 // 6c. Reserve stok di dalam transaksi checkout dengan lockForUpdate
                 //     (oversell mustahil; throw ValidationException -> rollback + 422)
                 $this->stock->reserveForCart($cart);

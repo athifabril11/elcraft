@@ -150,5 +150,140 @@ class AdminStorePreviewTest extends TestCase
         $response->assertDontSee('Transaksi belanja dinonaktifkan untuk akun ini.');
         $response->assertDontSee('Kembali ke Dashboard Admin');
     }
-}
 
+    public function test_customer_cannot_add_inactive_product_to_cart(): void
+    {
+        $customer = $this->customer();
+        $cat = Category::create(['name' => 'Kalung', 'slug' => 'kalung', 'is_active' => true]);
+        $product = Product::create([
+            'category_id' => $cat->id,
+            'name' => 'Produk Tidak Aktif',
+            'slug' => 'produk-tidak-aktif',
+            'price' => 100000,
+            'stock' => 10,
+            'weight' => 50,
+            'is_active' => false,
+        ]);
+
+        $response = $this->actingAs($customer)
+            ->postJson('/cart/add', [
+                'product_id' => $product->id,
+                'quantity' => 1,
+            ]);
+
+        $response->assertStatus(422);
+        $response->assertJson([
+            'success' => false,
+            'message' => 'Produk tidak tersedia.',
+        ]);
+    }
+
+    public function test_customer_cannot_add_inactive_variant_to_cart(): void
+    {
+        $customer = $this->customer();
+        $cat = Category::create(['name' => 'Kalung', 'slug' => 'kalung', 'is_active' => true]);
+        $product = Product::create([
+            'category_id' => $cat->id,
+            'name' => 'Produk Aktif',
+            'slug' => 'produk-aktif',
+            'price' => 100000,
+            'stock' => 10,
+            'weight' => 50,
+            'is_active' => true,
+        ]);
+        $variant = $product->variants()->create([
+            'variant_name' => 'Varian Tidak Aktif',
+            'price' => 100000,
+            'stock' => 10,
+            'is_active' => false,
+            'variant_type' => 'size', // required NOT NULL column
+        ]);
+
+        $response = $this->actingAs($customer)
+            ->postJson('/cart/add', [
+                'product_id' => $product->id,
+                'variant_id' => $variant->id,
+                'quantity' => 1,
+            ]);
+
+        $response->assertStatus(422);
+        $response->assertJson([
+            'success' => false,
+            'message' => 'Produk tidak tersedia.',
+        ]);
+    }
+
+    public function test_customer_cannot_buy_now_inactive_product(): void
+    {
+        $customer = $this->customer();
+        $cat = Category::create(['name' => 'Kalung', 'slug' => 'kalung', 'is_active' => true]);
+        $product = Product::create([
+            'category_id' => $cat->id,
+            'name' => 'Produk Tidak Aktif',
+            'slug' => 'produk-tidak-aktif-2',
+            'price' => 100000,
+            'stock' => 10,
+            'weight' => 50,
+            'is_active' => false,
+        ]);
+
+        $response = $this->actingAs($customer)
+            ->postJson('/cart/buy-now', [
+                'product_id' => $product->id,
+                'quantity' => 1,
+            ]);
+
+        $response->assertStatus(422);
+        $response->assertJson([
+            'success' => false,
+            'message' => 'Produk tidak tersedia.',
+        ]);
+    }
+
+    public function test_customer_cannot_update_cart_with_inactive_product(): void
+    {
+        $customer = $this->customer();
+        $cat = Category::create(['name' => 'Kalung', 'slug' => 'kalung', 'is_active' => true]);
+        $product = Product::create([
+            'category_id' => $cat->id,
+            'name' => 'Produk Awal Aktif',
+            'slug' => 'produk-awal-aktif',
+            'price' => 100000,
+            'stock' => 10,
+            'weight' => 50,
+            'is_active' => true,
+        ]);
+        $inactiveProduct = Product::create([
+            'category_id' => $cat->id,
+            'name' => 'Produk Jadi Tidak Aktif',
+            'slug' => 'produk-jadi-tidak-aktif',
+            'price' => 100000,
+            'stock' => 10,
+            'weight' => 50,
+            'is_active' => false,
+        ]);
+
+        // First add active product to cart
+        $cart = $customer->getOrCreateCart();
+        $item = $cart->allItems()->create([
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]);
+
+        // Deactivate the product
+        $product->update(['is_active' => false]);
+
+        // Try to update quantity - should fail
+        $response = $this->actingAs($customer)
+            ->postJson('/cart/update', [
+                'item_id' => $item->id,
+                'quantity' => 2,
+            ]);
+
+        $response->assertStatus(422);
+        $response->assertJson([
+            'success' => false,
+            'message' => 'Produk tidak tersedia.',
+        ]);
+    }
+}

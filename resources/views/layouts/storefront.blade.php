@@ -1152,7 +1152,10 @@
             position: fixed;
             bottom: 88px; /* above mobile dock (64px) + 24px gap */
             right: 20px;
-            z-index: 55;
+            /* Tetap di atas konten halaman & dock (z-40), tapi DI BAWAH semua
+               overlay modal (drawer/search/login: z-50 ke atas) agar tidak
+               menghalangi login/register atau menu saat terbuka. */
+            z-index: 45;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -1213,7 +1216,8 @@
             100% { transform: scale(1.45); opacity: 0;   }
         }
     </style>
-    <div id="wa-fab-wrapper">
+    <div id="wa-fab-wrapper" x-cloak
+         x-show="!mobileMenuOpen && !searchOpen && !loginModalOpen">
         <span id="wa-fab-label">Butuh bantuan? Chat kami di WhatsApp</span>
         <a id="wa-fab-btn"
            href="{{ $waHelpLink }}"

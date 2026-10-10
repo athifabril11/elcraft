@@ -62,6 +62,7 @@ class AutoCancelExpiredOrders extends Command
             ->filter(fn (Order $order) => $order->isPaymentExpired());
 
         $cancelled = 0;
+        $skipped = 0;
 
         foreach ($candidates as $candidate) {
             // 1. Short txn: re-verify status under lock, then release.
@@ -79,13 +80,55 @@ class AutoCancelExpiredOrders extends Command
             $cancel = $midtrans->cancelTransaction($candidate->order_number);
 
             if (!in_array($cancel['outcome'] ?? 'error', ['cancelled', 'not_found'], true)) {
-                Log::warning('orders:auto-cancel-expired — pembatalan Midtrans ditolak, coba lagi run berikutnya', [
-                    'order_number' => $candidate->order_number,
-                    'outcome'      => $cancel['outcome'] ?? 'error',
-                    'status_code'  => $cancel['status_code'] ?? null,
-                    'message'      => $cancel['message'] ?? '',
-                ]);
-                continue;
+                // Midtrans returned cannot_modify (412) or error —
+                // before skipping, call Get Status API to see actual transaction state.
+                $statusResult = $midtrans->getTransactionStatus($candidate->order_number);
+                $midtransStatus = $statusResult['status'] ?? 'unknown';
+
+                if (in_array($midtransStatus, ['settlement'], true)) {
+                    // Payment actually succeeded — mark as paid locally
+                    $paid = DB::transaction(function () use ($candidate) {
+                        $locked = Order::lockForUpdate()->findOrFail($candidate->id);
+
+                        if ($locked->status !== 'pending') {
+                            return false;
+                        }
+
+                        $locked->update(['status' => 'paid']);
+
+                        if ($locked->payment) {
+                            $locked->payment->update([
+                                'status'         => 'success',
+                                'payment_method' => $statusResult['raw']['payment_type'] ?? null,
+                                'payment_type'   => $statusResult['raw']['payment_type'] ?? null,
+                                'paid_at'        => now(),
+                            ]);
+                        }
+
+                        return true;
+                    });
+
+                    if ($paid) {
+                        $cancelled++; // Reused counter for "resolved"
+                        Log::info('orders:auto-cancel-expired — late settlement found via Get Status API, marked paid', [
+                            'order_number' => $candidate->order_number,
+                            'midtrans_status' => $midtransStatus,
+                        ]);
+                        continue;
+                    }
+                } elseif (in_array($midtransStatus, ['deny', 'expire', 'cancel'], true)) {
+                    // Payment failed/expired/cancelled — proceed with local cancel
+                    // (fall through to existing cancel logic below)
+                } else {
+                    // Unknown or error — skip and retry next run
+                    $skipped++;
+                    Log::warning('orders:auto-cancel-expired — Get Status API inconclusive, coba lagi run berikutnya', [
+                        'order_number' => $candidate->order_number,
+                        'midtrans_status' => $midtransStatus,
+                        'cancel_outcome' => $cancel['outcome'] ?? 'error',
+                    ]);
+                    continue;
+                }
             }
 
             // 3. Short txn: re-verify + flip status + restore stock.
@@ -136,7 +179,7 @@ class AutoCancelExpiredOrders extends Command
             }
         }
 
-        $this->info("Auto-cancelled {$cancelled} expired order(s).");
+        $this->info("Auto-cancelled {$cancelled} expired order(s), {$skipped} skipped.");
 
         return self::SUCCESS;
     }

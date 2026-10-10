@@ -285,4 +285,55 @@ class MidtransService
             ];
         }
     }
+
+    /**
+     * Cek status transaksi di Midtrans via Core API GET /v2/{orderId}/status.
+     *
+     * Digunakan untuk rekonsiliasi saat webhook tidak tiba atau auto-cancel
+     * mendapat 412 (cannot_modify). Mengembalikan status aktual transaksi
+     * di Midtrans tanpa mengubah data lokal.
+     *
+     * @param  string  $orderId  Nomor pesanan di Midtrans
+     * @return array  ['status' => string, 'status_code' => int, 'message' => string]
+     *                status: 'settlement' | 'pending' | 'deny' | 'expire' | 'cancel' | 'refund' | 'unknown'
+     */
+    public function getTransactionStatus(string $orderId): array
+    {
+        $coreApiBase = $this->isProduction
+            ? 'https://api.midtrans.com'
+            : 'https://api.sandbox.midtrans.com';
+
+        $url = $coreApiBase . '/v2/' . $orderId . '/status';
+
+        try {
+            $response = Http::withBasicAuth($this->serverKey, '')
+                ->timeout(10)
+                ->get($url);
+
+            $body       = $response->json() ?? [];
+            $statusCode = $response->status();
+
+            $status = $body['transaction_status'] ?? 'unknown';
+            $message = $body['status_message'] ?? '';
+
+            return [
+                'status'       => $status,
+                'status_code'  => $statusCode,
+                'message'      => $message,
+                'raw'          => $body,
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('MidtransService::getTransactionStatus exception', [
+                'order_id'  => $orderId,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return [
+                'status'       => 'error',
+                'status_code'  => null,
+                'message'      => $e->getMessage(),
+                'raw'          => [],
+            ];
+        }
+    }
 }

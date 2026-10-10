@@ -36,7 +36,7 @@ class StockService
                     ->lockForUpdate()
                     ->first();
 
-                if (!$variant || $variant->stock < $item->quantity) {
+                if (!$variant || !$variant->is_active || $variant->stock < $item->quantity) {
                     $available = $variant ? (int) $variant->stock : 0;
                     throw ValidationException::withMessages([
                         'stock' => 'Stok produk "' . $item->product->name . '" tidak mencukupi. Tersedia: ' . $available,
@@ -50,7 +50,7 @@ class StockService
                     ->lockForUpdate()
                     ->first();
 
-                if (!$product || $product->stock < $item->quantity) {
+                if (!$product || !$product->is_active || $product->stock < $item->quantity) {
                     $available = $product ? (int) $product->stock : 0;
                     throw ValidationException::withMessages([
                         'stock' => 'Stok produk "' . $item->product->name . '" tidak mencukupi. Tersedia: ' . $available,
