@@ -195,6 +195,36 @@
                         <!-- Aksi Cepat -->
                         <td class="px-5 py-4 text-right whitespace-nowrap">
                             <div class="inline-flex items-center gap-2 justify-end">
+                                {{-- Refund aksi (hanya di filter dana tertangkap, payment masih success) --}}
+                                @if(!empty($paymentCaptured) && $order->payment?->status === 'success')
+                                    @php
+                                        $rawMethod = $order->payment->payment_method ?: $order->payment->payment_type;
+                                        $methodKey = $rawMethod ? strtolower(trim($rawMethod)) : '';
+                                        $apiSupported = in_array($methodKey, \App\Services\RefundService::API_SUPPORTED_METHODS, true);
+                                    @endphp
+
+                                    @if($apiSupported)
+                                        <form method="POST" action="{{ route('admin.orders.refund-api', $order->id) }}" class="inline m-0"
+                                              onsubmit="return confirm('Kirim refund Rp {{ number_format((int) $order->payment->amount, 0, ',', '.') }} via Midtrans Refund API untuk pesanan {{ $order->order_number }}?')">
+                                            @csrf
+                                            <button type="submit" class="admin-btn-primary" style="font-size:0.75rem; padding:0.35rem 0.85rem; background:#be123c; border-color:#be123c;">
+                                                Refund API
+                                            </button>
+                                        </form>
+                                    @endif
+
+                                    <form method="POST" action="{{ route('admin.orders.refund-manual', $order->id) }}" class="inline m-0"
+                                          onsubmit="return confirm('Catat refund manual untuk pesanan {{ $order->order_number }}? Pastikan pengembalian dana sudah dieksekusi di luar sistem.')">
+                                        @csrf
+                                        <button type="button" class="admin-btn-ghost" style="font-size:0.75rem; padding:0.35rem 0.85rem;"
+                                                x-data
+                                                @click="const n = prompt('Catatan refund manual (wajib):'); if (n !== null) { if (n.trim() === '') { alert('Catatan wajib diisi.'); return; } this.$el.closest('form').querySelector('input[name=manual_notes]').value = n; this.$el.closest('form').submit(); }">
+                                            Refund Manual
+                                        </button>
+                                        <input type="hidden" name="manual_notes" value="">
+                                    </form>
+                                @endif
+
                                 {{-- "Tandai Diproses" quick-action (paid only) — unchanged --}}
                                 @if($order->status === 'paid')
                                     <form method="POST" action="{{ route('admin.orders.advance-status', $order) }}" class="inline m-0">

@@ -107,6 +107,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}/detail', [AdminOrderController::class, 'detail'])->name('orders.detail');
         Route::patch('/orders/{order}/advance-status', [AdminOrderController::class, 'advanceStatus'])->name('orders.advance-status');
+        Route::post('/orders/{order}/refund-api', [AdminOrderController::class, 'refundApi'])->name('orders.refund-api');
+        Route::post('/orders/{order}/refund-manual', [AdminOrderController::class, 'refundManual'])->name('orders.refund-manual');
 
         // Categories Management
         Route::get('/categories', [AdminCategoryController::class, 'index'])->name('categories.index');

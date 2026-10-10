@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\OrderShippedMail;
 use App\Models\Order;
 use App\Models\Shipment;
+use App\Services\RefundService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -221,5 +222,36 @@ class OrderController extends Controller
         return redirect()
             ->route('admin.orders.index')
             ->with('success', "Pesanan #{$order->order_number} berhasil diperbarui ke status \"{$label}\".{$emailNote}");
+    }
+
+    /**
+     * Refund dana tertangkap via Midtrans Refund API (langsung dari order,
+     * tanpa retur). Guard & persist ada di RefundService.
+     */
+    public function refundApi(Order $order, RefundService $refunds): RedirectResponse
+    {
+        $result = $refunds->processApiRefundForOrder($order);
+
+        return redirect()
+            ->route('admin.orders.index', ['payment_captured' => 1])
+            ->with($result['success'] ? 'success' : 'error', $result['message']);
+    }
+
+    /**
+     * Catat refund manual untuk dana tertangkap (transfer bank / dashboard Midtrans).
+     */
+    public function refundManual(Request $request, Order $order, RefundService $refunds): RedirectResponse
+    {
+        $request->validate([
+            'manual_notes' => ['required', 'string', 'max:1000'],
+        ], [
+            'manual_notes.required' => 'Catatan refund manual wajib diisi.',
+        ]);
+
+        $result = $refunds->markManualForOrder($order, $request->input('manual_notes'));
+
+        return redirect()
+            ->route('admin.orders.index', ['payment_captured' => 1])
+            ->with($result['success'] ? 'success' : 'error', $result['message']);
     }
 }

@@ -59,9 +59,6 @@ class MidtransWebhookController extends Controller
         Log::info('Midtrans webhook diterima', compact('orderId', 'transactionStatus', 'paymentType'));
 
         // ── 3. Perbarui Status Pesanan ───────────────────────────────
-        // TODO: Ganti dengan model Order yang sebenarnya setelah dibuat
-        // $order = Order::where('order_number', $orderId)->firstOrFail();
-
         match (true) {
             // Pembayaran berhasil (kartu kredit atau e-wallet)
             $transactionStatus === 'capture' && $fraudStatus === 'accept' => $this->markAsPaid($orderId, $notification),
