@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\MidtransService;
+use App\Services\StockService;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
@@ -153,30 +154,8 @@ class MidtransWebhookController extends Controller
                 ]);
             }
 
-            // Decrement product variant/product stock
-            $variantProductIds = [];
-            foreach ($order->items as $item) {
-                if ($item->variant_id) {
-                    $variant = ProductVariant::find($item->variant_id);
-                    if ($variant) {
-                        $variant->decrement('stock', $item->quantity);
-                        $variantProductIds[$item->product_id ?? $variant->product_id] = true;
-                    }
-                } else {
-                    $product = Product::find($item->product_id);
-                    if ($product) {
-                        $product->decrement('stock', $item->quantity);
-                    }
-                }
-            }
-
-            // Sinkronkan parent product stock untuk setiap produk yang variannya berkurang
-            foreach (array_keys($variantProductIds) as $productId) {
-                if ($productId) {
-                    $totalVariantStock = (int) ProductVariant::where('product_id', $productId)->sum('stock');
-                    Product::where('id', $productId)->update(['stock' => $totalVariantStock]);
-                }
-            }
+            // Stok TIDAK dikurangi di sini — sudah di-reserve saat checkout
+            // (StockService::reserveForCart dalam transaksi pembuatan order).
 
             // Catat penggunaan voucher jika ada (dengan lock & re-validasi kuota)
             if ($order->voucher_id) {
@@ -416,39 +395,17 @@ class MidtransWebhookController extends Controller
                 $order->payment->update(['status' => 'failed']);
             }
 
-            // If the order was already paid, restore stock
-            if ($oldStatus === 'paid') {
-                $variantProductIds = [];
-                foreach ($order->items as $item) {
-                    if ($item->variant_id) {
-                        $variant = ProductVariant::find($item->variant_id);
-                        if ($variant) {
-                            $variant->increment('stock', $item->quantity);
-                            $variantProductIds[$item->product_id ?? $variant->product_id] = true;
-                        }
-                    } else {
-                        $product = Product::find($item->product_id);
-                        if ($product) {
-                            $product->increment('stock', $item->quantity);
-                        }
-                    }
-                }
+            // Pulihkan reservasi stok yang dibuat saat checkout — berlaku untuk
+            // pembatalan 'pending' (reservasi aktif) dan 'paid' (reservasi masih
+            // dipegang order). Untuk status lain guard di atas sudah menolak.
+            app(StockService::class)->restoreForOrder($order);
 
-                // Sinkronkan parent product stock untuk setiap produk yang variannya bertambah kembali
-                foreach (array_keys($variantProductIds) as $productId) {
-                    if ($productId) {
-                        $totalVariantStock = (int) ProductVariant::where('product_id', $productId)->sum('stock');
-                        Product::where('id', $productId)->update(['stock' => $totalVariantStock]);
-                    }
-                }
-
-                // Kembalikan kuota voucher jika sebelumnya dicatat
-                if ($order->voucher_id) {
-                    $usage = VoucherUsage::where('order_id', $order->id)->first();
-                    if ($usage) {
-                        $usage->delete();
-                        Voucher::where('id', $order->voucher_id)->decrement('used_count');
-                    }
+            // Kembalikan kuota voucher — hanya jika tercatat (settlement paid)
+            if ($oldStatus === 'paid' && $order->voucher_id) {
+                $usage = VoucherUsage::where('order_id', $order->id)->first();
+                if ($usage) {
+                    $usage->delete();
+                    Voucher::where('id', $order->voucher_id)->decrement('used_count');
                 }
             }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\MidtransService;
 use App\Services\ShippingService;
+use App\Services\StockService;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Order;
@@ -35,6 +36,7 @@ class CheckoutController extends Controller
     public function __construct(
         private readonly MidtransService $midtrans,
         private readonly ShippingService $shipping,
+        private readonly StockService $stock,
     ) {}
 
     /**
@@ -179,9 +181,8 @@ class CheckoutController extends Controller
 
         // 6a. Batalkan pesanan pending lama milik pengguna ini (jika ada).
         //     Pesanan pending sebelumnya adalah sisa sesi Snap yang ditinggalkan
-        //     (popup ditutup, tab ditutup, dll). Stok TIDAK perlu dikembalikan
-        //     karena stok hanya dikurangi saat pembayaran berhasil (markAsPaid),
-        //     bukan saat pesanan dibuat.
+        //     (popup ditutup, tab ditutup, dll). Reservasi stok pesanan lama
+        //     DIPULIHKAN karena stok di-reserve saat checkout (StockService).
         //
         //     Panggilan Midtrans Cancel API dilakukan DI LUAR transaksi DB agar
         //     tidak menahan lock selama request eksternal. Pesanan hanya ditandai
@@ -277,14 +278,26 @@ class CheckoutController extends Controller
                 $total = $subtotal + $shipping - $voucherDiscount;
 
                 // 6b. Tandai dibatalkan hanya pesanan yang berhasil ditutup di Midtrans.
-                //     Re-check status 'pending' di dalam transaksi agar tidak
-                //     menimpa pesanan yang baru saja berubah status.
+                //     Re-check status 'pending' dengan lock di dalam transaksi agar
+                //     tidak menimpa pesanan yang baru saja berubah status, dan
+                //     PULIHKAN reservasi stok pesanan lama (sebelum reserve baru
+                //     agar urutan lock konsisten: order dulu, baru product).
                 if ($abandonedIds !== []) {
-                    Order::whereIn('id', $abandonedIds)
+                    $abandonedToCancel = Order::whereIn('id', $abandonedIds)
                         ->where('status', 'pending')
-                        ->update(['status' => 'dibatalkan']);
-                    Payment::whereIn('order_id', $abandonedIds)->update(['status' => 'failed']);
+                        ->lockForUpdate()
+                        ->get();
+
+                    foreach ($abandonedToCancel as $abandonedOrder) {
+                        $abandonedOrder->update(['status' => 'dibatalkan']);
+                        $abandonedOrder->payment()->update(['status' => 'failed']);
+                        $this->stock->restoreForOrder($abandonedOrder);
+                    }
                 }
+
+                // 6c. Reserve stok di dalam transaksi checkout dengan lockForUpdate
+                //     (oversell mustahil; throw ValidationException -> rollback + 422)
+                $this->stock->reserveForCart($cart);
 
                 // Simpan Order
                 $createdOrder = Order::create([
@@ -388,6 +401,10 @@ class CheckoutController extends Controller
                 'snap_token' => $snapData['token'],
                 'order_id'   => $orderId,
             ]);
+        } catch (ValidationException $e) {
+            // Reserve gagal (stok habis saat lock) — biarkan Laravel kirim 422
+            // dengan pesan validasi; transaksi sudah rollback otomatis.
+            throw $e;
         } catch (\Exception $e) {
             if ($order !== null) {
                 try {
@@ -395,6 +412,8 @@ class CheckoutController extends Controller
                     if ($order->payment) {
                         $order->payment->update(['status' => 'failed']);
                     }
+                    // Pulihkan reservasi stok pesanan yang gagal dapat token Snap
+                    $this->stock->restoreForOrder($order);
                 } catch (\Throwable $updateEx) {
                     Log::warning('Checkout: gagal menandai order dibatalkan setelah snap error', [
                         'order_id' => $order->id,

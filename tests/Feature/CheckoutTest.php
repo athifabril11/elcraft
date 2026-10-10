@@ -339,7 +339,7 @@ class CheckoutTest extends TestCase
         ]);
 
         $product->refresh();
-        $this->assertEquals(8, $product->stock); // Initial 10 - 2
+        $this->assertEquals(10, $product->stock); // reserved at checkout; settlement doesn't touch stock
     }
 
     /**

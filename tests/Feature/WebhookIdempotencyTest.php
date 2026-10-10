@@ -56,12 +56,12 @@ class WebhookIdempotencyTest extends TestCase
     // ── Test 1: product-level stock (no variant) ──────────────────────────────
 
     /**
-     * Sending the same settlement webhook twice must not double-decrement stock
-     * for a product without variants.
+     * Sending the same settlement webhook twice must not double-process the
+     * order for a product without variants.
      *
-     * Initial stock = 10, order quantity = 2.
-     * After 1st webhook: stock = 8, status = 'paid'.
-     * After 2nd webhook: stock still = 8, idempotency guard fired.
+     * Initial stock = 10 (reservation made at checkout — settlement never
+     * touches stock under the reserve-at-checkout model).
+     * After both webhooks: stock still = 10, order = 'paid' once.
      */
     public function test_duplicate_webhook_settlement_does_not_double_decrement_product_stock(): void
     {
@@ -118,10 +118,10 @@ class WebhookIdempotencyTest extends TestCase
         $this->postSettlementWebhook('ELCRAFT-IDEM-001')->assertOk();
         $this->postSettlementWebhook('ELCRAFT-IDEM-001')->assertOk();
 
-        // Stock: 10 - 2 = 8, not 6
+        // Reservation model: settlement never touches stock
         $product->refresh();
-        $this->assertSame(8, $product->stock,
-            'Stock should be 10 - 2 = 8, not double-decremented to 6');
+        $this->assertSame(10, $product->stock,
+            'Stock must remain untouched by settlement (reserved at checkout)');
 
         // Order paid
         $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'paid']);
@@ -138,11 +138,11 @@ class WebhookIdempotencyTest extends TestCase
     // ── Test 2: variant-level stock ───────────────────────────────────────────
 
     /**
-     * Sending the same settlement webhook twice must not double-decrement stock
-     * for a product WITH a variant.
+     * Sending the same settlement webhook twice must not double-process the
+     * order for a product WITH a variant.
      *
-     * Variant stock = 10, order quantity = 3.
-     * After 2nd webhook: variant stock still = 7 (not 4).
+     * Variant stock = 10 (reserved at checkout). After both webhooks:
+     * variant stock still = 10, exactly one shipment/usage recorded.
      */
     public function test_duplicate_webhook_settlement_does_not_double_decrement_variant_stock(): void
     {
@@ -208,10 +208,10 @@ class WebhookIdempotencyTest extends TestCase
         $this->postSettlementWebhook('ELCRAFT-IDEM-002')->assertOk();
         $this->postSettlementWebhook('ELCRAFT-IDEM-002')->assertOk();
 
-        // Variant stock: 10 - 3 = 7, NOT 4
+        // Reservation model: settlement never touches variant stock
         $variant->refresh();
-        $this->assertSame(7, $variant->stock,
-            'Variant stock should be 10 - 3 = 7, not double-decremented to 4');
+        $this->assertSame(10, $variant->stock,
+            'Variant stock must remain untouched by settlement (reserved at checkout)');
 
         // Exactly ONE shipment
         $this->assertSame(1, Shipment::where('order_id', $order->id)->count(),
@@ -304,10 +304,10 @@ class WebhookIdempotencyTest extends TestCase
         $this->assertSame(1, $voucher->used_count,
             'Voucher used_count should be 1, not 2');
 
-        // Product stock: 20 - 1 = 19
+        // Reservation model: settlement never touches product stock
         $product->refresh();
-        $this->assertSame(19, $product->stock,
-            'Product stock should be 19, not double-decremented to 18');
+        $this->assertSame(20, $product->stock,
+            'Product stock must remain untouched by settlement (reserved at checkout)');
 
         // Order paid
         $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'paid']);

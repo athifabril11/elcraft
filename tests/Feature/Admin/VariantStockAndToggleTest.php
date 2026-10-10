@@ -47,10 +47,11 @@ class VariantStockAndToggleTest extends TestCase
     }
 
     /**
-     * 1. Webhook markAsPaid() correctly syncs parent product.stock to the sum of its variants'
-     * stock after decrementing a variant.
+     * 1. Webhook markAsPaid() must NOT touch variant/parent stock —
+     * stock is reserved at checkout (StockService::reserveForCart);
+     * settlement only flips payment/order status.
      */
-    public function test_webhook_mark_as_paid_syncs_parent_product_stock_after_variant_decrement(): void
+    public function test_webhook_mark_as_paid_does_not_touch_variant_stock(): void
     {
         $this->mockSignatureValid();
 
@@ -116,19 +117,18 @@ class VariantStockAndToggleTest extends TestCase
         $res = $this->postSettlementWebhook($order->order_number);
         $res->assertOk();
 
-        // v1 stock decreased by 3 (8 - 3 = 5)
-        $this->assertEquals(5, $v1->fresh()->stock);
-        // v2 untouched (12)
+        // Reservation model: stock was reserved at checkout — settlement must
+        // not decrement variant or parent stock (sync lives in StockService).
+        $this->assertEquals(8, $v1->fresh()->stock);
         $this->assertEquals(12, $v2->fresh()->stock);
-        // parent product stock synced to sum: 5 + 12 = 17
-        $this->assertEquals(17, $product->fresh()->stock);
+        $this->assertEquals(20, $product->fresh()->stock);
     }
 
     /**
-     * 2. Webhook processing an order with multiple items for different variants of the SAME product
-     * correctly syncs stock only once with the correct final sum.
+     * 2. Settlement of a multi-variant order must not touch any variant
+     * or parent stock (reserved at checkout).
      */
-    public function test_webhook_with_multiple_variants_of_same_product_syncs_correct_final_sum(): void
+    public function test_webhook_with_multiple_variants_of_same_product_does_not_touch_stock(): void
     {
         $this->mockSignatureValid();
 
@@ -206,12 +206,10 @@ class VariantStockAndToggleTest extends TestCase
         $res = $this->postSettlementWebhook($order->order_number);
         $res->assertOk();
 
-        // v1: 10 - 4 = 6
-        $this->assertEquals(6, $v1->fresh()->stock);
-        // v2: 15 - 5 = 10
-        $this->assertEquals(10, $v2->fresh()->stock);
-        // parent: 6 + 10 = 16
-        $this->assertEquals(16, $product->fresh()->stock);
+        // Reservation model: no stock changes at settlement
+        $this->assertEquals(10, $v1->fresh()->stock);
+        $this->assertEquals(15, $v2->fresh()->stock);
+        $this->assertEquals(25, $product->fresh()->stock);
     }
 
     /**

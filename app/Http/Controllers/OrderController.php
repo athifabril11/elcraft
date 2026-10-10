@@ -105,6 +105,9 @@ class OrderController extends Controller
                     $locked->payment->update(['status' => 'failed']);
                 }
 
+                // Pulihkan reservasi stok checkout (pending = stok masih dipegang order)
+                app(\App\Services\StockService::class)->restoreForOrder($locked);
+
                 return 'cancelled';
             });
 

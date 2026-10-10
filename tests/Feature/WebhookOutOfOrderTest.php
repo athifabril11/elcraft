@@ -111,12 +111,13 @@ class WebhookOutOfOrderTest extends TestCase
         $this->mockSignatureValid();
         [, $product, $order] = $this->makeOrder('pending', 'pending');
 
-        // Settlement nyata: order -> paid, payment -> success, stok 10 - 2 = 8
+        // Settlement nyata: order -> paid, payment -> success;
+        // stok tidak disentuh (di-reserve saat checkout)
         $this->postWebhook($order->order_number, 'settlement')->assertOk();
         $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'paid']);
         $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'success']);
         $product->refresh();
-        $this->assertSame(8, $product->stock);
+        $this->assertSame(10, $product->stock);
 
         // Notifikasi pending telat untuk order yang sama
         $this->postWebhook($order->order_number, 'pending')->assertOk();
@@ -124,7 +125,7 @@ class WebhookOutOfOrderTest extends TestCase
         $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'paid']);
         $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'success']);
         $product->refresh();
-        $this->assertSame(8, $product->stock, 'Stock must remain deducted after late pending notification');
+        $this->assertSame(10, $product->stock, 'Stock must remain untouched after late pending notification');
     }
 
     /**

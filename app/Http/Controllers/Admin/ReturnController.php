@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\ReturnStatusMail;
 use App\Models\ReturnRequest;
 use App\Services\RefundService;
+use App\Services\StockService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -181,6 +182,13 @@ class ReturnController extends Controller
             }
 
             $locked->update(['status' => $next]);
+
+            // Restock barang yang dikembalaskan — tepat satu kali saat retur
+            // tukar_barang mencapai 'selesai' (guard map status mencegah dobel).
+            if ($next === 'selesai' && $locked->resolution_type === 'tukar_barang') {
+                app(StockService::class)->restoreForReturn($locked);
+            }
+
             return $next;
         });
 
