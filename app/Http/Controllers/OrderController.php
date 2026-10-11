@@ -336,21 +336,17 @@ class OrderController extends Controller
 
             if ($existingCartItem) {
                 $newQty = min($existingCartItem->quantity + $qtyToAdd, $currentStock);
-                $updateData = ['quantity' => $newQty];
-                if (\Illuminate\Support\Facades\Schema::hasColumn('cart_items', 'is_selected')) {
-                    $updateData['is_selected'] = true;
-                }
-                $existingCartItem->update($updateData);
+                $existingCartItem->update([
+                    'quantity' => $newQty,
+                    'is_selected' => true,
+                ]);
             } else {
-                $createData = [
+                $cart->allItems()->create([
                     'product_id' => $item->product_id,
                     'variant_id' => $item->variant_id,
                     'quantity'   => $qtyToAdd,
-                ];
-                if (\Illuminate\Support\Facades\Schema::hasColumn('cart_items', 'is_selected')) {
-                    $createData['is_selected'] = true;
-                }
-                $cart->allItems()->create($createData);
+                    'is_selected' => true,
+                ]);
             }
 
             $addedCount++;

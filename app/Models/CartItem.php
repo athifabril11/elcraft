@@ -42,16 +42,12 @@ class CartItem extends Model
     ];
 
     /**
-     * Pastikan is_selected bernilai true secara default jika kolom belum terisi atau null.
+     * Pastikan is_selected bernilai true secara default jika kolom null.
      */
     public function getIsSelectedAttribute($value): bool
     {
         if ($value !== null) {
             return (bool) $value;
-        }
-
-        if (session()->has('selected_cart_item_ids')) {
-            return in_array($this->id, session('selected_cart_item_ids', []));
         }
 
         return true;

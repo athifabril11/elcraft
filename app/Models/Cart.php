@@ -56,13 +56,7 @@ class Cart extends Model
      */
     public function items(): HasMany
     {
-        $relation = $this->hasMany(CartItem::class);
-        if (\Illuminate\Support\Facades\Schema::hasColumn('cart_items', 'is_selected')) {
-            $relation->where('is_selected', true);
-        } elseif (session()->has('selected_cart_item_ids')) {
-            $relation->whereIn('id', session('selected_cart_item_ids', []));
-        }
-        return $relation;
+        return $this->hasMany(CartItem::class)->where('is_selected', true);
     }
 
     /**
