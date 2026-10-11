@@ -85,13 +85,34 @@ class VoucherSingleUsePerUserTest extends TestCase
         $this->assertStringContainsString('sudah pernah', $response->json('message'));
     }
 
-    public function test_apply_rejected_when_user_has_active_order_with_voucher(): void
+    public function test_apply_allowed_when_user_has_pending_order_with_voucher(): void
     {
         $user    = User::factory()->create();
         $voucher = $this->makeVoucher();
 
-        // Order pending (belum bayar) — usage belum tercatat, tapi voucher sudah "dipesan"
+        // Order pending = sisa sesi Snap yang ditinggalkan; createSnapToken akan
+        // mencoba menutupnya sebelum order baru, jadi preview (apply) juga
+        // tidak boleh menghitungnya sebagai "sudah dipakai".
         $this->makeOrderFor($user, $voucher, 'pending');
+
+        $this->actingAs($user)
+            ->postJson(route('voucher.apply'), [
+                'code'     => 'HEMAT50',
+                'subtotal' => 100000,
+            ])
+            ->assertOk()
+            ->assertJsonPath('valid', true)
+            ->assertJsonPath('discount_amount', 10000);
+    }
+
+    public function test_apply_rejected_when_voucher_used_by_paid_order(): void
+    {
+        $user    = User::factory()->create();
+        $voucher = $this->makeVoucher();
+
+        // Order paid TANPA baris voucher_usages pun harus menolak —
+        // pengecekan orders aktif menangkapnya.
+        $this->makeOrderFor($user, $voucher, 'paid');
 
         $response = $this->actingAs($user)
             ->postJson(route('voucher.apply'), [
@@ -102,6 +123,24 @@ class VoucherSingleUsePerUserTest extends TestCase
             ->assertJsonPath('valid', false);
 
         $this->assertStringContainsString('sudah pernah', $response->json('message'));
+    }
+
+    public function test_apply_allowed_when_other_users_pending_order_with_voucher_exists(): void
+    {
+        $voucher = $this->makeVoucher();
+
+        $otherUser = User::factory()->create();
+        $this->makeOrderFor($otherUser, $voucher, 'pending');
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->postJson(route('voucher.apply'), [
+                'code'     => 'HEMAT50',
+                'subtotal' => 100000,
+            ])
+            ->assertOk()
+            ->assertJsonPath('valid', true);
     }
 
     public function test_apply_allowed_when_previous_order_was_cancelled(): void

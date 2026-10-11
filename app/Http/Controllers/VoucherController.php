@@ -58,11 +58,20 @@ class VoucherController extends Controller
         }
 
         $user = $request->user();
-        if ($user && $voucher->isUsedBy($user->id)) {
-            return response()->json([
-                'valid'   => false,
-                'message' => 'Voucher ini sudah pernah Anda gunakan.',
-            ], 422);
+        if ($user) {
+            // Pesanan PENDING milik user sendiri diabaikan dari pengecekan
+            // "sudah pernah dipakai" — itu persis pesanan yang akan dicoba
+            // ditutup createSnapToken sebelum order baru dibuat (selaras dengan
+            // CheckoutController). Pesanan paid/diproses/dikirim/selesai dan
+            // baris voucher_usages tetap dihitung.
+            $pendingOrderIds = $user->orders()->where('status', 'pending')->pluck('id')->all();
+
+            if ($voucher->isUsedBy($user->id, $pendingOrderIds)) {
+                return response()->json([
+                    'valid'   => false,
+                    'message' => 'Voucher ini sudah pernah Anda gunakan.',
+                ], 422);
+            }
         }
 
         $discount = $voucher->calculateDiscount((float) $request->subtotal);
