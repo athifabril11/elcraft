@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\MidtransService;
+use App\Services\PaymentSettlementService;
 use App\Services\StockService;
 use App\Models\Order;
 use App\Models\Payment;
@@ -101,106 +102,35 @@ class MidtransWebhookController extends Controller
 
         Log::info("Pesanan {$orderId} telah lunas", ['payment_type' => $notification['payment_type']]);
 
-        $shouldSendEmail = false;
+        $order = Order::where('order_number', $orderId)->first();
+        if (!$order) {
+            Log::warning("Midtrans webhook: order {$orderId} not found for markAsPaid");
+            return;
+        }
 
-        DB::transaction(function () use ($orderId, $notification, &$shouldSendEmail) {
-            // ── Idempotency lock ────────────────────────────────────────────
-            // lockForUpdate() acquires a row-level exclusive lock (SELECT ... FOR UPDATE).
-            // If two webhook deliveries arrive simultaneously, the second one blocks here
-            // until the first transaction commits. After the lock is acquired, we re-check
-            // status — the second delivery will now see status='paid' and return early,
-            // preventing any duplicate stock decrements, payment updates, or shipment rows.
-            $order = Order::where('order_number', $orderId)->lockForUpdate()->first();
+        // ── Tandai lunas lewat service bersama (juga dipakai rekonkilsiliasi
+        //    auto-cancel): lock baris + guard idempoten + update payment +
+        //    shipment + rekam pemakaian voucher dengan re-validasi kuota.
+        $paid = app(PaymentSettlementService::class)->markOrderPaid($order, [
+            'payment_type'  => $notification['payment_type'] ?? null,
+            'response_data' => json_encode($notification),
+        ]);
 
-            if (!$order) {
-                Log::warning("Midtrans webhook: order {$orderId} not found for markAsPaid");
-                return;
-            }
+        if (!$paid) {
+            return;
+        }
 
-            if ($order->status === 'paid') {
-                Log::info("Midtrans webhook: order {$orderId} already marked paid, skipping duplicate notification (idempotency guard)");
-                return;
-            }
+        // ── Kirim email konfirmasi pembayaran sukses / invoice kepada pelanggan ──
+        $paidOrder = Order::where('order_number', $orderId)
+            ->with(['items', 'address', 'payment', 'shipment', 'user'])
+            ->first();
 
-            // Guard whitelist: Hanya pesanan dengan status 'pending' yang boleh diproses ke 'paid'.
-            // Mencegah membangkitkan pesanan yang sudah dibatalkan ('dibatalkan') atau
-            // menduplikasi pemotongan stok pada pesanan yang sudah berjalan ('diproses', 'dikirim', 'selesai').
-            if (!in_array($order->status, ['pending'])) {
-                Log::warning("Midtrans webhook: order {$orderId} memiliki status '{$order->status}', penyelesaian pembayaran ditolak");
-                return;
-            }
-
-            // Update order status
-            $order->update(['status' => 'paid']);
-            $shouldSendEmail = true;
-
-            // Update payment details
-            if ($order->payment) {
-                $order->payment->update([
-                    'status'         => 'success',
-                    'payment_method' => $notification['payment_type'] ?? null,
-                    'payment_type'   => $notification['payment_type'] ?? null,
-                    'paid_at'        => now(),
-                    'response_data'  => json_encode($notification),
-                ]);
-            }
-
-            // Create shipment record
-            if (!$order->shipment) {
-                $order->shipment()->create([
-                    'courier'       => $order->courier ?? 'Manual',
-                    'service'       => $order->courier_service ?? 'Reguler',
-                    'shipping_cost' => $order->shipping_cost,
-                ]);
-            }
-
-            // Stok TIDAK dikurangi di sini — sudah di-reserve saat checkout
-            // (StockService::reserveForCart dalam transaksi pembuatan order).
-
-            // Catat penggunaan voucher jika ada (dengan lock & re-validasi kuota)
-            if ($order->voucher_id) {
-                $voucher = Voucher::where('id', $order->voucher_id)->lockForUpdate()->first();
-
-                if ($voucher && $voucher->used_count < $voucher->quota) {
-                    VoucherUsage::firstOrCreate(
-                        [
-                            'voucher_id' => $voucher->id,
-                            'user_id'    => $order->user_id,
-                            'order_id'   => $order->id,
-                        ],
-                        [
-                            'discount_applied' => $order->voucher_discount,
-                        ]
-                    );
-                    $voucher->increment('used_count');
-                } else {
-                    // Kuota voucher telah habis oleh pesanan lain yang diselesaikan terlebih dahulu (race condition).
-                    // Dana pelanggan di Midtrans sudah terpotong sehingga status pesanan tetap 'paid',
-                    // namun counter voucher tidak dinaikkan (used_count <= quota) dan pesanan
-                    // diberi catatan peringatan agar ditinjau oleh administrator toko.
-                    Log::warning("Midtrans webhook: Kuota voucher '{$voucher?->code}' habis saat settlement pesanan {$order->order_number}. Selisih diskon diserap toko / ditandai untuk review admin.");
-
-                    $warningNote = '[PERINGATAN SISTEM: Kuota voucher ' . ($voucher?->code ?? '') . ' telah habis saat pembayaran dikonfirmasi. Periksa transaksi ini]';
-                    $order->update([
-                        'notes' => trim(($order->notes ? $order->notes . ' | ' : '') . $warningNote),
-                    ]);
-                }
-            }
-        });
-
-        // ── 4. Kirim email konfirmasi pembayaran sukses / invoice kepada pelanggan ──
-        if ($shouldSendEmail) {
-            $paidOrder = Order::where('order_number', $orderId)
-                ->with(['items', 'address', 'payment', 'shipment', 'user'])
-                ->first();
-
-            if ($paidOrder && $paidOrder->user?->email) {
-                try {
-                    Mail::to($paidOrder->user->email)->send(new PaymentSuccessMail($paidOrder));
-                    Log::info("Email konfirmasi pembayaran berhasil dikirim ke {$paidOrder->user->email} untuk pesanan {$orderId}");
-                } catch (\Throwable $e) {
-                    Log::error("Midtrans webhook: Gagal mengirim email konfirmasi pembayaran untuk pesanan {$orderId}: " . $e->getMessage());
-                }
+        if ($paidOrder && $paidOrder->user?->email) {
+            try {
+                Mail::to($paidOrder->user->email)->send(new PaymentSuccessMail($paidOrder));
+                Log::info("Email konfirmasi pembayaran berhasil dikirim ke {$paidOrder->user->email} untuk pesanan {$orderId}");
+            } catch (\Throwable $e) {
+                Log::error("Midtrans webhook: Gagal mengirim email konfirmasi pembayaran untuk pesanan {$orderId}: " . $e->getMessage());
             }
         }
     }

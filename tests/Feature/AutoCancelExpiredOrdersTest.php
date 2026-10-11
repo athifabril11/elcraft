@@ -3,12 +3,14 @@
 namespace Tests\Feature;
 
 use App\Mail\OrderCancelledMail;
+use App\Mail\PaymentSuccessMail;
 use App\Models\User;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Address;
+use App\Models\Voucher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -213,5 +215,128 @@ class AutoCancelExpiredOrdersTest extends TestCase
 
         $this->assertEquals('pending', $order->fresh()->status);
         Http::assertNothingSent();
+    }
+
+    /** Fake Midtrans: cancel ditolak 412, Get Status melaporkan settlement. */
+    private function fakeLateSettlement(): void
+    {
+        Http::fake([
+            '*/v2/*/cancel' => Http::response(
+                ['status_code' => '412', 'status_message' => 'Transaction is finished, cannot be modify'],
+                200
+            ),
+            '*/v2/*/status' => Http::response([
+                'transaction_status' => 'settlement',
+                'status_code'        => '200',
+                'payment_type'       => 'qris',
+                'gross_amount'       => '110000.00',
+            ], 200),
+        ]);
+    }
+
+    public function test_late_settlement_via_get_status_records_voucher_usage(): void
+    {
+        Mail::fake();
+        $this->fakeLateSettlement();
+
+        $user = User::factory()->create();
+        $voucher = Voucher::create([
+            'code'           => 'LATESETTLE',
+            'discount_type'  => 'nominal',
+            'discount_value' => 10000,
+            'min_purchase'   => 0,
+            'quota'          => 10,
+            'used_count'     => 0,
+            'start_date'     => now()->subDay()->toDateString(),
+            'end_date'       => now()->addDay()->toDateString(),
+            'is_active'      => true,
+        ]);
+        $order = $this->makeExpiredPendingOrder($user, [], [
+            'voucher_id'       => $voucher->id,
+            'voucher_discount' => 10000,
+            'total_amount'     => 100000,
+        ]);
+        $product = $order->items->first()->product;
+
+        $this->artisan('orders:auto-cancel-expired')->assertExitCode(0);
+
+        $order->refresh();
+        $this->assertEquals('paid', $order->status, 'Order telat bayar harus jadi paid, bukan dibatalkan');
+        $this->assertEquals('success', $order->payment->status);
+        $this->assertEquals('qris', $order->payment->payment_type);
+
+        // Pemakaian voucher WAJIB tercatat sama seperti jalur webhook
+        $this->assertEquals(1, $voucher->fresh()->used_count, 'used_count harus naik saat late settlement');
+        $this->assertDatabaseHas('voucher_usages', [
+            'voucher_id' => $voucher->id,
+            'user_id'    => $user->id,
+            'order_id'   => $order->id,
+        ]);
+
+        // Stok tidak dipulihkan — sudah di-reserve saat checkout, order paid
+        $this->assertEquals(9, $product->fresh()->stock);
+
+        // Late settlement juga membuat shipment record (sama seperti jalur webhook)
+        $this->assertDatabaseHas('shipments', ['order_id' => $order->id]);
+    }
+
+    public function test_late_settlement_with_exhausted_quota_does_not_over_redeem(): void
+    {
+        Mail::fake();
+        $this->fakeLateSettlement();
+
+        $user = User::factory()->create();
+        $voucher = Voucher::create([
+            'code'           => 'HABIS1',
+            'discount_type'  => 'nominal',
+            'discount_value' => 10000,
+            'min_purchase'   => 0,
+            'quota'          => 1,
+            'used_count'     => 1,
+            'start_date'     => now()->subDay()->toDateString(),
+            'end_date'       => now()->addDay()->toDateString(),
+            'is_active'      => true,
+        ]);
+        $order = $this->makeExpiredPendingOrder($user, [], [
+            'voucher_id'       => $voucher->id,
+            'voucher_discount' => 10000,
+            'total_amount'     => 100000,
+        ]);
+
+        $this->artisan('orders:auto-cancel-expired')->assertExitCode(0);
+
+        $order->refresh();
+        $this->assertEquals('paid', $order->status, 'Dana sudah tertangkap — order tetap paid');
+        $this->assertEquals(1, $voucher->fresh()->used_count, 'used_count tidak boleh melampaui kuota');
+        $this->assertDatabaseMissing('voucher_usages', ['order_id' => $order->id]);
+        $this->assertStringContainsString('PERINGATAN SISTEM', (string) $order->notes);
+    }
+
+    public function test_late_settlement_sends_payment_success_email(): void
+    {
+        Mail::fake();
+        $this->fakeLateSettlement();
+
+        $user = User::factory()->create();
+        $order = $this->makeExpiredPendingOrder($user);
+
+        $this->artisan('orders:auto-cancel-expired')->assertExitCode(0);
+
+        $this->assertEquals('paid', $order->fresh()->status);
+        Mail::assertSent(PaymentSuccessMail::class, function (PaymentSuccessMail $mail) use ($user) {
+            return $mail->hasTo($user->email)
+                && $mail->order->status === 'paid';
+        });
+    }
+
+    public function test_mark_order_paid_with_missing_order_returns_false(): void
+    {
+        $service = new \App\Services\PaymentSettlementService();
+        $ghost   = Order::make(['id' => 999999, 'order_number' => 'ELCRAFT-GHOST']);
+
+        $this->assertFalse(
+            $service->markOrderPaid($ghost),
+            'Order yang tidak ada di DB harus mengembalikan false, bukan melempar exception'
+        );
     }
 }

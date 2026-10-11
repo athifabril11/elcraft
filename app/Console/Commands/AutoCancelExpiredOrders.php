@@ -3,8 +3,10 @@
 namespace App\Console\Commands;
 
 use App\Mail\OrderCancelledMail;
+use App\Mail\PaymentSuccessMail;
 use App\Models\Order;
 use App\Services\MidtransService;
+use App\Services\PaymentSettlementService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -62,7 +64,8 @@ class AutoCancelExpiredOrders extends Command
             ->filter(fn (Order $order) => $order->isPaymentExpired());
 
         $cancelled = 0;
-        $skipped = 0;
+        $resolved  = 0;
+        $skipped   = 0;
 
         foreach ($candidates as $candidate) {
             // 1. Short txn: re-verify status under lock, then release.
@@ -86,34 +89,37 @@ class AutoCancelExpiredOrders extends Command
                 $midtransStatus = $statusResult['status'] ?? 'unknown';
 
                 if (in_array($midtransStatus, ['settlement'], true)) {
-                    // Payment actually succeeded — mark as paid locally
-                    $paid = DB::transaction(function () use ($candidate) {
-                        $locked = Order::lockForUpdate()->findOrFail($candidate->id);
-
-                        if ($locked->status !== 'pending') {
-                            return false;
-                        }
-
-                        $locked->update(['status' => 'paid']);
-
-                        if ($locked->payment) {
-                            $locked->payment->update([
-                                'status'         => 'success',
-                                'payment_method' => $statusResult['raw']['payment_type'] ?? null,
-                                'payment_type'   => $statusResult['raw']['payment_type'] ?? null,
-                                'paid_at'        => now(),
-                            ]);
-                        }
-
-                        return true;
-                    });
+                    // Payment actually succeeded — mark as paid via the shared
+                    // settlement service (same path as the webhook: lock +
+                    // idempoten + rekam pemakaian voucher).
+                    $paid = app(PaymentSettlementService::class)->markOrderPaid($candidate, [
+                        'payment_type' => $statusResult['raw']['payment_type'] ?? null,
+                    ]);
 
                     if ($paid) {
-                        $cancelled++; // Reused counter for "resolved"
+                        $resolved++;
                         Log::info('orders:auto-cancel-expired — late settlement found via Get Status API, marked paid', [
-                            'order_number' => $candidate->order_number,
+                            'order_number'    => $candidate->order_number,
                             'midtrans_status' => $midtransStatus,
                         ]);
+
+                        // Email sukses pembayaran — sama seperti jalur webhook.
+                        // Re-fetch order segar (load() hanya me-refresh relasi,
+                        // atribut model tetap 'pending' di memori).
+                        $paidOrder = Order::where('order_number', $candidate->order_number)
+                            ->with(['items', 'address', 'payment', 'shipment', 'user'])
+                            ->first();
+                        if ($paidOrder && $paidOrder->user?->email) {
+                            try {
+                                Mail::to($paidOrder->user->email)->send(new PaymentSuccessMail($paidOrder));
+                            } catch (\Throwable $e) {
+                                Log::error('PaymentSuccessMail gagal terkirim (AutoCancelExpiredOrders late settlement)', [
+                                    'order_number' => $candidate->order_number,
+                                    'to_email'     => $paidOrder->user->email,
+                                    'error'        => $e->getMessage(),
+                                ]);
+                            }
+                        }
                         continue;
                     }
                 } elseif (in_array($midtransStatus, ['deny', 'expire', 'cancel'], true)) {
@@ -179,7 +185,7 @@ class AutoCancelExpiredOrders extends Command
             }
         }
 
-        $this->info("Auto-cancelled {$cancelled} expired order(s), {$skipped} skipped.");
+        $this->info("Auto-cancelled {$cancelled} expired order(s), {$resolved} late-settlement(s) marked paid, {$skipped} skipped.");
 
         return self::SUCCESS;
     }
