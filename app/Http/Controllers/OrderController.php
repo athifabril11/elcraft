@@ -279,7 +279,9 @@ class OrderController extends Controller
 
     /**
      * Beli lagi (re-order) produk dari pesanan yang dibatalkan atau selesai.
-     * Memasukkan produk ke keranjang belanja dan mengarahkan ke halaman checkout.
+     * Memasukkan produk ke keranjang belanja (checklist di-reset seperti
+     * "Beli Sekarang") dan mengarahkan ke halaman keranjang agar pelanggan
+     * melihat status checkbox sebelum checkout.
      *
      * @param  string  $orderNumber
      */
@@ -298,8 +300,12 @@ class OrderController extends Controller
         }
 
         $cart = $user->cart;
-        $addedCount = 0;
-        $outOfStockCount = 0;
+
+        // Pass 1: Tentukan item mana yang bisa ditambahkan (aturan ketersediaan
+        // yang sama seperti sebelumnya) TANPA mengubah keranjang sama sekali.
+        $availableItems = [];
+        $skippedCount   = 0;
+        $reducedCount   = 0;
 
         foreach ($order->items as $item) {
             $product = $item->product;
@@ -307,62 +313,89 @@ class OrderController extends Controller
 
             // Periksa ketersediaan produk & varian
             if (!$product || !$product->is_active) {
-                $outOfStockCount++;
+                $skippedCount++;
                 continue;
             }
 
             if ($item->variant_id && (!$variant || !$variant->is_active)) {
-                $outOfStockCount++;
+                $skippedCount++;
                 continue;
             }
 
             $currentStock = $variant ? (int) $variant->stock : (int) $product->stock;
             if ($currentStock <= 0) {
-                $outOfStockCount++;
+                $skippedCount++;
                 continue;
             }
 
             $qtyToAdd = min($item->quantity, $currentStock);
-
-            $cart ??= $user->getOrCreateCart();
-
-            $query = $cart->allItems()->where('product_id', $item->product_id);
-            if ($item->variant_id) {
-                $query->where('variant_id', $item->variant_id);
-            } else {
-                $query->whereNull('variant_id');
-            }
-            $existingCartItem = $query->first();
-
-            if ($existingCartItem) {
-                $newQty = min($existingCartItem->quantity + $qtyToAdd, $currentStock);
-                $existingCartItem->update([
-                    'quantity' => $newQty,
-                    'is_selected' => true,
-                ]);
-            } else {
-                $cart->allItems()->create([
-                    'product_id' => $item->product_id,
-                    'variant_id' => $item->variant_id,
-                    'quantity'   => $qtyToAdd,
-                    'is_selected' => true,
-                ]);
+            if ($qtyToAdd < $item->quantity) {
+                $reducedCount++;
             }
 
-            $addedCount++;
+            $availableItems[] = [
+                'item'   => $item,
+                'qty'    => $qtyToAdd,
+                'stock'  => $currentStock,
+            ];
         }
 
-        if ($addedCount === 0) {
+        if ($availableItems === []) {
             return redirect()->back()
                 ->with('error', 'Produk pada pesanan ini sedang habis atau tidak tersedia.');
         }
 
-        $message = 'Produk dari pesanan #' . $order->order_number . ' telah dimasukkan ke keranjang belanja.';
-        if ($outOfStockCount > 0) {
-            $message .= ' Beberapa item mungkin dilewati karena stok habis.';
+        // Pass 2: Dalam satu transaksi — matikan checklist SELURUH item cart
+        // (seperti CartController::buyNow), lalu tambah/merge item reorder
+        // dengan is_selected = true. Jika tidak ada yang bisa ditambah,
+        // keranjang tidak disentuh sama sekali (seleksi lama tetap).
+        DB::transaction(function () use (&$cart, $user, $availableItems) {
+            $cart ??= $user->getOrCreateCart();
+            $cart->allItems()->update(['is_selected' => false]);
+
+            foreach ($availableItems as $entry) {
+                $item   = $entry['item'];
+                $qty    = $entry['qty'];
+                $stock  = $entry['stock'];
+
+                $query = $cart->allItems()->where('product_id', $item->product_id);
+                if ($item->variant_id) {
+                    $query->where('variant_id', $item->variant_id);
+                } else {
+                    $query->whereNull('variant_id');
+                }
+                $existingCartItem = $query->first();
+
+                if ($existingCartItem) {
+                    $existingCartItem->update([
+                        'quantity'    => min($existingCartItem->quantity + $qty, $stock),
+                        'is_selected' => true,
+                    ]);
+                } else {
+                    $cart->allItems()->create([
+                        'product_id'  => $item->product_id,
+                        'variant_id'  => $item->variant_id,
+                        'quantity'    => $qty,
+                        'is_selected' => true,
+                    ]);
+                }
+            }
+        });
+
+        $addedCount = count($availableItems);
+        $message = "{$addedCount} produk dari pesanan #{$order->order_number} telah dimasukkan ke keranjang belanja.";
+        if ($skippedCount > 0 || $reducedCount > 0) {
+            $parts = [];
+            if ($skippedCount > 0) {
+                $parts[] = "{$skippedCount} produk dilewati karena tidak tersedia atau stok habis";
+            }
+            if ($reducedCount > 0) {
+                $parts[] = "{$reducedCount} produk diturunkan jumlahnya sesuai stok tersedia";
+            }
+            $message .= ' ' . implode(', ', $parts) . '.';
         }
 
-        return redirect()->route('checkout.index')->with('success', $message);
+        return redirect()->route('cart.index')->with('success', $message);
     }
 
     /**
