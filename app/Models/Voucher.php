@@ -48,17 +48,29 @@ class Voucher extends Model
      * True jika ada riwayat pemakaian (settlement) ATAU ada order aktif
      * (status selain 'dibatalkan') yang memakai voucher ini.
      * Order dibatalkan dianggap belum pernah transaksi — boleh pakai ulang.
+     *
+     * @param  int     $userId
+     * @param  array   $ignoreOrderIds  ID order yang dikecualikan dari pengecekan
+     *                                  orders (baris voucher_usages TIDAK terpengaruh).
+     *                                  Dipakai checkout: pesanan abandoned pelanggan
+     *                                  sendiri yang baru saja ditutup di Midtrans
+     *                                  tidak boleh menghitung voucher sebagai "sudah dipakai".
      */
-    public function isUsedBy(int $userId): bool
+    public function isUsedBy(int $userId, array $ignoreOrderIds = []): bool
     {
         if ($this->usages()->where('user_id', $userId)->exists()) {
             return true;
         }
 
-        return $this->orders()
+        $orders = $this->orders()
             ->where('user_id', $userId)
-            ->where('status', '!=', 'dibatalkan')
-            ->exists();
+            ->where('status', '!=', 'dibatalkan');
+
+        if ($ignoreOrderIds !== []) {
+            $orders->whereNotIn('id', $ignoreOrderIds);
+        }
+
+        return $orders->exists();
     }
 
     // Cek apakah voucher valid

@@ -179,17 +179,51 @@ class CheckoutController extends Controller
             ]);
         }
 
+        // 6. Hitung subtotal dan validasi voucher/produk SEBELUM membatalkan pesanan lama
+        //     (agar tidak membatalkan pesanan lama kalau validasi gagal)
+        $subtotal = $cart->getTotalPrice();
+
+        // 6a. Validasi voucher sebelum membatalkan pesanan lama
+        //     (agar tidak membatalkan pesanan lama kalau voucher tidak valid).
+        //     Keputusan "pakai atau abaikan" voucher (isUsedBy) ditunda sampai
+        //     setelah pesanan abandoned yang berhasil ditutup di Midtrans masuk
+        //     $abandonedIds — pesanan abandoned milik pelanggan sendiri tidak
+        //     boleh menghitung voucher sebagai "sudah dipakai" (bug: diskon
+        //     hilang diam-diam saat checkout ulang setelah popup Snap ditutup).
+        $voucher         = null;
+        $voucherDiscount = 0;
+        $voucherId       = null;
+        if ($request->filled('voucher_code')) {
+            $voucher = Voucher::where('code', strtoupper(trim($request->voucher_code)))->first();
+            if (!$voucher || !$voucher->isValid((float) $subtotal)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Kode voucher tidak valid atau sudah habis.',
+                ], 422);
+            }
+        }
+
+        // Validasi semua item cart harus produk/varian aktif sebelum membatalkan pesanan lama
+        foreach ($cart->items as $item) {
+            if (!$item->product->is_active || ($item->variant && !$item->variant->is_active)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Salah satu produk di keranjang tidak tersedia lagi.',
+                ], 422);
+            }
+        }
+
         // 6a. Batalkan pesanan pending lama milik pengguna ini (jika ada).
         //     Pesanan pending sebelumnya adalah sisa sesi Snap yang ditinggalkan
         //     (popup ditutup, tab ditutup, dll). Reservasi stok pesanan lama
         //     DIPULIHKAN karena stok di-reserve saat checkout (StockService).
         //
-        //     Panggilan Midtrans Cancel API dilakukan DI LUAR transaksi DB agar
-        //     tidak menahan lock selama request eksternal. Pesanan hanya ditandai
-        //     'dibatalkan' secara lokal jika ditutup sukses di Midtrans
-        //     (cancelled/not_found) — outcome lain (cannot_modify/error) dibiarkan
-        //     'pending' supaya transaksi lama tidak berstatus dibatalkan tapi
-        //     tetap bisa dibayar pelanggan.
+        //     Panggilan Midtrans Cancel API dilakukan SETELAH validasi lolos,
+        //     DI LUAR transaksi DB agar tidak menahan lock selama request eksternal.
+        //     Pesanan hanya ditandai 'dibatalkan' secara lokal jika ditutup sukses
+        //     di Midtrans (cancelled/not_found) — outcome lain (cannot_modify/error)
+        //     dibiarkan 'pending' supaya transaksi lama tidak berstatus dibatalkan
+        //     tapi tetap bisa dibayar pelanggan.
         $abandonedIds = [];
         $abandonedOrders = Order::where('user_id', $user->id)
             ->where('status', 'pending')
@@ -211,11 +245,29 @@ class CheckoutController extends Controller
             }
         }
 
+        // Keputusan penerapan voucher — dinilai SETELAH pesanan abandoned yang
+        // berhasil ditutup di Midtrans diketahui ($abandonedIds; akan ditandai
+        // 'dibatalkan' di dalam transaksi checkout). Pesanan abandoned pelanggan
+        // sendiri dikecualikan lewat $ignoreOrderIds sehingga diskon TIDAK hilang
+        // diam-diam saat checkout ulang. Pesanan yang GAGAL ditutup
+        // (cannot_modify/error) tidak masuk $abandonedIds — tetap dihitung
+        // "sudah dipakai" karena masih bisa dibayar. Voucher yang sudah pernah
+        // dipakai pada order paid/pending lain tetap diabaikan diam-diam
+        // (diskon 0, tidak memblokir checkout) — kontrak VoucherSingleUsePerUserTest.
+        if ($voucher !== null && !$voucher->isUsedBy($user->id, $abandonedIds)) {
+            $voucherDiscount = $voucher->calculateDiscount((float) $subtotal);
+            $voucherId       = $voucher->id;
+        }
+
+        $orderId  = 'ELCRAFT-' . strtoupper(Str::random(8)) . '-' . time();
+        $shipping = $verifiedShipping;
+        $total    = $subtotal + $shipping - $voucherDiscount;
+
         $order = null;
 
         try {
             // Txn A: Buat order dan order items di database, commit sebelum memanggil HTTP
-            [$order, $orderData, $customer, $total, $orderId] = DB::transaction(function () use ($request, $user, $cart, $verifiedShipping, $abandonedIds) {
+            [$order, $orderData, $customer, $total, $orderId] = DB::transaction(function () use ($request, $user, $cart, $subtotal, $orderId, $shipping, $total, $verifiedShipping, $abandonedIds, $voucherId, $voucherDiscount) {
                 // 5. Simpan atau perbarui alamat pengiriman
                 $address = null;
                 if ($request->filled('address_id')) {
@@ -257,26 +309,6 @@ class CheckoutController extends Controller
                     }
                 }
 
-                // 6. Susun data pesanan menggunakan nilai dari database dan API
-                $orderId  = 'ELCRAFT-' . strtoupper(Str::random(8)) . '-' . time();
-                $subtotal = $cart->getTotalPrice();
-
-                // Ongkos kirim yang digunakan adalah nilai yang sudah diverifikasi server-side
-                $shipping = $verifiedShipping;
-
-                // Terapkan voucher jika ada
-                $voucherDiscount = 0;
-                $voucherId       = null;
-                if ($request->filled('voucher_code')) {
-                    $voucher = Voucher::where('code', strtoupper(trim($request->voucher_code)))->first();
-                    if ($voucher && $voucher->isValid((float) $subtotal) && !$voucher->isUsedBy($user->id)) {
-                        $voucherDiscount = $voucher->calculateDiscount((float) $subtotal);
-                        $voucherId       = $voucher->id;
-                    }
-                }
-
-                $total = $subtotal + $shipping - $voucherDiscount;
-
                 // 6b. Tandai dibatalkan hanya pesanan yang berhasil ditutup di Midtrans.
                 //     Re-check status 'pending' dengan lock di dalam transaksi agar
                 //     tidak menimpa pesanan yang baru saja berubah status, dan
@@ -292,15 +324,6 @@ class CheckoutController extends Controller
                         $abandonedOrder->update(['status' => 'dibatalkan']);
                         $abandonedOrder->payment()->update(['status' => 'failed']);
                         $this->stock->restoreForOrder($abandonedOrder);
-                    }
-                }
-
-                // 6b. Validasi semua item cart harus produk/varian aktif sebelum reserve stok
-                foreach ($cart->items as $item) {
-                    if (!$item->product->is_active || ($item->variant && !$item->variant->is_active)) {
-                        throw ValidationException::withMessages([
-                            'cart' => 'Salah satu produk di keranjang tidak tersedia lagi.',
-                        ]);
                     }
                 }
 

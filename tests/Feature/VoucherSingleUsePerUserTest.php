@@ -207,4 +207,61 @@ class VoucherSingleUsePerUserTest extends TestCase
             'total_amount'     => 115000, // 100000 + 15000 - 0
         ]);
     }
+
+    // ── Voucher::isUsedBy dengan $ignoreOrderIds ─────────────────────────────
+
+    public function test_is_used_by_true_when_usage_row_exists_even_if_orders_ignored(): void
+    {
+        $user    = User::factory()->create();
+        $voucher = $this->makeVoucher();
+        $order   = $this->makeOrderFor($user, $voucher, 'selesai');
+        VoucherUsage::create([
+            'voucher_id'       => $voucher->id,
+            'user_id'          => $user->id,
+            'order_id'         => $order->id,
+            'discount_applied' => 5000,
+        ]);
+
+        $this->assertTrue($voucher->isUsedBy($user->id));
+        $this->assertTrue(
+            $voucher->isUsedBy($user->id, [$order->id]),
+            'Baris voucher_usages tidak terpengaruh $ignoreOrderIds'
+        );
+    }
+
+    public function test_is_used_by_excludes_ignored_order_ids_from_orders_check(): void
+    {
+        $user    = User::factory()->create();
+        $voucher = $this->makeVoucher();
+        $order   = $this->makeOrderFor($user, $voucher, 'pending');
+
+        $this->assertTrue($voucher->isUsedBy($user->id));
+        $this->assertFalse(
+            $voucher->isUsedBy($user->id, [$order->id]),
+            'Order yang di-ignore tidak boleh dihitung sebagai "sudah dipakai"'
+        );
+    }
+
+    public function test_is_used_by_cancelled_orders_never_count_even_without_ignore(): void
+    {
+        $user    = User::factory()->create();
+        $voucher = $this->makeVoucher();
+        $order   = $this->makeOrderFor($user, $voucher, 'dibatalkan');
+
+        $this->assertFalse($voucher->isUsedBy($user->id));
+        $this->assertFalse($voucher->isUsedBy($user->id, [$order->id]));
+    }
+
+    public function test_is_used_by_paid_order_counts_even_when_other_order_ignored(): void
+    {
+        $user    = User::factory()->create();
+        $voucher = $this->makeVoucher();
+        $this->makeOrderFor($user, $voucher, 'paid');
+        $pending = $this->makeOrderFor($user, $voucher, 'pending');
+
+        $this->assertTrue(
+            $voucher->isUsedBy($user->id, [$pending->id]),
+            'Order paid tidak boleh diabaikan oleh $ignoreOrderIds order lain'
+        );
+    }
 }
