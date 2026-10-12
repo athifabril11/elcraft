@@ -20,14 +20,24 @@ use Illuminate\Support\Facades\Mail;
  * with a created_at+24h fallback — so it matches what the storefront
  * countdown badge and the resume-payment guard use.
  *
- * For each expired order the command mirrors OrderController::cancel:
+ * For each expired order:
  *   1. Short lockForUpdate txn to re-verify the order is still 'pending'.
- *   2. Midtrans Core API cancel OUTSIDE any DB transaction.
- *   3. On 'cancelled'/'not_found': lock again, flip status to 'dibatalkan',
- *      mark payment 'failed', restore the checkout stock reservation.
- *   4. Send OrderCancelledMail (event: payment_failed, reason: expire).
- * On 'cannot_modify'/'error' the order is left untouched so the next run
- * (or the webhook) can settle it — never force-cancel a Midtrans race.
+ *   2. Midtrans Get Status API FIRST (OUTSIDE any DB transaction) — never
+ *      call Cancel before knowing the real state: cancelling a credit-card
+ *      transaction in 'capture' status would VOID the legitimate payment.
+ *   3. Decide by the reported state:
+ *      - settlement, or capture+fraud accept → mark paid via
+ *        PaymentSettlementService + PaymentSuccessMail (never cancel).
+ *      - capture with any other fraud_status → skip (await Midtrans decision).
+ *      - pending → cancelTransaction; cancelled/not_found → local cancel,
+ *        cannot_modify/error → skip and retry next run.
+ *      - deny/expire/cancel/failure → local cancel directly (no cancel API).
+ *      - body status_code 404 (transaction never existed) → local cancel.
+ *      - refund/partial_refund → skip, needs manual handling.
+ *      - API failure or unknown status → skip; NEVER cancel on uncertainty.
+ *   4. Local cancel txn: re-verify 'pending' under lock, flip to
+ *      'dibatalkan', mark payment 'failed', restore stock reservation,
+ *      send OrderCancelledMail (event: payment_failed, reason: expire).
  *
  * Usage:
  *   php artisan orders:auto-cancel-expired
@@ -78,63 +88,109 @@ class AutoCancelExpiredOrders extends Command
                 continue;
             }
 
-            // 2. Midtrans cancel OUTSIDE any DB transaction.
-            $midtrans = app(MidtransService::class);
-            $cancel = $midtrans->cancelTransaction($candidate->order_number);
+            // 2. Get Status API DULU, DI LUAR transaksi DB — jangan pernah
+            //    memanggil Cancel sebelum tahu status asli: cancel pada
+            //    transaksi kartu berstatus 'capture' akan MEMBATALKAN
+            //    pembayaran yang sah (webhook-nya hilang, bukan gagal bayar).
+            $midtrans        = app(MidtransService::class);
+            $statusResult    = $midtrans->getTransactionStatus($candidate->order_number);
+            $midtransStatus  = $statusResult['status'] ?? 'unknown';
+            $bodyStatusCode  = (string) ($statusResult['midtrans_status_code'] ?? '');
+            $fraudStatus     = $statusResult['fraud_status'] ?? null;
 
-            if (!in_array($cancel['outcome'] ?? 'error', ['cancelled', 'not_found'], true)) {
-                // Midtrans returned cannot_modify (412) or error —
-                // before skipping, call Get Status API to see actual transaction state.
-                $statusResult = $midtrans->getTransactionStatus($candidate->order_number);
-                $midtransStatus = $statusResult['status'] ?? 'unknown';
+            $localCancel = false;
 
-                if (in_array($midtransStatus, ['settlement'], true)) {
-                    // Payment actually succeeded — mark as paid via the shared
-                    // settlement service (same path as the webhook: lock +
-                    // idempoten + rekam pemakaian voucher).
-                    $paid = app(PaymentSettlementService::class)->markOrderPaid($candidate, [
-                        'payment_type' => $statusResult['raw']['payment_type'] ?? null,
+            if ($bodyStatusCode === '404') {
+                // Transaksi tidak pernah ada di Midtrans (pelanggan tidak
+                // memilih metode pembayaran) — batalkan lokal tanpa cancel API.
+                $localCancel = true;
+            } elseif (in_array($midtransStatus, ['settlement'], true)
+                || ($midtransStatus === 'capture' && $fraudStatus === 'accept')) {
+                // Pembayaran sah — tandai lunas via service bersama; JANGAN cancel.
+                $paid = app(PaymentSettlementService::class)->markOrderPaid($candidate, [
+                    'payment_type' => $statusResult['raw']['payment_type'] ?? null,
+                ]);
+
+                if ($paid) {
+                    $resolved++;
+                    Log::info('orders:auto-cancel-expired — pembayaran ditemukan lunas via Get Status API, ditandai paid', [
+                        'order_number'    => $candidate->order_number,
+                        'midtrans_status' => $midtransStatus,
+                        'fraud_status'    => $fraudStatus,
                     ]);
 
-                    if ($paid) {
-                        $resolved++;
-                        Log::info('orders:auto-cancel-expired — late settlement found via Get Status API, marked paid', [
-                            'order_number'    => $candidate->order_number,
-                            'midtrans_status' => $midtransStatus,
-                        ]);
-
-                        // Email sukses pembayaran — sama seperti jalur webhook.
-                        // Re-fetch order segar (load() hanya me-refresh relasi,
-                        // atribut model tetap 'pending' di memori).
-                        $paidOrder = Order::where('order_number', $candidate->order_number)
-                            ->with(['items', 'address', 'payment', 'shipment', 'user'])
-                            ->first();
-                        if ($paidOrder && $paidOrder->user?->email) {
-                            try {
-                                Mail::to($paidOrder->user->email)->send(new PaymentSuccessMail($paidOrder));
-                            } catch (\Throwable $e) {
-                                Log::error('PaymentSuccessMail gagal terkirim (AutoCancelExpiredOrders late settlement)', [
-                                    'order_number' => $candidate->order_number,
-                                    'to_email'     => $paidOrder->user->email,
-                                    'error'        => $e->getMessage(),
-                                ]);
-                            }
+                    // Email sukses pembayaran — sama seperti jalur webhook.
+                    // Re-fetch order segar (load() hanya me-refresh relasi,
+                    // atribut model tetap 'pending' di memori).
+                    $paidOrder = Order::where('order_number', $candidate->order_number)
+                        ->with(['items', 'address', 'payment', 'shipment', 'user'])
+                        ->first();
+                    if ($paidOrder && $paidOrder->user?->email) {
+                        try {
+                            Mail::to($paidOrder->user->email)->send(new PaymentSuccessMail($paidOrder));
+                        } catch (\Throwable $e) {
+                            Log::error('PaymentSuccessMail gagal terkirim (AutoCancelExpiredOrders late settlement)', [
+                                'order_number' => $candidate->order_number,
+                                'to_email'     => $paidOrder->user->email,
+                                'error'        => $e->getMessage(),
+                            ]);
                         }
-                        continue;
                     }
-                } elseif (in_array($midtransStatus, ['deny', 'expire', 'cancel'], true)) {
-                    // Payment failed/expired/cancelled — proceed with local cancel
-                    // (fall through to existing cancel logic below)
+                }
+                continue;
+            } elseif ($midtransStatus === 'capture') {
+                // capture dengan fraud_status selain 'accept' (mis. 'challenge')
+                // — jangan batalkan, jangan tandai lunas; tunggu keputusan
+                // Midtrans (webhook berikutnya / review manual).
+                $skipped++;
+                Log::warning('orders:auto-cancel-expired — capture non-accept, skip', [
+                    'order_number' => $candidate->order_number,
+                    'fraud_status' => $fraudStatus,
+                ]);
+                continue;
+            } elseif ($midtransStatus === 'pending') {
+                // Masih menunggu pembayaran — minta cancel ke Midtrans.
+                $cancel = $midtrans->cancelTransaction($candidate->order_number);
+
+                if (in_array($cancel['outcome'] ?? 'error', ['cancelled', 'not_found'], true)) {
+                    $localCancel = true;
                 } else {
-                    // Unknown or error — skip and retry next run
+                    // cannot_modify/error — transaksi mungkin baru saja berubah;
+                    // biarkan webhook / run berikutnya yang putuskan.
                     $skipped++;
-                    Log::warning('orders:auto-cancel-expired — Get Status API inconclusive, coba lagi run berikutnya', [
+                    Log::warning('orders:auto-cancel-expired — cancel ditolak Midtrans, coba lagi run berikutnya', [
                         'order_number' => $candidate->order_number,
-                        'midtrans_status' => $midtransStatus,
-                        'cancel_outcome' => $cancel['outcome'] ?? 'error',
+                        'outcome'      => $cancel['outcome'] ?? 'error',
+                        'status_code'  => $cancel['status_code'] ?? null,
                     ]);
                     continue;
                 }
+            } elseif (in_array($midtransStatus, ['deny', 'expire', 'cancel', 'failure'], true)) {
+                // Transaksi sudah gagal/kedaluwarsa/dibatalkan di Midtrans —
+                // batalkan lokal LANGSUNG tanpa cancel API.
+                $localCancel = true;
+            } elseif (in_array($midtransStatus, ['refund', 'partial_refund'], true)) {
+                // Ada pergerakan dana yang tidak bisa ditangani otomatis —
+                // butuh penanganan manual admin.
+                $skipped++;
+                Log::warning('orders:auto-cancel-expired — status refund membutuhkan penanganan manual, skip', [
+                    'order_number'    => $candidate->order_number,
+                    'midtrans_status' => $midtransStatus,
+                ]);
+                continue;
+            } else {
+                // API error / status tidak dikenal — JANGAN pernah batalkan
+                // lokal pada keadaan yang tidak pasti.
+                $skipped++;
+                Log::warning('orders:auto-cancel-expired — Get Status API inconclusive, coba lagi run berikutnya', [
+                    'order_number'    => $candidate->order_number,
+                    'midtrans_status' => $midtransStatus,
+                ]);
+                continue;
+            }
+
+            if (!$localCancel) {
+                continue;
             }
 
             // 3. Short txn: re-verify + flip status + restore stock.

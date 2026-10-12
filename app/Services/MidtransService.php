@@ -317,10 +317,14 @@ class MidtransService
             $message = $body['status_message'] ?? '';
 
             return [
-                'status'       => $status,
-                'status_code'  => $statusCode,
-                'message'      => $message,
-                'raw'          => $body,
+                'status'                => $status,
+                'status_code'           => $statusCode,
+                'message'               => $message,
+                'raw'                   => $body,
+                // Kode status DALAM body (string, mis. '404' = transaksi tidak
+                // pernah ada) — berbeda dari HTTP status code.
+                'midtrans_status_code'  => isset($body['status_code']) ? (string) $body['status_code'] : null,
+                'fraud_status'          => $body['fraud_status'] ?? null,
             ];
         } catch (\Throwable $e) {
             Log::warning('MidtransService::getTransactionStatus exception', [
@@ -329,10 +333,12 @@ class MidtransService
             ]);
 
             return [
-                'status'       => 'error',
-                'status_code'  => null,
-                'message'      => $e->getMessage(),
-                'raw'          => [],
+                'status'                => 'error',
+                'status_code'           => null,
+                'message'               => $e->getMessage(),
+                'raw'                   => [],
+                'midtrans_status_code'  => null,
+                'fraud_status'          => null,
             ];
         }
     }

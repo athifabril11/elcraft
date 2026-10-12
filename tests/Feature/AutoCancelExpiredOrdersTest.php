@@ -94,6 +94,10 @@ class AutoCancelExpiredOrdersTest extends TestCase
     {
         Mail::fake();
         Http::fake([
+            '*/v2/*/status' => Http::response([
+                'transaction_status' => 'pending',
+                'status_code'        => '200',
+            ], 200),
             '*/v2/*/cancel' => Http::response(
                 ['status_code' => '200', 'status_message' => 'Success, transaction is canceled'],
                 200
@@ -158,6 +162,10 @@ class AutoCancelExpiredOrdersTest extends TestCase
     {
         Mail::fake();
         Http::fake([
+            '*/v2/*/status' => Http::response([
+                'transaction_status' => 'pending',
+                'status_code'        => '200',
+            ], 200),
             '*/v2/*/cancel' => Http::response(
                 ['status_code' => '412', 'status_message' => 'Transaction is finished, cannot be modify'],
                 200
@@ -182,7 +190,7 @@ class AutoCancelExpiredOrdersTest extends TestCase
     {
         Mail::fake();
         Http::fake([
-            '*/v2/*/cancel' => Http::response(
+            '*/v2/*/status' => Http::response(
                 ['status_code' => '404', 'status_message' => 'Transaction doesn\'t exist'],
                 404
             ),
@@ -198,6 +206,9 @@ class AutoCancelExpiredOrdersTest extends TestCase
             ->assertExitCode(0);
 
         $this->assertEquals('dibatalkan', $order->fresh()->status);
+
+        // Body 404 = transaksi tidak pernah ada — batalkan lokal TANPA cancel API
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), '/cancel'));
     }
 
     public function test_recent_pending_order_without_payment_is_not_cancelled(): void
@@ -217,14 +228,10 @@ class AutoCancelExpiredOrdersTest extends TestCase
         Http::assertNothingSent();
     }
 
-    /** Fake Midtrans: cancel ditolak 412, Get Status melaporkan settlement. */
+    /** Fake Midtrans: Get Status melaporkan settlement (cancel tidak boleh dipanggil). */
     private function fakeLateSettlement(): void
     {
         Http::fake([
-            '*/v2/*/cancel' => Http::response(
-                ['status_code' => '412', 'status_message' => 'Transaction is finished, cannot be modify'],
-                200
-            ),
             '*/v2/*/status' => Http::response([
                 'transaction_status' => 'settlement',
                 'status_code'        => '200',
@@ -278,6 +285,9 @@ class AutoCancelExpiredOrdersTest extends TestCase
 
         // Late settlement juga membuat shipment record (sama seperti jalur webhook)
         $this->assertDatabaseHas('shipments', ['order_id' => $order->id]);
+
+        // Pembayaran sudah diketahui lunas — cancel API TIDAK BOLEH dipanggil
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), '/cancel'));
     }
 
     public function test_late_settlement_with_exhausted_quota_does_not_over_redeem(): void
@@ -338,5 +348,124 @@ class AutoCancelExpiredOrdersTest extends TestCase
             $service->markOrderPaid($ghost),
             'Order yang tidak ada di DB harus mengembalikan false, bukan melempar exception'
         );
+    }
+
+    public function test_capture_with_fraud_accept_marks_paid_without_cancel(): void
+    {
+        // (a) Kartu kredit berstatus 'capture' + fraud 'accept' — pembayaran sah.
+        //     Cancel API akan MEMBATALKAN pembayaran itu; perintah wajib
+        //     menanyakan status DULU dan menandai lunas tanpa pernah cancel.
+        Mail::fake();
+        Http::fake([
+            '*/v2/*/status' => Http::response([
+                'transaction_status' => 'capture',
+                'fraud_status'       => 'accept',
+                'status_code'        => '200',
+                'payment_type'       => 'credit_card',
+                'gross_amount'       => '110000.00',
+            ], 200),
+        ]);
+
+        $user  = User::factory()->create();
+        $order = $this->makeExpiredPendingOrder($user);
+        $product = $order->items->first()->product;
+
+        $this->artisan('orders:auto-cancel-expired')
+            ->expectsOutputToContain('1 late-settlement')
+            ->assertExitCode(0);
+
+        $order->refresh();
+        $this->assertEquals('paid', $order->status);
+        $this->assertEquals('success', $order->payment->status);
+        $this->assertEquals('credit_card', $order->payment->payment_type);
+        $this->assertEquals(9, $product->fresh()->stock, 'Stok tidak boleh dipulihkan untuk pembayaran sah');
+
+        Mail::assertSent(PaymentSuccessMail::class, function (PaymentSuccessMail $mail) use ($user) {
+            return $mail->hasTo($user->email) && $mail->order->status === 'paid';
+        });
+
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), '/cancel'));
+    }
+
+    public function test_expire_status_cancels_locally_without_cancel_api(): void
+    {
+        // (e) Status 'expire' dari Get Status — transaksi sudah kedaluwarsa di
+        //     Midtrans, batalkan lokal TANPA memanggil cancel API.
+        Mail::fake();
+        Http::fake([
+            '*/v2/*/status' => Http::response([
+                'transaction_status' => 'expire',
+                'status_code'        => '200',
+            ], 200),
+        ]);
+
+        $user  = User::factory()->create();
+        $order = $this->makeExpiredPendingOrder($user);
+        $product = $order->items->first()->product;
+
+        $this->artisan('orders:auto-cancel-expired')
+            ->expectsOutputToContain('Auto-cancelled 1')
+            ->assertExitCode(0);
+
+        $order->refresh();
+        $this->assertEquals('dibatalkan', $order->status);
+        $this->assertEquals('failed', $order->payment->status);
+        $this->assertEquals(10, $product->fresh()->stock, 'Stok harus dipulihkan');
+
+        Mail::assertSent(OrderCancelledMail::class, function (OrderCancelledMail $mail) use ($order) {
+            return $mail->hasTo($order->user->email);
+        });
+
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), '/cancel'));
+    }
+
+    public function test_status_api_failure_keeps_order_pending_without_cancel(): void
+    {
+        // (g) Get Status API gagal (500) — status tidak diketahui; JANGAN pernah
+        //     membatalkan lokal pada keadaan yang tidak pasti.
+        Mail::fake();
+        Http::fake([
+            '*/v2/*/status' => Http::response([], 500),
+        ]);
+
+        $user  = User::factory()->create();
+        $order = $this->makeExpiredPendingOrder($user);
+        $product = $order->items->first()->product;
+
+        $this->artisan('orders:auto-cancel-expired')
+            ->expectsOutputToContain('1 skipped')
+            ->assertExitCode(0);
+
+        $this->assertEquals('pending', $order->fresh()->status);
+        $this->assertEquals(9, $product->fresh()->stock);
+        Mail::assertNothingSent();
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), '/cancel'));
+    }
+
+    public function test_capture_with_fraud_challenge_is_skipped(): void
+    {
+        // (h) 'capture' dengan fraud_status selain 'accept' (mis. 'challenge')
+        //     — jangan batalkan, jangan tandai lunas; tunggu keputusan Midtrans.
+        Mail::fake();
+        Http::fake([
+            '*/v2/*/status' => Http::response([
+                'transaction_status' => 'capture',
+                'fraud_status'       => 'challenge',
+                'status_code'        => '200',
+                'payment_type'       => 'credit_card',
+            ], 200),
+        ]);
+
+        $user  = User::factory()->create();
+        $order = $this->makeExpiredPendingOrder($user);
+
+        $this->artisan('orders:auto-cancel-expired')
+            ->expectsOutputToContain('1 skipped')
+            ->assertExitCode(0);
+
+        $this->assertEquals('pending', $order->fresh()->status);
+        $this->assertEquals('pending', $order->fresh()->payment->status);
+        Mail::assertNothingSent();
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), '/cancel'));
     }
 }
