@@ -142,14 +142,19 @@ class StockService
     }
 
     /**
-     * Sinkronkan agregat products.stock dengan jumlah stok variant aktif.
+     * Sinkronkan agregat products.stock dari varian produk.
+     *
+     * Aturan proyek: produk dengan varian = jumlah stok varian AKTIF saja.
+     * Satu-satunya implementasi aturan ini adalah
+     * Product::recalculateStockFromVariants() (no-op untuk produk tanpa varian,
+     * jadi stok produk non-varian tidak pernah disentuh di sini).
      */
     private function syncParentStock(array $productIds): void
     {
         foreach (array_unique($productIds) as $productId) {
             if ($productId) {
-                $totalVariantStock = (int) ProductVariant::where('product_id', $productId)->sum('stock');
-                Product::where('id', $productId)->update(['stock' => $totalVariantStock]);
+                $product = Product::find($productId);
+                $product?->recalculateStockFromVariants();
             }
         }
     }
