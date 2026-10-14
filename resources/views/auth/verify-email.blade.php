@@ -58,6 +58,21 @@
     ">
         Tautan verifikasi baru telah dikirimkan ke alamat email Anda.
     </div>
+@elseif (session('status') == 'verification-link-failed')
+    <div style="
+        margin-bottom: 14px;
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: 1px solid #FECACA;
+        background: #FEF2F2;
+        color: #B91C1C;
+        font-size: 11.5px;
+        line-height: 1.4;
+        font-weight: 500;
+        text-align: center;
+    ">
+        Email verifikasi gagal dikirim. Coba lagi beberapa saat lagi.
+    </div>
 @endif
 
 {{-- ─── Resend Button ───────────────────────────────────────────────────────── --}}

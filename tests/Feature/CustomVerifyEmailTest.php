@@ -60,4 +60,29 @@ class CustomVerifyEmailTest extends TestCase
         $response->assertStatus(302);
         $response->assertSessionHas('status', 'verification-link-failed');
     }
+
+    public function test_verification_page_shows_failure_banner(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        $response = $this->actingAs($user)
+            ->withSession(['status' => 'verification-link-failed'])
+            ->get('/verify-email');
+
+        $response->assertStatus(200);
+        $response->assertSee('Email verifikasi gagal dikirim', false);
+    }
+
+    public function test_verification_page_keeps_success_banner_without_failure_text(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        $response = $this->actingAs($user)
+            ->withSession(['status' => 'verification-link-sent'])
+            ->get('/verify-email');
+
+        $response->assertStatus(200);
+        $response->assertSee('Tautan verifikasi baru telah dikirimkan', false);
+        $response->assertDontSee('Email verifikasi gagal dikirim', false);
+    }
 }
