@@ -122,4 +122,37 @@ class PaymentSettlementService
             ]);
         }
     }
+
+    /**
+     * Lepas pemakaian voucher sebuah order saat order dibatalkan.
+     *
+     * HARUS dipanggil di dalam transaksi DB. Tidak pernah berbuat apa pun
+     * jika: (a) order tidak punya voucher_id, atau (b) tidak ada baris
+     * VoucherUsage untuk order ini (kuota habis saat settlement / tidak
+     * pernah tercatat) — used_count tidak pernah dikurangi tanpa rekaman.
+     * Jika ada: usage dihapus dan used_count dikurangi tepat 1, tidak
+     * pernah di bawah 0.
+     *
+     * Dipakai oleh:
+     *   - MidtransWebhookController::markAsFailed (cancel dari paid)
+     *   - Admin\OrderController::cancelPaid
+     */
+    public function releaseVoucherUsage(Order $order): void
+    {
+        if (!$order->voucher_id) {
+            return;
+        }
+
+        $usage = VoucherUsage::where('order_id', $order->id)->first();
+
+        if (!$usage) {
+            return;
+        }
+
+        $usage->delete();
+
+        Voucher::where('id', $order->voucher_id)
+            ->where('used_count', '>', 0)
+            ->decrement('used_count');
+    }
 }

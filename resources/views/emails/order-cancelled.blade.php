@@ -45,6 +45,14 @@
                                                 Halo, <strong style="color:#3D2B27;">{{ $order->user?->name ?? 'Pelanggan' }}</strong> —
                                                 pesanan kamu telah berhasil dibatalkan sesuai permintaan.
                                             </p>
+                                        @elseif($event === 'merchant_cancel')
+                                            <p style="margin:0 0 6px; font-size:22px; font-weight:800; color:#221F1E; letter-spacing:-0.5px;">
+                                                Pesanan Dibatalkan oleh Toko
+                                            </p>
+                                            <p style="margin:0; font-size:14px; color:#786F6B; line-height:1.6;">
+                                                Halo, <strong style="color:#3D2B27;">{{ $order->user?->name ?? 'Pelanggan' }}</strong> —
+                                                mohon maaf, pesanan kamu terpaksa kami batalkan oleh tim toko.
+                                            </p>
                                         @else
                                             <p style="margin:0 0 6px; font-size:22px; font-weight:800; color:#221F1E; letter-spacing:-0.5px;">
                                                 Pembayaran Gagal 😔
@@ -89,6 +97,27 @@
                                         </table>
                                     </td>
                                 </tr>
+
+                                {{-- Alasan pembatalan oleh toko (merchant_cancel) --}}
+                                @if($event === 'merchant_cancel')
+                                <tr>
+                                    <td style="padding-bottom:24px;">
+                                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FDF0EE; border-radius:10px; border-left:4px solid #C17B6F;">
+                                            <tr>
+                                                <td style="padding:14px 18px;">
+                                                    <p style="margin:0 0 4px; font-size:12px; font-weight:700; color:#9E5A4E;">Alasan Pembatalan</p>
+                                                    <p style="margin:0 0 10px; font-size:12px; color:#7A4A40; line-height:1.7;">
+                                                        {{ $reason ?? 'Tanpa keterangan.' }}
+                                                    </p>
+                                                    <p style="margin:0; font-size:12px; color:#7A4A40; line-height:1.7;">
+                                                        Pengembalian dana akan diproses oleh toko dan kami akan menghubungi kamu terkait refund ini. Terima kasih atas pengertiannya.
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                                @endif
 
                                 {{-- Reason (payment_failed only) --}}
                                 @if($event === 'payment_failed')

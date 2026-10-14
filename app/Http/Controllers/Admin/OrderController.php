@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\OrderCancelledMail;
 use App\Mail\OrderShippedMail;
 use App\Models\Order;
 use App\Models\Shipment;
+use App\Services\PaymentSettlementService;
 use App\Services\RefundService;
+use App\Services\StockService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -253,5 +256,82 @@ class OrderController extends Controller
         return redirect()
             ->route('admin.orders.index', ['payment_captured' => 1])
             ->with($result['success'] ? 'success' : 'error', $result['message']);
+    }
+
+    /**
+     * Batalkan pesanan paid/diproses dari panel admin ("Batalkan Pesanan").
+     *
+     * Validasi reason dilakukan SEBELUM transaksi. Di dalam transaksi:
+     * lock baris -> guard status (hanya 'paid'/'diproses') -> set
+     * 'dibatalkan' + catat alasan di notes -> pulihkan reservasi stok ->
+     * lepas pemakaian voucher. Payment TIDAK diubah (tetap 'success') agar
+     * pesanan masuk daftar dana tertangkap dan bisa refund-api/refund-manual
+     * (RefundService::guardOrder memang mengharuskan 'dibatalkan' + 'success').
+     *
+     * Email merchant_cancel dikirim SETELAH transaksi commit, dibungkus
+     * try-catch — kegagalan SMTP tidak pernah membatalkan pembatalan.
+     */
+    public function cancelPaid(Request $request, Order $order): RedirectResponse
+    {
+        $request->validate([
+            'reason' => ['required', 'string', 'min:5', 'max:500'],
+        ], [
+            'reason.required' => 'Alasan pembatalan wajib diisi.',
+            'reason.string'   => 'Alasan pembatalan harus berupa teks.',
+            'reason.min'      => 'Alasan pembatalan minimal 5 karakter.',
+            'reason.max'      => 'Alasan pembatalan maksimal 500 karakter.',
+        ]);
+
+        $reason = $request->input('reason');
+
+        $cancelled = DB::transaction(function () use ($order, $reason) {
+            $locked = Order::lockForUpdate()->findOrFail($order->id);
+
+            if (!in_array($locked->status, ['paid', 'diproses'], true)) {
+                return null; // signal rejection
+            }
+
+            $note = "[DIBATALKAN ADMIN: {$reason}]";
+            $locked->update([
+                'status' => 'dibatalkan',
+                'notes'  => trim(($locked->notes ? $locked->notes . ' | ' : '') . $note),
+            ]);
+
+            // Reservasi stok masih dipegang order paid/diproses -> pulihkan.
+            app(StockService::class)->restoreForOrder($locked);
+
+            // Kembalikan kuota voucher (hanya jika tercatat di voucher_usages).
+            app(PaymentSettlementService::class)->releaseVoucherUsage($locked);
+
+            return $locked;
+        });
+
+        if ($cancelled === null) {
+            return redirect()
+                ->route('admin.orders.index')
+                ->with('error', 'Pesanan ini tidak dapat dibatalkan dari sini. Hanya pesanan berstatus Sudah Dibayar atau Sedang Diproses yang bisa dibatalkan; pesanan yang sudah dikirim/selesai harus lewat alur lain, dan refund tetap diproses lewat daftar Dana Tertangkap.');
+        }
+
+        // Email ke pelanggan — DI LUAR transaksi, kegagalan tidak membatalkan.
+        $cancelled->load('user');
+        $emailNote = '';
+
+        if ($cancelled->user?->email) {
+            try {
+                Mail::to($cancelled->user->email)->send(new OrderCancelledMail($cancelled, 'merchant_cancel', $reason));
+            } catch (\Throwable $e) {
+                Log::error('OrderCancelledMail gagal terkirim (cancel-paid)', [
+                    'order_id'    => $cancelled->id,
+                    'order_number' => $cancelled->order_number,
+                    'to_email'    => $cancelled->user->email,
+                    'error'       => $e->getMessage(),
+                ]);
+                $emailNote = ' Namun email notifikasi pembatalan ke pelanggan gagal terkirim.';
+            }
+        }
+
+        return redirect()
+            ->route('admin.orders.index', ['payment_captured' => 1])
+            ->with('success', "Pesanan #{$cancelled->order_number} berhasil dibatalkan. Langkah berikutnya: proses refund dana pelanggan lewat daftar Dana Tertangkap.{$emailNote}");
     }
 }

@@ -237,6 +237,19 @@
                                     </form>
                                 @endif
 
+                                {{-- "Batalkan Pesanan" (paid / diproses) — buka modal alasan --}}
+                                @if(in_array($order->status, ['paid', 'diproses'], true))
+                                    <button
+                                        type="button"
+                                        class="admin-btn-ghost"
+                                        style="font-size:0.75rem; padding:0.35rem 0.85rem; color:#be123c; border-color:#fecaca;"
+                                        x-data
+                                        @click="$dispatch('open-cancel-paid', { id: {{ $order->id }}, order_number: '{{ $order->order_number }}', url: '{{ route('admin.orders.cancel-paid', $order->id) }}' })"
+                                    >
+                                        Batalkan Pesanan
+                                    </button>
+                                @endif
+
                                 {{-- "Detail" button — shown for every row; opens Alpine modal --}}
                                 <button
                                     type="button"
@@ -268,6 +281,140 @@
             {{ $orders->links() }}
         </div>
     @endif
+</div>
+
+{{-- Modal: Batalkan Pesanan (paid/diproses) — satu instance, dibuka via event dispatch --}}
+@php
+    // Setelah redirect validasi gagal, modal dibuka ulang dengan old input.
+    // Hanya percaya _cancel_action jika menunjuk ke route admin orders kita
+    // sendiri — nilai lain (mis. kiriman tamu) diabaikan.
+    $oldCancelAction = \Illuminate\Support\Str::startsWith((string) old('_cancel_action'), url('admin/orders/'))
+        ? old('_cancel_action')
+        : '';
+@endphp
+<div
+    x-data="{
+        open: {{ $errors->has('reason') ? 'true' : 'false' }},
+        submitting: false,
+        orderId: null,
+        orderNumber: @js(old('_cancel_order_number', '')),
+        cancelAction: @js($oldCancelAction),
+        reason: @js(old('reason', '')),
+
+        openCancel(payload) {
+            this.orderId = payload.id;
+            this.orderNumber = payload.order_number ?? '';
+            this.cancelAction = payload.url ?? '';
+            this.reason = '';
+            this.submitting = false;
+            this.open = true;
+        },
+
+        closeModal() {
+            if (this.submitting) return;
+            this.open = false;
+            this.reason = '';
+        }
+    }"
+    x-on:keydown.escape.window="closeModal()"
+    x-on:open-cancel-paid.window="openCancel($event.detail)"
+    id="cancel-paid-modal-root"
+>
+    {{-- Backdrop --}}
+    <div
+        x-show="open"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 flex items-start justify-center pt-16 pb-6 px-4 overflow-y-auto"
+        style="display:none;"
+    >
+        <div class="fixed inset-0 bg-black/40 backdrop-blur-[2px]" x-on:click="closeModal()"></div>
+
+        {{-- Modal panel --}}
+        <div
+            x-show="open"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 translate-y-4 scale-[0.97]"
+            x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+            x-transition:leave-end="opacity-0 translate-y-4 scale-[0.97]"
+            class="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-2xl border border-atelier-border overflow-hidden"
+            style="display:none;"
+        >
+            {{-- Header --}}
+            <div class="flex items-center justify-between px-6 py-4 border-b border-atelier-border bg-[#FAF7F5]">
+                <div>
+                    <h2 class="text-sm font-bold text-atelier-textDark tracking-tight">Batalkan Pesanan</h2>
+                    <p x-show="orderNumber" class="text-[11px] text-atelier-textMuted mt-0.5 font-mono" x-text="orderNumber"></p>
+                </div>
+                <button
+                    type="button"
+                    x-on:click="closeModal()"
+                    class="w-8 h-8 flex items-center justify-center rounded-xl text-atelier-textMuted hover:bg-brand-50 hover:text-brand-600 transition-colors"
+                    aria-label="Tutup"
+                >
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            {{-- Body: form pembatalan --}}
+            <form method="POST" :action="cancelAction" class="px-6 py-5 space-y-4 m-0" x-on:submit="submitting = true">
+                @csrf
+                <input type="hidden" name="_cancel_action" :value="cancelAction">
+                <input type="hidden" name="_cancel_order_number" :value="orderNumber">
+
+                {{-- Peringatan --}}
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3.5">
+                    <p class="text-[11px] text-amber-800 leading-relaxed">
+                        Stok pesanan akan <strong>dipulihkan</strong>, pemakaian voucher (jika ada) akan
+                        <strong>dilepas</strong>, dan pelanggan akan <strong>dikirim email</strong> pemberitahuan pembatalan.
+                        Pembayaran yang sudah masuk <strong>TIDAK</strong> berubah statusnya — setelah dibatalkan,
+                        proses refund lewat menu <strong>Dana Tertangkap</strong>.
+                    </p>
+                </div>
+
+                <div>
+                    <label class="admin-label">Alasan Pembatalan <span class="text-red-500">*</span></label>
+                    <textarea
+                        name="reason"
+                        x-model="reason"
+                        rows="3"
+                        maxlength="500"
+                        minlength="5"
+                        required
+                        placeholder="Contoh: Barang rusak saat pemeriksaan gudang."
+                        class="admin-input resize-none"
+                    >{{ old('reason') }}</textarea>
+                    @error('reason')
+                        <p class="text-[11px] text-red-600 font-semibold mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-1">
+                    <button
+                        type="button"
+                        x-on:click="closeModal()"
+                        class="admin-btn-ghost"
+                        style="font-size:0.75rem; padding:0.4rem 0.9rem;"
+                    >Batal</button>
+                    <button
+                        type="submit"
+                        :disabled="submitting || reason.trim().length < 5"
+                        class="admin-btn-primary disabled:opacity-60 disabled:cursor-not-allowed"
+                        style="font-size:0.75rem; padding:0.4rem 0.9rem; background:#be123c; border-color:#be123c;"
+                    >
+                        <span x-show="!submitting">Konfirmasi Batalkan</span>
+                        <span x-show="submitting">Memproses...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 {{-- Detail Pesanan Modal (one instance, opened via Alpine event dispatch) --}}

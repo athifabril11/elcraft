@@ -330,13 +330,12 @@ class MidtransWebhookController extends Controller
             // dipegang order). Untuk status lain guard di atas sudah menolak.
             app(StockService::class)->restoreForOrder($order);
 
-            // Kembalikan kuota voucher — hanya jika tercatat (settlement paid)
-            if ($oldStatus === 'paid' && $order->voucher_id) {
-                $usage = VoucherUsage::where('order_id', $order->id)->first();
-                if ($usage) {
-                    $usage->delete();
-                    Voucher::where('id', $order->voucher_id)->decrement('used_count');
-                }
+            // Kembalikan kuota voucher — hanya jika tercatat (settlement paid).
+            // Logika pindah ke PaymentSettlementService::releaseVoucherUsage
+            // (dipakai bersama oleh admin cancel-paid); perilaku tidak berubah:
+            // tanpa rekaman VoucherUsage, used_count tidak pernah dikurangi.
+            if ($oldStatus === 'paid') {
+                app(PaymentSettlementService::class)->releaseVoucherUsage($order);
             }
 
             return $order;
