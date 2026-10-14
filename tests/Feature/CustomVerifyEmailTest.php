@@ -46,4 +46,18 @@ class CustomVerifyEmailTest extends TestCase
         $response->assertSessionHas('status', 'verification-link-sent');
         Notification::assertSentTo($user, VerifyEmail::class);
     }
+
+    public function test_resend_verification_survives_email_failure(): void
+    {
+        VerifyEmail::toMailUsing(function (object $notifiable, string $url) {
+            throw new \RuntimeException('SMTP down (simulasi)');
+        });
+
+        $user = User::factory()->unverified()->create();
+
+        $response = $this->actingAs($user)->post(route('verification.send'));
+
+        $response->assertStatus(302);
+        $response->assertSessionHas('status', 'verification-link-failed');
+    }
 }
