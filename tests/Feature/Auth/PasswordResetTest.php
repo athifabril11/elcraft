@@ -12,6 +12,13 @@ class PasswordResetTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function tearDown(): void
+    {
+        ResetPassword::$toMailCallback = null;
+
+        parent::tearDown();
+    }
+
     public function test_reset_password_link_screen_can_be_rendered(): void
     {
         $response = $this->get('/forgot-password');
@@ -102,5 +109,28 @@ class PasswordResetTest extends TestCase
 
             return true;
         });
+    }
+
+    public function test_forgot_password_survives_email_failure(): void
+    {
+        ResetPassword::toMailUsing(function ($notifiable, string $token) {
+            throw new \RuntimeException('SMTP down (simulasi)');
+        });
+
+        $user = User::factory()->create();
+
+        $response = $this->post('/forgot-password', ['email' => $user->email]);
+
+        $response->assertStatus(302);
+        $response->assertSessionHasErrors('email');
+        $this->assertGuest();
+    }
+
+    public function test_forgot_password_for_unknown_email_keeps_existing_branching(): void
+    {
+        $response = $this->post('/forgot-password', ['email' => 'nobody@example.com']);
+
+        $response->assertStatus(302);
+        $response->assertSessionHasErrors('email');
     }
 }
