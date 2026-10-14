@@ -131,6 +131,6 @@ class PasswordResetTest extends TestCase
         $response = $this->post('/forgot-password', ['email' => 'nobody@example.com']);
 
         $response->assertStatus(302);
-        $response->assertSessionHasErrors(['email' => __('passwords.user')]);
+        $response->assertSessionHasErrors(['email' => trans('passwords.user')]);
     }
 }
