@@ -91,4 +91,59 @@ class RegistrationTest extends TestCase
 
         Notification::assertSentTo($user, VerifyEmail::class);
     }
+
+    public function test_standard_registration_survives_verification_email_failure(): void
+    {
+        VerifyEmail::toMailUsing(function (object $notifiable, string $url) {
+            throw new \RuntimeException('SMTP down (simulasi)');
+        });
+
+        $response = $this->post('/register', [
+            'name' => 'Resilient User',
+            'email' => 'resilient@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertRedirect(route('verification.notice'));
+        $this->assertAuthenticated();
+        $this->assertDatabaseHas('users', ['email' => 'resilient@example.com']);
+        $this->assertSame('verification-link-failed', session('status'));
+    }
+
+    public function test_ajax_registration_survives_verification_email_failure(): void
+    {
+        VerifyEmail::toMailUsing(function (object $notifiable, string $url) {
+            throw new \RuntimeException('SMTP down (simulasi)');
+        });
+
+        $response = $this->postJson('/register', [
+            'name' => 'Resilient User',
+            'email' => 'resilient-json@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success'  => true,
+            'redirect' => route('verification.notice'),
+        ]);
+        $this->assertAuthenticated();
+        $this->assertSame('verification-link-failed', session('status'));
+    }
+
+    public function test_registration_success_does_not_flash_failure_status(): void
+    {
+        $response = $this->postJson('/register', [
+            'name' => 'Happy Path User',
+            'email' => 'happypath@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertStatus(200);
+        $this->assertAuthenticated();
+        $this->assertNull(session('status'));
+    }
 }
