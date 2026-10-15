@@ -87,17 +87,19 @@ class Voucher extends Model
         return true;
     }
 
-    // Hitung potongan voucher
+    // Hitung potongan voucher — dibulatkan sekali di sumber (rupiah bulat).
     public function calculateDiscount(float $totalPrice): float
     {
+        $totalPrice = max(0.0, round($totalPrice));
+
         if ($this->discount_type === 'percent') {
-            $discount = $totalPrice * $this->discount_value / 100;
+            $discount = round($totalPrice * (float) $this->discount_value / 100);
             if ($this->max_discount) {
-                $discount = min($discount, (float) $this->max_discount);
+                $discount = min($discount, round((float) $this->max_discount));
             }
-            return $discount;
+            return (float) max(0.0, min($discount, $totalPrice));
         }
 
-        return min((float) $this->discount_value, $totalPrice);
+        return (float) max(0.0, min(round((float) $this->discount_value), $totalPrice));
     }
 }

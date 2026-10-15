@@ -92,6 +92,21 @@ class MidtransService
                     'name'     => Str::limit($item['name'], 50), // Maks 50 karakter
                 ])
                 ->toArray();
+
+            // Penjaga konsistensi: sum(price * quantity) harus sama dengan gross_amount.
+            // Midtrans menolak payload yang tidak seimbang — jadi periksa SEBELUM kirim HTTP.
+            $itemSum = (int) collect($payload['item_details'])
+                ->sum(fn ($item) => $item['price'] * $item['quantity']);
+
+            if ($itemSum !== (int) $payload['transaction_details']['gross_amount']) {
+                Log::error('Midtrans Snap payload tidak seimbang', [
+                    'order_id'    => $order['id'],
+                    'item_sum'    => $itemSum,
+                    'gross_amount' => (int) $payload['transaction_details']['gross_amount'],
+                ]);
+
+                throw new \RuntimeException('Rincian item tidak sama dengan total pembayaran.');
+            }
         }
 
         // Kirim request ke Midtrans Snap API dengan Basic Auth (server key)

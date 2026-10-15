@@ -181,7 +181,8 @@ class CheckoutController extends Controller
 
         // 6. Hitung subtotal dan validasi voucher/produk SEBELUM membatalkan pesanan lama
         //     (agar tidak membatalkan pesanan lama kalau validasi gagal)
-        $subtotal = $cart->getTotalPrice();
+        //     Subtotal sudah rupiah bulat karena CartItem::getUnitPrice() di-round di sumber.
+        $subtotal = (int) round($cart->getTotalPrice());
 
         // 6a. Validasi voucher sebelum membatalkan pesanan lama
         //     (agar tidak membatalkan pesanan lama kalau voucher tidak valid).
@@ -255,13 +256,13 @@ class CheckoutController extends Controller
         // dipakai pada order paid/pending lain tetap diabaikan diam-diam
         // (diskon 0, tidak memblokir checkout) — kontrak VoucherSingleUsePerUserTest.
         if ($voucher !== null && !$voucher->isUsedBy($user->id, $abandonedIds)) {
-            $voucherDiscount = $voucher->calculateDiscount((float) $subtotal);
+            $voucherDiscount = (int) round($voucher->calculateDiscount((float) $subtotal));
             $voucherId       = $voucher->id;
         }
 
         $orderId  = 'ELCRAFT-' . strtoupper(Str::random(8)) . '-' . time();
-        $shipping = $verifiedShipping;
-        $total    = $subtotal + $shipping - $voucherDiscount;
+        $shipping = (int) $verifiedShipping;
+        $total    = (int) max(0, $subtotal + $shipping - $voucherDiscount);
 
         $order = null;
 

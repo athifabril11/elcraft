@@ -102,8 +102,8 @@ class CartItem extends Model
     {
         $basePrice = $this->product->final_price;
         $additionalPrice = $this->variant ? (float) $this->variant->additional_price : 0.0;
-        
-        return $basePrice + $additionalPrice;
+
+        return (float) round($basePrice + $additionalPrice);
     }
 
     /**
