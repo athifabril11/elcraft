@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use App\Models\Address;
 use App\Policies\AddressPolicy;
@@ -56,6 +59,21 @@ class AppServiceProvider extends ServiceProvider
                     'user' => $notifiable,
                     'url'  => $url,
                 ]);
+        });
+
+        // Rate limiter bernama untuk endpoint publik yang rawan disalahgunakan.
+        // Dipakai lewat middleware throttle:<nama> di routes/web.php — bukan
+        // throttle:30,1 numerik, agar tiap endpoint punya bucket terpisah.
+        RateLimiter::for('shipping', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?? $request->ip());
+        });
+
+        RateLimiter::for('voucher', function (Request $request) {
+            return Limit::perMinute(10)->by($request->user()?->id ?? $request->ip());
+        });
+
+        RateLimiter::for('cart', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?? $request->ip());
         });
     }
 }

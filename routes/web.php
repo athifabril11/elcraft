@@ -54,16 +54,16 @@ Route::middleware(['guest.modal', 'verified'])->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
-    Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
-    Route::post('/cart/buy-now', [CartController::class, 'buyNow'])->name('cart.buy-now');
-    Route::post('/cart/update', [CartController::class, 'update'])->name('cart.update');
-    Route::post('/cart/remove', [CartController::class, 'remove'])->name('cart.remove');
-    Route::post('/cart/toggle-select', [CartController::class, 'toggleSelect'])->name('cart.toggle-select');
-    Route::post('/cart/toggle-select-all', [CartController::class, 'toggleSelectAll'])->name('cart.toggle-select-all');
+    Route::post('/cart/add', [CartController::class, 'add'])->middleware('throttle:cart')->name('cart.add');
+    Route::post('/cart/buy-now', [CartController::class, 'buyNow'])->middleware('throttle:cart')->name('cart.buy-now');
+    Route::post('/cart/update', [CartController::class, 'update'])->middleware('throttle:cart')->name('cart.update');
+    Route::post('/cart/remove', [CartController::class, 'remove'])->middleware('throttle:cart')->name('cart.remove');
+    Route::post('/cart/toggle-select', [CartController::class, 'toggleSelect'])->middleware('throttle:cart')->name('cart.toggle-select');
+    Route::post('/cart/toggle-select-all', [CartController::class, 'toggleSelectAll'])->middleware('throttle:cart')->name('cart.toggle-select-all');
 
     Route::middleware('verified')->group(function () {
         Route::post('/checkout/snap-token', [CheckoutController::class, 'createSnapToken'])->name('checkout.token');
-        Route::post('/checkout/voucher/apply', [VoucherController::class, 'apply'])->name('voucher.apply');
+        Route::post('/checkout/voucher/apply', [VoucherController::class, 'apply'])->middleware('throttle:voucher')->name('voucher.apply');
     });
 
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -192,7 +192,7 @@ Route::middleware('auth')->group(function () {
 
 Route::get('/cart/count', [CartController::class, 'count'])->name('cart.count');
 
-Route::prefix('shipping')->name('shipping.')->group(function () {
+Route::prefix('shipping')->name('shipping.')->middleware('throttle:shipping')->group(function () {
     Route::get('/provinces',           [ShippingController::class, 'getProvinces'])->name('provinces');
     Route::get('/cities/{provinceId}', [ShippingController::class, 'getCities'])->name('cities');
     Route::post('/cost',               [ShippingController::class, 'calculateCost'])->name('cost');
