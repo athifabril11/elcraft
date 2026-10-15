@@ -4,7 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schedule;
+use Illuminate\Console\Scheduling\Schedule;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -36,7 +36,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Releases the checkout stock reservation, cancels the Midtrans
         // transaction, and emails the customer. Hourly keeps the gap
         // between expiry and cancellation small without hammering Midtrans.
-        $schedule->command('orders:auto-cancel-expired')->hourly();
+        // withoutOverlapping(30): cegah dua run saling tumpang-tindih bila
+        // satu run tersendat (API Midtrans lambat); mutex kedaluwarsa 30 menit.
+        $schedule->command('orders:auto-cancel-expired')->hourly()->withoutOverlapping(30);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Kembalikan JSON untuk semua request yang menginginkan JSON (AJAX, API, test postJson)
