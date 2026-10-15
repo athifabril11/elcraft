@@ -24,22 +24,33 @@ class GoogleLoginTest extends TestCase
         string $email  = 'googleuser@example.com',
         string $name   = 'Google User',
         string $avatar = 'https://lh3.googleusercontent.com/photo.jpg',
+        ?bool $emailVerified = true,
     ): SocialiteUserContract {
-        // Concrete anonymous class avoids PHPUnit interface-mock notices
-        return new class($id, $email, $name, $avatar) implements SocialiteUserContract {
+        // Concrete anonymous class avoids PHPUnit interface-mock notices.
+        // The raw payload is exposed exactly like Laravel\Socialite\AbstractUser
+        // exposes it: a public $user array readable via getRaw(). Passing
+        // null for $emailVerified omits the email_verified key entirely.
+        return new class($id, $email, $name, $avatar, $emailVerified) implements SocialiteUserContract {
+            public array $user;
+
             public function __construct(
                 private string $id,
                 private string $email,
                 private string $name,
                 private string $avatar,
-            ) {}
+                ?bool $emailVerified,
+            ) {
+                $this->user = $emailVerified === null
+                    ? []
+                    : ['email_verified' => $emailVerified];
+            }
 
             public function getId(): string         { return $this->id; }
             public function getEmail(): string      { return $this->email; }
             public function getName(): string       { return $this->name; }
             public function getAvatar(): string     { return $this->avatar; }
             public function getNickname(): ?string  { return null; }
-            public function getRaw(): array         { return []; }
+            public function getRaw(): array         { return $this->user; }
             public function getToken(): string      { return ''; }
             public function getRefreshToken(): ?string { return null; }
             public function getExpiresIn(): ?int    { return null; }
