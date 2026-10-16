@@ -33,7 +33,16 @@ class ShippingService
     public function __construct()
     {
         $this->apiKey  = config('rajaongkir.api_key') ?? '';
-        $this->baseUrl = config('rajaongkir.base_url') ?? 'https://rajaongkir.komerce.id/api/v1';
+        $this->baseUrl = (string) config('rajaongkir.base_url');
+
+        // Guard: base URL Starter lama (api.rajaongkir.com / /starter) tidak lagi
+        // berfungsi — endpoint & response schema sudah Komerce. Warning membantu
+        // operasional menyadari konfigurasi salah sebelum ongkir lumpuh.
+        if (str_contains($this->baseUrl, 'api.rajaongkir.com') || str_contains($this->baseUrl, '/starter')) {
+            Log::warning('RajaOngkir base_url masih menunjuk endpoint Starter lama — panggilan API akan gagal', [
+                'base_url' => $this->baseUrl,
+            ]);
+        }
 
         // Origin city ID resolution priority:
         // 1. shop_settings table (admin-configurable)
