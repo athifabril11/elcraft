@@ -24,10 +24,4 @@ class Category extends Model
     {
         return $this->hasMany(Product::class);
     }
-
-    // Scope: hanya kategori aktif
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
 }

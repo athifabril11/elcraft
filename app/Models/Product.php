@@ -56,24 +56,9 @@ class Product extends Model
         return $this->hasMany(Review::class);
     }
 
-    public function wishlists(): HasMany
-    {
-        return $this->hasMany(Wishlist::class);
-    }
-
     public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class);
-    }
-
-    /**
-     * Mendapatkan semua item keranjang belanja yang mengacu pada produk ini.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function cartItems(): HasMany
-    {
-        return $this->hasMany(CartItem::class);
     }
 
     // ─── Accessor: foto utama ─────────────────
@@ -138,22 +123,6 @@ class Product extends Model
             ->groupBy('rating')
             ->pluck('count', 'rating')
             ->toArray();
-    }
-
-    // ─── Scope ────────────────────────────────
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
-
-    public function scopeFeatured($query)
-    {
-        return $query->where('is_featured', true);
-    }
-
-    public function scopeInStock($query)
-    {
-        return $query->where('stock', '>', 0);
     }
 
     // ─── Accessor: effective display stock ────

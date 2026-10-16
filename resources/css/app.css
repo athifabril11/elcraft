@@ -20,21 +20,6 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
 }
 
-/* ─── Hero Carousel Indicators (Mobile Spacing & Positioning) ─── */
-@media (max-width: 768px) {
-    .hero-dots-container {
-        position: absolute;
-        bottom: 16px;
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 20;
-        margin-top: 0;
-    }
-}
-
 /* ─── Apple Glass & Neutral Form Focus Reset ─── */
 /* Mencegah default blue ring dari plugin tailwind forms */
 input:focus, select:focus, textarea:focus {

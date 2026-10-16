@@ -8,21 +8,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
 {
-    /**
-     * Display the login view.
-     */
-    public function create(Request $request): View
-    {
-        if ($request->has('redirect')) {
-            session(['url.intended' => $request->redirect]);
-        }
-        return view('auth.login');
-    }
-
     /**
      * Handle an incoming authentication request.
      */

@@ -92,24 +92,4 @@ class Cart extends Model
     {
         return (int) $this->allItems()->sum('quantity');
     }
-
-    /**
-     * Menghitung jumlah baris item unik yang ada di dalam keranjang.
-     *
-     * @return int
-     */
-    public function getItemCount(): int
-    {
-        return $this->allItems()->count();
-    }
-
-    /**
-     * Menghitung jumlah baris item yang dipilih di dalam keranjang.
-     *
-     * @return int
-     */
-    public function getSelectedCount(): int
-    {
-        return $this->items()->count();
-    }
 }

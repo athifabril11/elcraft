@@ -38,9 +38,4 @@ class Review extends Model
     {
         return $this->belongsTo(OrderItem::class);
     }
-
-    public function scopeApproved($query)
-    {
-        return $query->where('is_approved', true);
-    }
 }

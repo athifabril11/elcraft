@@ -34,9 +34,4 @@ class ProductVariant extends Model
     {
         return (float) $this->product->final_price + (float) $this->additional_price;
     }
-
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
 }

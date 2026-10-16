@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class OrderItem extends Model
 {
@@ -41,16 +40,5 @@ class OrderItem extends Model
     public function variant(): BelongsTo
     {
         return $this->belongsTo(ProductVariant::class, 'variant_id');
-    }
-
-    public function review(): HasOne
-    {
-        return $this->hasOne(Review::class);
-    }
-
-    // Cek sudah diulas
-    public function hasReview(): bool
-    {
-        return $this->review()->exists();
     }
 }
