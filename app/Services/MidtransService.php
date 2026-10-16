@@ -182,6 +182,12 @@ class MidtransService
             }
         }
 
+        if (! isset($notification['signature_key'])
+            || ! is_string($notification['signature_key'])
+            || $notification['signature_key'] === '') {
+            return false;
+        }
+
         $expectedSignature = hash('sha512',
             $notification['order_id'] .
             $notification['status_code'] .
@@ -189,7 +195,7 @@ class MidtransService
             $this->serverKey
         );
 
-        return hash_equals($expectedSignature, (string) ($notification['signature_key'] ?? ''));
+        return hash_equals($expectedSignature, $notification['signature_key']);
     }
 
     /**
