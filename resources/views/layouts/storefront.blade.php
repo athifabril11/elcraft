@@ -679,6 +679,10 @@
                     <span class="material-symbols-outlined text-brand !text-[18px]">mail</span>
                     <a href="mailto:elcraftid1402@gmail.com" class="hover:text-white transition-colors duration-200">elcraftid1402@gmail.com</a>
                 </div>
+                <div class="flex items-start space-x-3 text-xs text-warmGrey">
+                    <span class="material-symbols-outlined text-brand !text-[18px]">location_on</span>
+                    <span class="leading-relaxed">Dusun Krajan Barat, Desa Sukojember, Kecamatan Jelbuk, Kabupaten Jember, Jawa Timur 68192</span>
+                </div>
             </div>
         </div>
         
