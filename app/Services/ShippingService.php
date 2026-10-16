@@ -33,7 +33,7 @@ class ShippingService
     public function __construct()
     {
         $this->apiKey  = config('rajaongkir.api_key') ?? '';
-        $this->baseUrl = (string) config('rajaongkir.base_url');
+        $this->baseUrl = config('rajaongkir.base_url') ?: 'https://rajaongkir.komerce.id/api/v1';
 
         // Guard: base URL Starter lama (api.rajaongkir.com / /starter) tidak lagi
         // berfungsi — endpoint & response schema sudah Komerce. Warning membantu
@@ -60,34 +60,46 @@ class ShippingService
      */
     public function getProvinces(): array
     {
-        return Cache::remember('rajaongkir:provinces:v3', now()->addDays(7), function () {
-            try {
-                $response = Http::withHeaders([
-                    'key' => $this->apiKey,
-                ])->get("{$this->baseUrl}/destination/province");
+        $cacheKey = 'rajaongkir:provinces:v4';
 
-                if ($response->failed()) {
-                    Log::error('RajaOngkir getProvinces failed', [
-                        'status' => $response->status(),
-                        'body'   => $response->body(),
-                    ]);
-                    return [];
-                }
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
 
-                $data = $response->json();
-                $provinces = $data['data'] ?? [];
+        try {
+            $response = Http::withHeaders([
+                'key' => $this->apiKey,
+            ])->timeout(10)->get("{$this->baseUrl}/destination/province");
 
-                // Sort provinces alphabetically by name (A-Z)
-                usort($provinces, function ($a, $b) {
-                    return strcasecmp($a['name'] ?? '', $b['name'] ?? '');
-                });
+            if ($response->failed()) {
+                Log::error('RajaOngkir getProvinces failed', [
+                    'status' => $response->status(),
+                    'body'   => $response->body(),
+                ]);
 
-                return $provinces;
-            } catch (Exception $e) {
-                Log::error('RajaOngkir getProvinces exception', ['message' => $e->getMessage()]);
                 return [];
             }
-        });
+
+            $data     = $response->json();
+            $provinces = $data['data'] ?? [];
+
+            // Sort provinces alphabetically by name (A-Z)
+            usort($provinces, function ($a, $b) {
+                return strcasecmp($a['name'] ?? '', $b['name'] ?? '');
+            });
+
+            // Cache only successful, non-empty results — never cache failures.
+            if ($provinces !== []) {
+                Cache::put($cacheKey, $provinces, now()->addDays(7));
+            }
+
+            return $provinces;
+        } catch (Exception $e) {
+            Log::error('RajaOngkir getProvinces exception', ['message' => $e->getMessage()]);
+
+            return [];
+        }
     }
 
     /**
@@ -97,38 +109,50 @@ class ShippingService
      */
     public function getCities(int $provinceId): array
     {
-        return Cache::remember("rajaongkir:cities:v3:{$provinceId}", now()->addDays(7), function () use ($provinceId) {
-            try {
-                $response = Http::withHeaders([
-                    'key' => $this->apiKey,
-                ])->get("{$this->baseUrl}/destination/city/{$provinceId}");
+        $cacheKey = "rajaongkir:cities:v4:{$provinceId}";
 
-                if ($response->failed()) {
-                    Log::error('RajaOngkir getCities failed', [
-                        'province_id' => $provinceId,
-                        'status'      => $response->status(),
-                        'body'        => $response->body(),
-                    ]);
-                    return [];
-                }
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
 
-                $data = $response->json();
-                $cities = $data['data'] ?? [];
+        try {
+            $response = Http::withHeaders([
+                'key' => $this->apiKey,
+            ])->timeout(10)->get("{$this->baseUrl}/destination/city/{$provinceId}");
 
-                // Sort cities alphabetically by name (A-Z)
-                usort($cities, function ($a, $b) {
-                    return strcasecmp($a['name'] ?? '', $b['name'] ?? '');
-                });
-
-                return $cities;
-            } catch (Exception $e) {
-                Log::error('RajaOngkir getCities exception', [
+            if ($response->failed()) {
+                Log::error('RajaOngkir getCities failed', [
                     'province_id' => $provinceId,
-                    'message'     => $e->getMessage(),
+                    'status'      => $response->status(),
+                    'body'        => $response->body(),
                 ]);
+
                 return [];
             }
-        });
+
+            $data   = $response->json();
+            $cities = $data['data'] ?? [];
+
+            // Sort cities alphabetically by name (A-Z)
+            usort($cities, function ($a, $b) {
+                return strcasecmp($a['name'] ?? '', $b['name'] ?? '');
+            });
+
+            // Cache only successful, non-empty results — never cache failures.
+            if ($cities !== []) {
+                Cache::put($cacheKey, $cities, now()->addDays(7));
+            }
+
+            return $cities;
+        } catch (Exception $e) {
+            Log::error('RajaOngkir getCities exception', [
+                'province_id' => $provinceId,
+                'message'     => $e->getMessage(),
+            ]);
+
+            return [];
+        }
     }
 
     /**
@@ -166,48 +190,60 @@ class ShippingService
         // Include province_id in cache key so different discount configurations
         // for the same city vs province don't serve stale results.
         $provinceSegment = $destinationProvinceId ?? 'null';
-        $cacheKey = "rajaongkir:cost:v3:{$this->origin}:{$destinationCityId}:{$provinceSegment}:{$weightGrams}:{$courier}";
+        $cacheKey = "rajaongkir:cost:v4:{$this->origin}:{$destinationCityId}:{$provinceSegment}:{$weightGrams}:{$courier}";
 
-        return Cache::remember($cacheKey, now()->addHour(), function () use ($destinationCityId, $weightGrams, $courier, $destinationProvinceId) {
-            try {
-                // Komerce API requires form-data (not JSON)
-                $response = Http::withHeaders([
-                    'key' => $this->apiKey,
-                ])->asForm()->post("{$this->baseUrl}/calculate/domestic-cost", [
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        try {
+            // Komerce API requires form-data (not JSON)
+            $response = Http::withHeaders([
+                'key' => $this->apiKey,
+            ])->asForm()->timeout(10)->post("{$this->baseUrl}/calculate/domestic-cost", [
+                'origin'      => $this->origin,
+                'destination' => $destinationCityId,
+                'weight'      => $weightGrams,
+                'courier'     => $courier,
+            ]);
+
+            if ($response->failed()) {
+                Log::error('RajaOngkir calculateCost failed', [
                     'origin'      => $this->origin,
                     'destination' => $destinationCityId,
                     'weight'      => $weightGrams,
                     'courier'     => $courier,
+                    'status'      => $response->status(),
+                    'body'        => $response->body(),
                 ]);
 
-                if ($response->failed()) {
-                    Log::error('RajaOngkir calculateCost failed', [
-                        'origin'      => $this->origin,
-                        'destination' => $destinationCityId,
-                        'weight'      => $weightGrams,
-                        'courier'     => $courier,
-                        'status'      => $response->status(),
-                        'body'        => $response->body(),
-                    ]);
-                    return [];
-                }
-
-                $data = $response->json();
-                // Komerce returns flat array of services under 'data'
-                $services = $data['data'] ?? [];
-
-                // Apply admin-configured shipping discount rules
-                return $this->applyDiscountRules($services, $destinationCityId, $destinationProvinceId);
-            } catch (Exception $e) {
-                Log::error('RajaOngkir calculateCost exception', [
-                    'destination' => $destinationCityId,
-                    'weight'      => $weightGrams,
-                    'courier'     => $courier,
-                    'message'     => $e->getMessage(),
-                ]);
                 return [];
             }
-        });
+
+            $data = $response->json();
+            // Komerce returns flat array of services under 'data'
+            $services = $data['data'] ?? [];
+
+            // Apply admin-configured shipping discount rules
+            $results = $this->applyDiscountRules($services, $destinationCityId, $destinationProvinceId);
+
+            // Cache only successful, non-empty results — never cache failures.
+            if ($results !== []) {
+                Cache::put($cacheKey, $results, now()->addHour());
+            }
+
+            return $results;
+        } catch (Exception $e) {
+            Log::error('RajaOngkir calculateCost exception', [
+                'destination' => $destinationCityId,
+                'weight'      => $weightGrams,
+                'courier'     => $courier,
+                'message'     => $e->getMessage(),
+            ]);
+
+            return [];
+        }
     }
 
     /**

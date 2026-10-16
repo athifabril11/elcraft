@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Services\ShippingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
@@ -68,5 +70,27 @@ class RajaOngkirConfigTest extends TestCase
         new ShippingService();
 
         Log::shouldNotHaveReceived('warning');
+    }
+
+    public function test_empty_base_url_env_falls_back_to_komerce(): void
+    {
+        config()->set('rajaongkir.base_url', '');
+
+        Cache::flush();
+
+        Http::fake([
+            '*/destination/province*' => Http::response([
+                'meta' => ['code' => 200],
+                'data' => [['id' => 1, 'name' => 'Aceh']],
+            ], 200),
+        ]);
+
+        $service = new ShippingService();
+        $service->getProvinces();
+
+        Http::assertSent(fn ($request) => str_starts_with(
+            $request->url(),
+            'https://rajaongkir.komerce.id/api/v1/destination/province'
+        ), 'base_url kosong harus jatuh ke URL Komerce, bukan string kosong');
     }
 }
