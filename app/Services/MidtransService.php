@@ -24,9 +24,9 @@ class MidtransService
     public function __construct()
     {
         $this->isProduction = config('midtrans.is_production', false);
-        $this->serverKey    = $this->isProduction
+        $this->serverKey    = (string) ($this->isProduction
             ? config('midtrans.server_key_production')
-            : config('midtrans.server_key_sandbox');
+            : config('midtrans.server_key_sandbox'));
 
         // URL API berbeda untuk Sandbox dan Production
         $this->baseUrl = $this->isProduction
@@ -168,6 +168,20 @@ class MidtransService
      */
     public function verifySignature(array $notification): bool
     {
+        // Fail-closed: tanpa server key, signature tidak mungkin diverifikasi
+        // dengan aman — tolak semua notifikasi dan catat kritis.
+        if ($this->serverKey === '') {
+            Log::critical('Midtrans webhook DITOLAK: server key kosong — periksa konfigurasi midtrans.server_key_*');
+
+            return false;
+        }
+
+        foreach (['order_id', 'status_code', 'gross_amount'] as $field) {
+            if (! isset($notification[$field]) || ! is_scalar($notification[$field])) {
+                return false;
+            }
+        }
+
         $expectedSignature = hash('sha512',
             $notification['order_id'] .
             $notification['status_code'] .
@@ -175,7 +189,7 @@ class MidtransService
             $this->serverKey
         );
 
-        return hash_equals($expectedSignature, $notification['signature_key'] ?? '');
+        return hash_equals($expectedSignature, (string) ($notification['signature_key'] ?? ''));
     }
 
     /**

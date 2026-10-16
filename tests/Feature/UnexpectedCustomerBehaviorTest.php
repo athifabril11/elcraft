@@ -301,6 +301,7 @@ class UnexpectedCustomerBehaviorTest extends TestCase
 
         // Simulasi: webhook settlement arrive SAAT customer klik cancel
         // Webhook di-handle dulu (markAsPaid) -> status paid
+        config()->set('midtrans.server_key_sandbox', 'SB-Test-Key-Race');
         $webhookPayload = [
             'order_id' => $order->order_number,
             'transaction_status' => 'settlement',
@@ -552,6 +553,7 @@ class UnexpectedCustomerBehaviorTest extends TestCase
         ]);
 
         // Simulasi webhook settlement
+        config()->set('midtrans.server_key_sandbox', 'SB-Test-Key-CancelPaid');
         $webhookPayload = [
             'order_id' => $order->order_number,
             'transaction_status' => 'settlement',
