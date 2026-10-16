@@ -13,7 +13,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->trustProxies(at: '*');
+        // Percayai hanya loopback (ngrok / reverse proxy lokal); server produksi
+        // dengan nginx yang langsung menghadapi internet tidak perlu daftar lain;
+        // bila CDN/load balancer dipasang di depannya, ganti daftar ini dengan
+        // rentang IP milik CDN/load balancer tersebut.
+        $middleware->trustProxies(at: ['127.0.0.1', '::1']);
         $middleware->validateCsrfTokens(except: [
             'midtrans/webhook',
             'shipping/cost',
