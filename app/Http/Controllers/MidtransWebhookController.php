@@ -15,6 +15,7 @@ use App\Models\VoucherUsage;
 use App\Mail\OrderCancelledMail;
 use App\Mail\PaymentSuccessMail;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -78,14 +79,29 @@ class MidtransWebhookController extends Controller
             // Pengembalian dana (refund API sukses / refund via Midtrans dashboard)
             $transactionStatus === 'refund' => $this->markAsRefunded($orderId, $notification),
 
-            // Status tidak dikenal — catat untuk investigasi
-            default => Log::warning('Midtrans webhook: status tidak dikenal', $notification),
+            // Status tidak dikenal — catat untuk investigasi (allowlist: tanpa signature_key)
+            default => Log::warning('Midtrans webhook: status tidak dikenal', $this->logContext($notification)),
         };
 
         return response()->json(['message' => 'OK'], 200);
     }
 
     // ── Helper Methods ───────────────────────────────────────────────
+
+    /**
+     * Allowlist field notifikasi untuk konteks log — signature_key (dan
+     * payload apa pun di luar daftar putar) tidak pernah masuk log.
+     */
+    private function logContext(array $notification): array
+    {
+        return Arr::only($notification, [
+            'order_id',
+            'transaction_status',
+            'payment_type',
+            'status_code',
+            'fraud_status',
+        ]);
+    }
 
     private function markAsPaid(string $orderId, array $notification): void
     {
@@ -113,7 +129,8 @@ class MidtransWebhookController extends Controller
         //    shipment + rekam pemakaian voucher dengan re-validasi kuota.
         $paid = app(PaymentSettlementService::class)->markOrderPaid($order, [
             'payment_type'  => $notification['payment_type'] ?? null,
-            'response_data' => json_encode($notification),
+            'response_data' => json_encode(Arr::except($notification, ['signature_key'])),
+            'gross_amount'  => $notification['gross_amount'] ?? null,
         ]);
 
         if (!$paid) {
@@ -256,7 +273,7 @@ class MidtransWebhookController extends Controller
                 return;
             }
 
-            Log::info("Pesanan {$orderId} menunggu pembayaran", $notification);
+            Log::info("Pesanan {$orderId} menunggu pembayaran", $this->logContext($notification));
 
             $order->update(['status' => 'pending']);
             if ($order->payment) {
@@ -270,7 +287,7 @@ class MidtransWebhookController extends Controller
                 }
 
                 if (!empty($notification)) {
-                    $paymentUpdates['response_data'] = json_encode($notification);
+                    $paymentUpdates['response_data'] = json_encode(Arr::except($notification, ['signature_key']));
                 }
 
                 if (!empty($notification['expiry_time'])) {

@@ -109,6 +109,7 @@ class AutoCancelExpiredOrders extends Command
                 // Pembayaran sah — tandai lunas via service bersama; JANGAN cancel.
                 $paid = app(PaymentSettlementService::class)->markOrderPaid($candidate, [
                     'payment_type' => $statusResult['raw']['payment_type'] ?? null,
+                    'gross_amount' => $statusResult['raw']['gross_amount'] ?? null,
                 ]);
 
                 if ($paid) {

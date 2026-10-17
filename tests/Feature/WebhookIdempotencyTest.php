@@ -38,7 +38,9 @@ class WebhookIdempotencyTest extends TestCase
             'order_id'           => $orderNumber,
             'transaction_status' => 'settlement',
             'status_code'        => '200',
-            'gross_amount'       => '100000.00',
+            // Data uji: nominal selalu diambil dari total order (verifikasi
+            // jumlah di markOrderPaid menolak payload yang tidak cocok).
+            'gross_amount'       => (string) Order::where('order_number', $orderNumber)->value('total_amount'),
             'signature_key'      => 'dummy_signature',
             'payment_type'       => $paymentType,
             'fraud_status'       => 'accept',

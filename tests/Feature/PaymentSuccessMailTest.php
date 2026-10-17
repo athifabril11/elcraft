@@ -29,7 +29,9 @@ class PaymentSuccessMailTest extends TestCase
             'order_id'           => $orderNumber,
             'transaction_status' => 'settlement',
             'status_code'        => '200',
-            'gross_amount'       => '100000.00',
+            // Data uji: nominal selalu sama dengan total order masing-masing test
+            // (total berbeda: 115000 dengan ongkir, 50000 tanpa ongkir).
+            'gross_amount'       => (string) Order::where('order_number', $orderNumber)->value('total_amount'),
             'signature_key'      => 'dummy_signature',
             'payment_type'       => 'gopay',
             'fraud_status'       => 'accept',

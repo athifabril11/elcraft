@@ -229,14 +229,16 @@ class AutoCancelExpiredOrdersTest extends TestCase
     }
 
     /** Fake Midtrans: Get Status melaporkan settlement (cancel tidak boleh dipanggil). */
-    private function fakeLateSettlement(): void
+    private function fakeLateSettlement(string $grossAmount = '110000.00'): void
     {
         Http::fake([
             '*/v2/*/status' => Http::response([
                 'transaction_status' => 'settlement',
                 'status_code'        => '200',
                 'payment_type'       => 'qris',
-                'gross_amount'       => '110000.00',
+                // Data uji: nominal harus cocok dengan total_amount order —
+                // dua test voucher memakai total override 100000.
+                'gross_amount'       => $grossAmount,
             ], 200),
         ]);
     }
@@ -244,7 +246,7 @@ class AutoCancelExpiredOrdersTest extends TestCase
     public function test_late_settlement_via_get_status_records_voucher_usage(): void
     {
         Mail::fake();
-        $this->fakeLateSettlement();
+        $this->fakeLateSettlement('100000.00');
 
         $user = User::factory()->create();
         $voucher = Voucher::create([
@@ -293,7 +295,7 @@ class AutoCancelExpiredOrdersTest extends TestCase
     public function test_late_settlement_with_exhausted_quota_does_not_over_redeem(): void
     {
         Mail::fake();
-        $this->fakeLateSettlement();
+        $this->fakeLateSettlement('100000.00');
 
         $user = User::factory()->create();
         $voucher = Voucher::create([

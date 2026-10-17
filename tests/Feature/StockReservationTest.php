@@ -121,7 +121,9 @@ class StockReservationTest extends TestCase
             'order_id'           => $orderNumber,
             'transaction_status' => $transactionStatus,
             'status_code'        => '200',
-            'gross_amount'       => '100000.00',
+            // Data uji: nominal diambil dari total order — qty checkout bervariasi
+            // per test, dan verifikasi jumlah di markOrderPaid menolak selisih.
+            'gross_amount'       => (string) Order::where('order_number', $orderNumber)->value('total_amount'),
             'signature_key'      => 'dummy_signature',
             'payment_type'       => 'gopay',
             'fraud_status'       => 'accept',

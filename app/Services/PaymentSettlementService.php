@@ -22,11 +22,18 @@ use Illuminate\Support\Facades\Log;
 class PaymentSettlementService
 {
     /**
+     * Substring khas marker idempoten di orders.notes ketika nominal
+     * notifikasi Midtrans tidak sama dengan total pesanan.
+     */
+    public const AMOUNT_MISMATCH_MARKER = 'PERINGATAN SISTEM: Nominal pembayaran dari Midtrans';
+
+    /**
      * Tandai order 'pending' menjadi 'paid' secara atomik.
      *
      * @param  Order  $order    Order target (di-lock ulang di dalam transaksi)
-     * @param  array  $context  Konteksopsional: 'payment_type' => string|null,
-     *                                        'response_data' => string (JSON mentah notifikasi)
+     * @param  array  $context  Konteks opsional: 'payment_type' => string|null,
+     *                                        'response_data' => string (JSON mentah notifikasi),
+     *                                        'gross_amount' => string|float|int (nominal dari Midtrans)
      * @return bool             true jika status benar-benar berubah ke 'paid'
      */
     public function markOrderPaid(Order $order, array $context = []): bool
@@ -46,6 +53,40 @@ class PaymentSettlementService
 
             if ($locked->status !== 'pending') {
                 Log::warning("PaymentSettlementService: order {$locked->order_number} berstatus '{$locked->status}', penyelesaian pembayaran ditolak");
+                return false;
+            }
+
+            // ── Verifikasi nominal (di bawah lock, setelah semua guard) ──
+            // gross_amount dari Midtrans harus sama dengan total pesanan.
+            // Selisih → JANGAN ubah apa pun (order/payment/stok/voucher/email),
+            // catat kritis + marker idempoten di orders.notes, kembalikan false.
+            $expectedAmount = (int) round((float) $locked->total_amount);
+            $receivedAmount = isset($context['gross_amount']) && $context['gross_amount'] !== ''
+                ? (int) round((float) $context['gross_amount'])
+                : null;
+
+            if ($receivedAmount === null) {
+                // Tanpa gross_amount perilaku tetap seperti semula — hanya terlihat di log.
+                Log::warning("PaymentSettlementService: amount not verified untuk pesanan {$locked->order_number} — gross_amount tidak ada di konteks");
+            } elseif ($expectedAmount !== $receivedAmount) {
+                Log::critical('PaymentSettlementService: nominal pembayaran Midtrans tidak sama dengan total pesanan', [
+                    'order_number'    => $locked->order_number,
+                    'expected_amount' => $expectedAmount,
+                    'received_amount' => $receivedAmount,
+                ]);
+
+                $marker = self::AMOUNT_MISMATCH_MARKER
+                    . ' (Rp ' . number_format($receivedAmount, 0, ',', '.') . ')'
+                    . ' tidak sama dengan total pesanan (Rp ' . number_format($expectedAmount, 0, ',', '.') . ')'
+                    . '. Periksa di dashboard Midtrans.';
+
+                $notes = (string) $locked->notes;
+                if (!str_contains($notes, self::AMOUNT_MISMATCH_MARKER)) {
+                    $locked->update([
+                        'notes' => trim(($notes !== '' ? $notes . ' | ' : '') . $marker),
+                    ]);
+                }
+
                 return false;
             }
 
