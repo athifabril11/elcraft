@@ -27,8 +27,25 @@ class PaymentSettlementService
      */
     public const AMOUNT_MISMATCH_MARKER = 'PERINGATAN SISTEM: Nominal pembayaran dari Midtrans';
 
+    // ── Hasil settleOrder — semua keputusan diambil di bawah lock ───────────
+    /** Order ditemukan dan status benar-benar berubah ke 'paid'. */
+    public const RESULT_PAID = 'paid';
+    /** Order sudah 'paid' sebelumnya — idempoten, tidak ada perubahan. */
+    public const RESULT_ALREADY_PAID = 'already_paid';
+    /** Order tidak ditemukan (dihapus) saat lock diambil. */
+    public const RESULT_ORDER_MISSING = 'order_missing';
+    /** Order berstatus 'dibatalkan' — settlement telat, wajib auto-refund. */
+    public const RESULT_ORDER_CANCELLED = 'order_cancelled';
+    /** Status lain selain pending/paid/dibatalkan (mis. diproses) — tolak. */
+    public const RESULT_NOT_PENDING = 'not_pending';
+    /** gross_amount Midtrans tidak sama dengan total pesanan — tolak + marker. */
+    public const RESULT_AMOUNT_MISMATCH = 'amount_mismatch';
+
     /**
      * Tandai order 'pending' menjadi 'paid' secara atomik.
+     *
+     * Wrapper boolean atas settleOrder() — kontrak lama dipertahankan:
+     * true hanya jika status benar-benar berubah ke 'paid'.
      *
      * @param  Order  $order    Order target (di-lock ulang di dalam transaksi)
      * @param  array  $context  Konteks opsional: 'payment_type' => string|null,
@@ -38,22 +55,48 @@ class PaymentSettlementService
      */
     public function markOrderPaid(Order $order, array $context = []): bool
     {
-        $paid = DB::transaction(function () use ($order, $context) {
+        return $this->settleOrder($order, $context) === self::RESULT_PAID;
+    }
+
+    /**
+     * Penyelesaian pembayaran — SATU-SATUNYA jalur keputusan "order lunas".
+     *
+     * Semua keputusan (missing / already paid / cancelled / not pending /
+     * amount mismatch / paid) diambil DI BAWAH lockForUpdate, sehingga
+     * race "status berubah antara load dan lock" (C2) tidak lagi membuat
+     * settlement hilang senyap: pemanggil selalu menerima hasil tegas
+     * berupa konstanta RESULT_* dan bertindak sesuai.
+     *
+     * @param  Order  $order    Order target (di-lock ulang di dalam transaksi)
+     * @param  array  $context  Konteks sama dengan markOrderPaid()
+     * @return string           Salah satu konstanta RESULT_*
+     */
+    public function settleOrder(Order $order, array $context = []): string
+    {
+        return DB::transaction(function () use ($order, $context) {
             $locked = Order::lockForUpdate()->firstWhere('id', $order->id);
 
             if (!$locked) {
                 Log::warning("PaymentSettlementService: order id {$order->id} tidak ditemukan, lewati");
-                return false;
+                return self::RESULT_ORDER_MISSING;
             }
 
             if ($locked->status === 'paid') {
                 Log::info("PaymentSettlementService: order {$locked->order_number} sudah paid, lewati (idempoten)");
-                return false;
+                return self::RESULT_ALREADY_PAID;
+            }
+
+            if ($locked->status === 'dibatalkan') {
+                // Settlement telat: dana sudah tertangkap tapi order tidak
+                // boleh dibangkitkan. Keputusan refund dipegang pemanggil
+                // (webhook: auto-refund; auto-cancel: kritis + review manual).
+                Log::warning("PaymentSettlementService: order {$locked->order_number} berstatus 'dibatalkan', penyelesaian pembayaran ditolak");
+                return self::RESULT_ORDER_CANCELLED;
             }
 
             if ($locked->status !== 'pending') {
                 Log::warning("PaymentSettlementService: order {$locked->order_number} berstatus '{$locked->status}', penyelesaian pembayaran ditolak");
-                return false;
+                return self::RESULT_NOT_PENDING;
             }
 
             // ── Verifikasi nominal (di bawah lock, setelah semua guard) ──
@@ -87,7 +130,7 @@ class PaymentSettlementService
                     ]);
                 }
 
-                return false;
+                return self::RESULT_AMOUNT_MISMATCH;
             }
 
             $locked->update(['status' => 'paid']);
@@ -120,10 +163,8 @@ class PaymentSettlementService
 
             $this->recordVoucherUsage($locked);
 
-            return true;
+            return self::RESULT_PAID;
         });
-
-        return $paid;
     }
 
     /**

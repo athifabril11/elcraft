@@ -105,50 +105,63 @@ class MidtransWebhookController extends Controller
 
     private function markAsPaid(string $orderId, array $notification): void
     {
-        // ── Bayar-telat (late settlement) ─────────────────────────────────────
-        // Settlement valid tiba setelah order 'dibatalkan' (race: pelanggan
-        // bayar di detik cancel). Dana sudah tertangkap di Midtrans — jangan
-        // bangkitkan order, tapi auto-refund uangnya. Panggilan API dilakukan
-        // DI LUAR transaksi DB.
-        $currentStatus = Order::where('order_number', $orderId)->value('status');
-        if ($currentStatus === 'dibatalkan') {
-            $this->refundLateSettlement($orderId, $notification);
-            return;
-        }
-
-        Log::info("Pesanan {$orderId} telah lunas", ['payment_type' => $notification['payment_type']]);
-
+        // ── Semua keputusan di bawah lock (C2) ────────────────────────────────
+        // Tanpa pre-read status tanpa lock: race "pending → dibatalkan" antara
+        // load dan lock tidak lagi membuat settlement hilang senyap —
+        // settleOrder() mengembalikan hasil tegas (RESULT_*) dan method ini
+        // bertindak sesuai. Semua jalur TETAP membalas HTTP 200 (handle()).
         $order = Order::where('order_number', $orderId)->first();
-        if (!$order) {
-            Log::warning("Midtrans webhook: order {$orderId} not found for markAsPaid");
-            return;
-        }
 
-        // ── Tandai lunas lewat service bersama (juga dipakai rekonkilsiliasi
-        //    auto-cancel): lock baris + guard idempoten + update payment +
-        //    shipment + rekam pemakaian voucher dengan re-validasi kuota.
-        $paid = app(PaymentSettlementService::class)->markOrderPaid($order, [
-            'payment_type'  => $notification['payment_type'] ?? null,
-            'response_data' => json_encode(Arr::except($notification, ['signature_key'])),
-            'gross_amount'  => $notification['gross_amount'] ?? null,
-        ]);
+        $result = $order
+            ? app(PaymentSettlementService::class)->settleOrder($order, [
+                'payment_type'  => $notification['payment_type'] ?? null,
+                'response_data' => json_encode(Arr::except($notification, ['signature_key'])),
+                'gross_amount'  => $notification['gross_amount'] ?? null,
+            ])
+            : PaymentSettlementService::RESULT_ORDER_MISSING;
 
-        if (!$paid) {
-            return;
-        }
+        switch ($result) {
+            case PaymentSettlementService::RESULT_PAID:
+                Log::info("Pesanan {$orderId} telah lunas", ['payment_type' => $notification['payment_type']]);
 
-        // ── Kirim email konfirmasi pembayaran sukses / invoice kepada pelanggan ──
-        $paidOrder = Order::where('order_number', $orderId)
-            ->with(['items', 'address', 'payment', 'shipment', 'user'])
-            ->first();
+                // ── Kirim email konfirmasi pembayaran sukses / invoice kepada pelanggan ──
+                $paidOrder = Order::where('order_number', $orderId)
+                    ->with(['items', 'address', 'payment', 'shipment', 'user'])
+                    ->first();
 
-        if ($paidOrder && $paidOrder->user?->email) {
-            try {
-                Mail::to($paidOrder->user->email)->send(new PaymentSuccessMail($paidOrder));
-                Log::info("Email konfirmasi pembayaran berhasil dikirim ke {$paidOrder->user->email} untuk pesanan {$orderId}");
-            } catch (\Throwable $e) {
-                Log::error("Midtrans webhook: Gagal mengirim email konfirmasi pembayaran untuk pesanan {$orderId}: " . $e->getMessage());
-            }
+                if ($paidOrder && $paidOrder->user?->email) {
+                    try {
+                        Mail::to($paidOrder->user->email)->send(new PaymentSuccessMail($paidOrder));
+                        Log::info("Email konfirmasi pembayaran berhasil dikirim ke {$paidOrder->user->email} untuk pesanan {$orderId}");
+                    } catch (\Throwable $e) {
+                        Log::error("Midtrans webhook: Gagal mengirim email konfirmasi pembayaran untuk pesanan {$orderId}: " . $e->getMessage());
+                    }
+                }
+                return;
+
+            case PaymentSettlementService::RESULT_ORDER_CANCELLED:
+                // ── Bayar-telat (late settlement) ─────────────────────────────
+                // Settlement valid tiba setelah order 'dibatalkan' (race: pelanggan
+                // bayar di detik cancel). Dana sudah tertangkap di Midtrans — jangan
+                // bangkitkan order, tapi auto-refund uangnya. Panggilan API dilakukan
+                // DI LUAR transaksi DB.
+                Log::critical('Midtrans webhook: settlement untuk order yang sudah dibatalkan — menjalankan auto-refund', [
+                    'order_number' => $orderId,
+                ]);
+                $this->refundLateSettlement($orderId, $notification);
+                return;
+
+            case PaymentSettlementService::RESULT_ALREADY_PAID:
+            case PaymentSettlementService::RESULT_AMOUNT_MISMATCH:
+                // Idempoten / marker mismatch sudah dicatat service — diam (200).
+                return;
+
+            default:
+                // RESULT_ORDER_MISSING / RESULT_NOT_PENDING — jangan diam senyap.
+                Log::warning('Midtrans webhook: settlement ditolak oleh PaymentSettlementService', [
+                    'order_number' => $orderId,
+                    'result'       => $result,
+                ]);
         }
     }
 

@@ -106,13 +106,14 @@ class AutoCancelExpiredOrders extends Command
                 $localCancel = true;
             } elseif (in_array($midtransStatus, ['settlement'], true)
                 || ($midtransStatus === 'capture' && $fraudStatus === 'accept')) {
-                // Pembayaran sah — tandai lunas via service bersama; JANGAN cancel.
-                $paid = app(PaymentSettlementService::class)->markOrderPaid($candidate, [
+                // Pembayaran sah — semua keputusan di bawah lock lewat
+                // settleOrder(); JANGAN cancel.
+                $result = app(PaymentSettlementService::class)->settleOrder($candidate, [
                     'payment_type' => $statusResult['raw']['payment_type'] ?? null,
                     'gross_amount' => $statusResult['raw']['gross_amount'] ?? null,
                 ]);
 
-                if ($paid) {
+                if ($result === PaymentSettlementService::RESULT_PAID) {
                     $resolved++;
                     Log::info('orders:auto-cancel-expired — pembayaran ditemukan lunas via Get Status API, ditandai paid', [
                         'order_number'    => $candidate->order_number,
@@ -137,6 +138,21 @@ class AutoCancelExpiredOrders extends Command
                             ]);
                         }
                     }
+                } elseif ($result === PaymentSettlementService::RESULT_ORDER_CANCELLED) {
+                    // Race: order dibatalkan setelah terpilih sebagai kandidat.
+                    // Kebijakan: command TIDAK auto-refund (kebijakan refund ada
+                    // di webhook late-settlement) — cukup kritis-kan agar ada
+                    // jejak dana tertangkap untuk review manual.
+                    Log::critical('orders:auto-cancel-expired — settlement found for cancelled order, needs manual refund', [
+                        'order_number' => $candidate->order_number,
+                    ]);
+                } else {
+                    // Hasil selain RESULT_PAID (already_paid / amount mismatch /
+                    // not pending / order missing) — JANGAN diam senyap.
+                    Log::warning('orders:auto-cancel-expired — settlement tidak ditandai paid oleh service', [
+                        'order_number' => $candidate->order_number,
+                        'result'       => $result,
+                    ]);
                 }
                 continue;
             } elseif ($midtransStatus === 'capture') {
