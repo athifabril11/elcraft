@@ -58,7 +58,7 @@ class MidtransWebhookController extends Controller
         $orderId           = $notification['order_id'];
         $transactionStatus = $notification['transaction_status'];
         $fraudStatus       = $notification['fraud_status'] ?? null;
-        $paymentType       = $notification['payment_type'];
+        $paymentType       = $notification['payment_type'] ?? null;
 
         Log::info('Midtrans webhook diterima', compact('orderId', 'transactionStatus', 'paymentType'));
 
@@ -122,7 +122,7 @@ class MidtransWebhookController extends Controller
 
         switch ($result) {
             case PaymentSettlementService::RESULT_PAID:
-                Log::info("Pesanan {$orderId} telah lunas", ['payment_type' => $notification['payment_type']]);
+                Log::info("Pesanan {$orderId} telah lunas", ['payment_type' => $notification['payment_type'] ?? null]);
 
                 // ── Kirim email konfirmasi pembayaran sukses / invoice kepada pelanggan ──
                 $paidOrder = Order::where('order_number', $orderId)

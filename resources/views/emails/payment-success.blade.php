@@ -171,7 +171,7 @@
                                 {{-- CTA Button --}}
                                 <tr>
                                     <td align="center" style="padding-bottom:12px;">
-                                        <a href="{{ config('app.url') }}/orders/{{ $order->order_number }}"
+                                        <a href="{{ route('orders.show', $order->order_number) }}"
                                            style="display:inline-block; background:#C17B6F; color:#ffffff; font-size:13px; font-weight:700; text-decoration:none; padding:14px 32px; border-radius:10px; letter-spacing:0.5px; text-transform:uppercase;">
                                             Lihat Status Pesanan
                                         </a>
