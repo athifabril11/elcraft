@@ -113,7 +113,7 @@ class CheckoutController extends Controller
             'address_id'      => 'nullable|integer',
             'recipient_name'  => 'required|string|max:255',
             'recipient_phone' => 'required|string|max:50',
-            'full_address'    => 'required|string',
+            'full_address'    => 'required|string|max:255',
             'city'            => 'required|string|max:100',
             'city_id'         => 'required|integer|min:1',
             'province_id'     => 'nullable|integer|min:1',
@@ -441,12 +441,24 @@ class CheckoutController extends Controller
         } catch (\Exception $e) {
             if ($order !== null) {
                 try {
-                    $order->update(['status' => 'dibatalkan']);
-                    if ($order->payment) {
-                        $order->payment->update(['status' => 'failed']);
-                    }
-                    // Pulihkan reservasi stok pesanan yang gagal dapat token Snap
-                    $this->stock->restoreForOrder($order);
+                    // Satu transaksi atomik + guard status: batal (order+payment)
+                    // dan restore stok hanya terpasang bersama-sama — restore gagal
+                    // → rollback total, order tetap 'pending' dengan stok yang masih
+                    // ter-reserve (tidak pernah "dibatalkan" tanpa stok pulih).
+                    DB::transaction(function () use ($order) {
+                        $locked = Order::where('id', $order->id)->lockForUpdate()->first();
+
+                        if (!$locked || $locked->status !== 'pending') {
+                            return;
+                        }
+
+                        $locked->update(['status' => 'dibatalkan']);
+                        if ($locked->payment) {
+                            $locked->payment->update(['status' => 'failed']);
+                        }
+                        // Pulihkan reservasi stok pesanan yang gagal dapat token Snap
+                        $this->stock->restoreForOrder($locked);
+                    });
                 } catch (\Throwable $updateEx) {
                     Log::warning('Checkout: gagal menandai order dibatalkan setelah snap error', [
                         'order_id' => $order->id,

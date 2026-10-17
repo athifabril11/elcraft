@@ -10,6 +10,7 @@ use App\Models\Payment;
 use App\Models\Address;
 use App\Services\MidtransService;
 use App\Services\ShippingService;
+use App\Services\StockService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use Mockery;
@@ -225,6 +226,100 @@ class CheckoutTest extends TestCase
         $this->assertSame('dibatalkan', $order->status);
         // Baris Payment TIDAK dibuat
         $this->assertSame(0, Payment::where('order_id', $order->id)->count());
+    }
+
+    public function test_snap_failure_with_failing_stock_restore_leaves_order_pending(): void
+    {
+        $user = User::factory()->create();
+        $category = Category::create(['name' => 'Cincin', 'slug' => 'cincin-restore', 'is_active' => true]);
+        $product = Product::create([
+            'category_id' => $category->id,
+            'name' => 'Cincin Emas',
+            'slug' => 'cincin-emas-restore',
+            'price' => 100000,
+            'stock' => 3,
+            'weight' => 50,
+            'is_active' => true,
+        ]);
+
+        $cart = $user->getOrCreateCart();
+        $cart->items()->create([
+            'product_id' => $product->id,
+            'quantity'   => 1,
+        ]);
+
+        $shippingMock = Mockery::mock(ShippingService::class);
+        $shippingMock->shouldReceive('calculateCost')
+            ->once()
+            ->andReturn([
+                ['code' => 'jne', 'service' => 'REG', 'description' => 'Layanan Reguler', 'cost' => 10000, 'etd' => '2'],
+            ]);
+        $this->app->instance(ShippingService::class, $shippingMock);
+
+        $midtransMock = Mockery::mock(MidtransService::class);
+        $midtransMock->shouldReceive('createSnapToken')
+            ->once()
+            ->andThrow(new \Exception('Midtrans down'));
+        $this->app->instance(MidtransService::class, $midtransMock);
+
+        // Restore stok DIBUAT GAGAL: emergency cancel harus menggulung SELURUH
+        // blok pembatalan — order tidak boleh berstatus 'dibatalkan' sementara
+        // stok belum dipulihkan (baik dua-duanya terpasang atau tidak sama sekali).
+        $stockMock = Mockery::mock(StockService::class . '[restoreForOrder]');
+        $stockMock->shouldReceive('restoreForOrder')
+            ->andThrow(new \RuntimeException('Gagal memulihkan stok'));
+        $this->app->instance(StockService::class, $stockMock);
+
+        $response = $this
+            ->actingAs($user)
+            ->postJson(route('checkout.token'), [
+                'recipient_name'  => 'John Doe',
+                'recipient_phone' => '081234567890',
+                'full_address'    => 'Jl. Merdeka No. 10',
+                'city'            => 'Bandung',
+                'city_id'         => 23,
+                'postal_code'     => '40115',
+                'courier'         => 'jne',
+                'courier_service' => 'jne-REG',
+                'payment_method'  => 'snap',
+            ]);
+
+        $response->assertStatus(500);
+
+        $order = Order::where('user_id', $user->id)->firstOrFail();
+        $this->assertSame(
+            'pending',
+            $order->status,
+            'Restore gagal → seluruh blok emergency cancel harus rollback: order TIDAK boleh "dibatalkan" dengan stok belum pulih'
+        );
+        $this->assertSame(2, $product->refresh()->stock, 'Stok tetap ter-reserve untuk order yang masih pending');
+        $this->assertSame(1, $cart->items()->count(), 'Keranjang tetap utuh');
+    }
+
+    public function test_full_address_over_255_chars_is_rejected_with_validation_error(): void
+    {
+        $user = User::factory()->create();
+
+        // 300 karakter — lolos kolom TEXT tapi harus ditolak validasi (422,
+        // bukan 500) karena CheckoutController memberi batas max:255.
+        $longAddress = str_repeat('a', 300);
+
+        $response = $this
+            ->actingAs($user)
+            ->postJson(route('checkout.token'), [
+                'recipient_name'  => 'John Doe',
+                'recipient_phone' => '081234567890',
+                'full_address'    => $longAddress,
+                'city'            => 'Bandung',
+                'city_id'         => 23,
+                'postal_code'     => '40115',
+                'courier'         => 'jne',
+                'courier_service' => 'jne-REG',
+                'payment_method'  => 'snap',
+            ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['full_address']);
     }
 
     public function test_checkout_validates_stock(): void
